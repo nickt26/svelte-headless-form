@@ -1,0 +1,10 @@
+import { isObject } from 'src/internal/util/isObject';
+
+export type EmptyType<T> = T extends object ? object : T extends any[] ? T[] : T extends string ? string : undefined;
+
+export const empty = <T>(val: T): EmptyType<T> => {
+	if (Array.isArray(val)) return [] as EmptyType<T>;
+	if (isObject(val)) return {} as EmptyType<T>;
+	if (typeof val === 'string') return '' as EmptyType<T>;
+	return undefined as EmptyType<T>;
+};

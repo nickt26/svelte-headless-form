@@ -1,18 +1,32 @@
 {
 	"compilerOptions": {
-		"allowJs": true,
-		"checkJs": true,
+		"allowJs": false,
+		"checkJs": false,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"sourceMap": true,
+		"declarationMap": true,
 		"strict": true,
 		"baseUrl": ".",
 		"paths": {
 			"src/*": ["src/*"]
 		},
-		"rootDir": "."
-	},
-	"exclude": ["node_modules", "build"]
+		"rootDir": ".",
+		"strictNullChecks": true,
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"alwaysStrict": true,
+		"noFallthroughCasesInSwitch": true,
+		"outDir": "dist",
+		"declaration": true,
+		"target": "ES2018",
+		"removeComments": true,
+		"lib": ["DOM", "DOM.Iterable", "ESNext"],
+		"noEmit": true,
+		"moduleResolution": "node",
+		"module": "ES2015",
+		"skipDefaultLibCheck": true
+	}
 }

@@ -4,7 +4,7 @@ import type { UserConfig } from 'vite';
 const config: UserConfig = {
 	resolve: {
 		alias: {
-			lib: path.resolve('src')
+			src: path.resolve('src')
 		}
 	}
 };
