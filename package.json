@@ -3,16 +3,21 @@
 	"version": "0.1.0",
 	"description": "A fast, light and batteries-included form library to make you more productive",
 	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"test": "vitest --config ./vitest.config.ts",
 		"coverage": "vitest --config ./vitest.config.ts --coverage",
 		"build": "tsc -p tsconfig.dist.json"
 	},
 	"author": "Nicholas Trummer (nickt26)",
-	"license": "ISC",
+	"license": "MIT",
+	"files": [
+		"dist"
+	],
 	"keywords": [
 		"svelte",
 		"forms",
+		"form",
 		"validation",
 		"form-validation"
 	],
