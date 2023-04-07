@@ -1,5 +1,5 @@
-import { isObject } from 'src/internal/util/isObject';
 import { describe, expect, it } from 'vitest';
+import { isObject } from '../../../internal/util/isObject';
 
 describe('isObject', () => {
 	it('should return true for object', () => {

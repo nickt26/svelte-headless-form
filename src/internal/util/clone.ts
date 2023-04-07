@@ -1,6 +1,6 @@
-import { empty } from 'src/internal/util/empty';
-import { isNil } from 'src/internal/util/isNil';
-import { isObject } from 'src/internal/util/isObject';
+import { empty } from './empty';
+import { isNil } from './isNil';
+import { isObject } from './isObject';
 
 export const clone = <T>(obj: T): T => {
 	if (isNil(obj)) return obj;

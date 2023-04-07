@@ -1,3 +1,14 @@
+import { get, writable } from 'svelte/store';
+import { appendImpure } from '../internal/util/append';
+import { assign, assignImpure } from '../internal/util/assign';
+import { clone } from '../internal/util/clone';
+import { findTriggers } from '../internal/util/findTriggers';
+import { getInternal } from '../internal/util/get';
+import { isFormValidImpure } from '../internal/util/isFormValid';
+import { mergeRightDeepImpure } from '../internal/util/mergeRightDeep';
+import { prependImpure } from '../internal/util/prepend';
+import { removePropertyImpure } from '../internal/util/removeProperty';
+import { setImpure } from '../internal/util/set';
 import type {
 	ArrayFieldAddOptions,
 	ErrorFields,
@@ -7,18 +18,7 @@ import type {
 	ResetFieldOptions,
 	ValidatorFields,
 	ValidatorFn
-} from 'src/internal/types/Form';
-import { appendImpure } from 'src/internal/util/append';
-import { assign, assignImpure } from 'src/internal/util/assign';
-import { clone } from 'src/internal/util/clone';
-import { findTriggers } from 'src/internal/util/findTriggers';
-import { getInternal } from 'src/internal/util/get';
-import { isFormValidImpure } from 'src/internal/util/isFormValid';
-import { mergeRightDeepImpure } from 'src/internal/util/mergeRightDeep';
-import { prependImpure } from 'src/internal/util/prepend';
-import { removePropertyImpure } from 'src/internal/util/removeProperty';
-import { setImpure } from 'src/internal/util/set';
-import { get, writable } from 'svelte/store';
+} from '../types/Form';
 
 //TODO: Add operations/branches for form with schema
 export const createForm = <T extends object, V extends ValidatorFields<T> = ValidatorFields<T>>({

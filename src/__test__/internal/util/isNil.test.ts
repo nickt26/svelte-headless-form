@@ -1,5 +1,5 @@
-import { isNil } from 'src/internal/util/isNil';
 import { describe, expect, it } from 'vitest';
+import { isNil } from '../../../internal/util/isNil';
 
 describe('isNil', () => {
 	it('should return true for null', () => {

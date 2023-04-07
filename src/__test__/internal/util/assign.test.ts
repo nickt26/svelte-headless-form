@@ -1,5 +1,5 @@
-import { assign, assignImpure } from 'src/internal/util/assign';
 import { describe, expect, it } from 'vitest';
+import { assign, assignImpure } from '../../../internal/util/assign';
 
 describe('assignImpure', () => {
 	it('should have exact same object structure and same value', () => {

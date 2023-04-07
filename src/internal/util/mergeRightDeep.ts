@@ -1,4 +1,4 @@
-import { isObject } from 'src/internal/util/isObject';
+import { isObject } from './isObject';
 
 export const mergeRightDeepImpure = <T extends object, S extends object>(left: T, right: S): T & S => {
 	const keys = Object.keys(right) as (keyof T)[] & (keyof S)[];

@@ -1,6 +1,6 @@
-import { ErrorFields, ValidatorFields } from 'src/internal/types/Form';
-import { empty } from 'src/internal/util/empty';
-import { isObject } from 'src/internal/util/isObject';
+import { ErrorFields, ValidatorFields } from '../../types/Form';
+import { empty } from './empty';
+import { isObject } from './isObject';
 
 export function isFormValidImpure<T extends object, V extends object>(
 	currentValue: V,

@@ -1,6 +1,6 @@
-import { canParseToInt } from 'src/internal/util/canParseToInt';
-import { isNil } from 'src/internal/util/isNil';
-import { isObject } from 'src/internal/util/isObject';
+import { canParseToInt } from './canParseToInt';
+import { isNil } from './isNil';
+import { isObject } from './isObject';
 
 export const removePropertyImpure = <T extends object>(path: string, obj: T): T => {
 	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj))) return obj;

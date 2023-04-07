@@ -1,5 +1,5 @@
-import { findTriggers } from 'src/internal/util/findTriggers';
 import { describe, expect, it } from 'vitest';
+import { findTriggers } from '../../../internal/util/findTriggers';
 
 describe('findTriggers', () => {
 	it('should find triggers for provided deps', () => {

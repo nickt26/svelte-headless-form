@@ -1,5 +1,5 @@
-import { appendImpure } from 'src/internal/util/append';
 import { describe, expect, it } from 'vitest';
+import { appendImpure } from '../../../internal/util/append';
 
 describe('appendImpure', () => {
 	it('should append to array property', () => {

@@ -1,5 +1,5 @@
-import { prependImpure } from 'src/internal/util/prepend';
 import { describe, expect, it } from 'vitest';
+import { prependImpure } from '../../../internal/util/prepend';
 
 describe('prependImpure', () => {
 	it('should prepend array property', () => {

@@ -1,7 +1,7 @@
-import { Form, FormControl, ValidatorFields } from 'src/internal/types/Form';
-import { getInternal } from 'src/internal/util/get';
-import { setImpure } from 'src/internal/util/set';
 import { Readable, derived, get, writable } from 'svelte/store';
+import { getInternal } from '../internal/util/get';
+import { setImpure } from '../internal/util/set';
+import { Form, FormControl, ValidatorFields } from '../types/Form';
 
 type UseFieldOptions<T extends object, V extends ValidatorFields<T>> = {
 	name: string;

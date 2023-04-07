@@ -1,5 +1,5 @@
-import { getInternal } from 'src/internal/util/get';
 import { describe, expect, it } from 'vitest';
+import { getInternal } from '../../../internal/util/get';
 
 describe('getInternal', () => {
 	it('should extract propery', () => {

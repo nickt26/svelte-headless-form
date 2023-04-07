@@ -1,5 +1,5 @@
-import { clone } from 'src/internal/util/clone';
 import { describe, expect, it } from 'vitest';
+import { clone } from '../../../internal/util/clone';
 
 describe('clone', () => {
 	it('should have refererential inequality and deep equality for objects', () => {

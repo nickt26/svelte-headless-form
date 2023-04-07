@@ -10,11 +10,6 @@
 		"declarationMap": true,
 		"declaration": true,
 		"strict": true,
-		"baseUrl": ".",
-		"paths": {
-			"src/*": ["src/*"]
-		},
-		"rootDir": ".",
 		"alwaysStrict": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedParameters": true,

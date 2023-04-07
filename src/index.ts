@@ -1,3 +1,3 @@
-export * from 'src/core/createForm';
-export * from 'src/core/useArrayField';
-export * from 'src/core/useField';
+export * from './core/createForm';
+export * from './core/useArrayField';
+export * from './core/useField';

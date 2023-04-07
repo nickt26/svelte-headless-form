@@ -1,5 +1,5 @@
-import { canParseToInt } from 'src/internal/util/canParseToInt';
 import { describe, expect, it } from 'vitest';
+import { canParseToInt } from '../../../internal/util/canParseToInt';
 
 describe('canParseToInt', () => {
 	it('should not be parsable for non-number based string value', () => {

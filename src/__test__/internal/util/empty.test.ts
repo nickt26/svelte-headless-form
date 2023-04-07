@@ -1,5 +1,5 @@
-import { empty } from 'src/internal/util/empty';
 import { describe, expect, it } from 'vitest';
+import { empty } from '../../../internal/util/empty';
 
 describe('empty', () => {
 	it('should have referential inequality and deep inequality for objects', () => {

@@ -1,5 +1,5 @@
-import { removePropertyImpure } from 'src/internal/util/removeProperty';
 import { describe, expect, it } from 'vitest';
+import { removePropertyImpure } from '../../../internal/util/removeProperty';
 
 describe('removePropertyImpure', () => {
 	it('should remove property from object', () => {

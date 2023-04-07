@@ -1,4 +1,4 @@
-import { isObject } from 'src/internal/util/isObject';
+import { isObject } from './isObject';
 
 export const findTriggers = (path: string, deps: any, currentPath = ''): string[] => {
 	const triggers = [] as string[];

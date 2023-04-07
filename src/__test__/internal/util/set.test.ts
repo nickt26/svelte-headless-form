@@ -1,5 +1,5 @@
-import { setImpure } from 'src/internal/util/set';
 import { describe, expect, it } from 'vitest';
+import { setImpure } from '../../../internal/util/set';
 
 describe('setImpure', () => {
 	it('should change the property value', () => {

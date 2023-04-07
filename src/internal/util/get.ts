@@ -1,5 +1,5 @@
-import { isNil } from 'src/internal/util/isNil';
-import { isObject } from 'src/internal/util/isObject';
+import { isNil } from './isNil';
+import { isObject } from './isObject';
 
 export const getInternal = function <V, T extends object = object>(path: string, obj: T): V | undefined {
 	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj))) return undefined;

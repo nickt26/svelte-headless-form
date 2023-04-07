@@ -1,5 +1,5 @@
-import { mergeRightDeepImpure } from 'src/internal/util/mergeRightDeep';
 import { describe, expect, it } from 'vitest';
+import { mergeRightDeepImpure } from '../../../internal/util/mergeRightDeep';
 
 describe('mergeRightImpure', () => {
 	it('should merge properties from the right object onto the left object and override any matching keys', () => {

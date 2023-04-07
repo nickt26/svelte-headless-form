@@ -1,12 +1,5 @@
-import path from 'path';
 import type { UserConfig } from 'vite';
 
-const config: UserConfig = {
-	resolve: {
-		alias: {
-			src: path.resolve('src')
-		}
-	}
-};
+const config: UserConfig = {};
 
 export default config;

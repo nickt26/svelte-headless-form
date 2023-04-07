@@ -1,6 +1,6 @@
-import { ValidatorFields } from 'src/internal/types/Form';
-import { isFormValidImpure } from 'src/internal/util/isFormValid';
 import { describe, expect, it } from 'vitest';
+import { isFormValidImpure } from '../../../internal/util/isFormValid';
+import { ValidatorFields } from '../../../types/Form';
 
 describe('isFormValidImpure', () => {
 	it('should return true and no errors for valid form', () => {

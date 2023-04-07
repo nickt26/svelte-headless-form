@@ -1,7 +1,7 @@
-import type { FormObject } from 'src/internal/types/Form';
-import { clone } from 'src/internal/util/clone';
-import { empty } from 'src/internal/util/empty';
-import { isObject } from 'src/internal/util/isObject';
+import { FormObject } from '../../types/Form';
+import { clone } from './clone';
+import { empty } from './empty';
+import { isObject } from './isObject';
 
 export const assignImpure = <T, S extends object, K extends object>(
 	val: T,
