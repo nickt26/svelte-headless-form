@@ -73,11 +73,11 @@ export type FormOptions<T extends object> = {
 };
 
 export type FormOptionsSchemaless<T extends object, V extends object> = FormOptions<T> & {
-	initialValidators: V;
+	initialValidators?: V;
 };
 export type ValidationResolver<T extends object> = (values: T) => PartialFormObject<T, string | false>;
 export type FormOptionsSchema<T extends object> = FormOptions<T> & {
-	validationResolver: ValidationResolver<T>;
+	validationResolver?: ValidationResolver<T>;
 };
 
 export type ArrayFieldAddOptions<T extends object> = {

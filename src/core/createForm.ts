@@ -23,16 +23,15 @@ import type {
 //TODO: Add operations/branches for form with schema
 export const createForm = <T extends object, V extends ValidatorFields<T> = ValidatorFields<T>>({
 	initialValues,
-	initialDeps = {},
 	...formOptions
 }: FormOptionsSchema<T> | FormOptionsSchemaless<T, V>): Form<T, V> => {
 	const validateMode = formOptions.validateMode || ('initialValidators' in formOptions ? 'onChange' : 'onBlur');
 	const touched = assign(false, initialValues);
 	const dirty = assign(false, initialValues);
 	const pristine = assign(true, initialValues);
-	const validators = 'initialValidators' in formOptions ? formOptions.initialValidators : ({} as V);
+	const validators = 'initialValidators' in formOptions ? formOptions.initialValidators ?? ({} as V) : ({} as V);
 	const errors = assign<string | false, T>(false, initialValues);
-	const deps = mergeRightDeepImpure(assign([] as string[], initialValues), initialDeps);
+	const deps = mergeRightDeepImpure(assign([] as string[], initialValues), formOptions.initialDeps ?? {});
 	const values = initialValues;
 	const state = {
 		isSubmitting: false,
