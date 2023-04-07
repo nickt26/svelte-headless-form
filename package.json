@@ -1,8 +1,9 @@
 {
 	"name": "svelte-headless-form",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"description": "A fast, light and batteries-included form library to make you more productive",
-	"main": "dist/index.js",
+	"main": "./dist/svelte-headless-form.umd.js",
+	"module": "./dist/svelte-headless-form.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
 		"test": "vitest --config ./vitest.config.ts",
@@ -14,6 +15,12 @@
 	"files": [
 		"dist"
 	],
+	"exports": {
+		".": {
+			"import": "./dist/svelte-headless-form.js",
+			"require": "./dist/svelte-headless-form.umd.js"
+		}
+	},
 	"keywords": [
 		"svelte",
 		"forms",

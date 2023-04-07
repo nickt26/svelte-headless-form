@@ -16,7 +16,7 @@
 		"strictNullChecks": true,
 		"noImplicitAny": true,
 		"noImplicitReturns": true,
-		"outDir": "dist",
+		"outDir": "./dist",
 		"target": "ES2018",
 		"removeComments": true,
 		"lib": ["DOM", "DOM.Iterable", "ESNext"],
