@@ -1,9 +1,9 @@
 {
 	"name": "svelte-headless-form",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"description": "A fast, light and batteries-included form library to make you more productive",
-	"main": "dist/src/index.js",
-	"types": "dist/src/index.d.ts",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"test": "vitest --config ./vitest.config.ts",
 		"coverage": "vitest --config ./vitest.config.ts --coverage",

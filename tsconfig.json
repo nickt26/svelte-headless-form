@@ -23,6 +23,7 @@
 		// "noEmit": true,
 		"moduleResolution": "node",
 		"module": "ES2015",
-		"skipDefaultLibCheck": true
+		"skipDefaultLibCheck": true,
+		"rootDir": "src"
 	}
 }
