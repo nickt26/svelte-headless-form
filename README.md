@@ -1,7 +1,85 @@
 # Svelte Headless Form
-A fast, light and batteries-included form library to make you more productive
 
-Please note that this library is following the semver standard and breaking API changes might occur during pre 1.0 development.
-That being said, we are trying to keep API changes to a minimum.
+A fast, light and batteries-included form library to make you more productive.
 
-Please consider this library to not be production ready until 1.0.
+## Getting Started
+
+```bash
+npm install svelte-headless-form
+```
+
+## How to use
+
+```html
+<script>
+    import { createForm } from 'svelte-headless-form';
+    const { submitForm, input, errors, values } = createForm({
+        validateMode: 'onBlur', // Defaults - Schemaless:onChange Schema-Based:onBlur
+        initialValues: {
+            username: '',
+            password: ''
+        },
+        initialValidators: {
+            username: (value) => (value.length > 0 ? false : 'Name is required'),
+            password: (value) => (value.length > 0 ? false : 'Password is required')
+        }
+    });
+</script>
+
+<form on:submit|preventDefault={() => submitForm((values) => console.log(values))}>
+    <input
+        type="text"
+        name="username"
+        value={$values.username}
+        on:input={input.handleChange}
+        on:blur={input.handleBlur}
+        on:focus={input.handleFocus}
+    />
+    {#if $errors.username}
+        <div>
+            {$errors.username}
+        </div>
+    {/if}
+
+    <input
+        type="password"
+        name="password"
+        value={$values.password}
+        on:input={input.handleChange}
+        on:blur={input.handleBlur}
+        on:focus={input.handleFocus}
+    />
+    {#if $errors.password}
+        <div>
+            {$errors.password}
+        </div>
+    {/if}
+
+    <button type="submit">Submit</button>
+</form>
+```
+
+## Philosophy
+
+Svelte Headless Form allows for 2 different validation implementations, called schema-based validation and schemaless validation.
+In the [How To Use](#how-to-use) section we are demonstrating schemaless validation by giving each form value it's own validator in the initialValidators prop.
+If you are intereseted in using schema based validaton please give your createForm() a prop called 'validationResolver' which is a single function that returns an object with error strings located at the same path of the corresponding values. In the future we plan to have pre-built validation resolvers for all the major schema based validators like zod, yup and joi to name a few.
+
+### **Please note that schema based validation is not implemented yet**
+
+## Roadmap
+
+These roadmap features are not ordered by priority.
+
+ -[x] Support schemaless validation updates after form creation.
+ -[x] Support validation dependencies.
+ -[ ] Update README with more advanced examples.
+ -[ ] Create a website with a tutorial, an API overview and documentation.
+ -[ ] Send through entire form state to schemaless validators.
+ -[ ] Support async schemaless validators.
+ -[ ] Support schema-based validation.
+ -[ ] Unify useField and useArrayField api by passing down control.
+ -[ ] Support a revalidateMode in createForm options.
+ -[ ] Explore simpler options for attaching handleChange, handleBlur and handleFocus events to inputs.
+
+Please consider svelte-headless-form in beta until a 1.0 release.
