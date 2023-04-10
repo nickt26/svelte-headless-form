@@ -71,15 +71,15 @@ If you are intereseted in using schema based validaton please give your createFo
 
 These roadmap features are not ordered by priority.
 
- -[x] Support schemaless validation updates after form creation.
- -[x] Support validation dependencies.
- -[ ] Update README with more advanced examples.
- -[ ] Create a website with a tutorial, an API overview and documentation.
- -[ ] Send through entire form state to schemaless validators.
- -[ ] Support async schemaless validators.
- -[ ] Support schema-based validation.
- -[ ] Unify useField and useArrayField api by passing down control.
- -[ ] Support a revalidateMode in createForm options.
- -[ ] Explore simpler options for attaching handleChange, handleBlur and handleFocus events to inputs.
+ - [x] Support schemaless validation updates after form creation.
+ - [x] Support validation dependencies.
+ - [ ] Update README with more advanced examples.
+ - [ ] Create a website with a tutorial, an API overview and documentation.
+ - [ ] Send through entire form state to schemaless validators.
+ - [ ] Support async schemaless validators.
+ - [ ] Support schema-based validation.
+ - [ ] Unify useField and useArrayField api by passing down control.
+ - [ ] Support a revalidateMode in createForm options.
+ - [ ] Explore simpler options for attaching handleChange, handleBlur and handleFocus events to inputs.
 
 Please consider svelte-headless-form in beta until a 1.0 release.
