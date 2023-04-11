@@ -4,39 +4,43 @@ import { assign, assignImpure } from '../internal/util/assign';
 import { clone } from '../internal/util/clone';
 import { findTriggers } from '../internal/util/findTriggers';
 import { getInternal } from '../internal/util/get';
-import { isFormValidImpure } from '../internal/util/isFormValid';
+import { isFormValidSchema, isFormValidSchemaless } from '../internal/util/isFormValid';
+import { isNil } from '../internal/util/isNil';
 import { mergeRightDeepImpure } from '../internal/util/mergeRightDeep';
 import { prependImpure } from '../internal/util/prepend';
 import { removePropertyImpure } from '../internal/util/removeProperty';
 import { setImpure } from '../internal/util/set';
 import type {
 	ArrayFieldAddOptions,
-	ErrorFields,
+	AsyncValidatorFn,
 	Form,
-	FormOptionsSchema,
-	FormOptionsSchemaless,
-	ResetFieldOptions,
+	FormOptions,
+	PartialErrorFields,
+	ResetFieldFn,
+	ResetFormFn,
+	SubmitFormFn,
 	ValidatorFields,
 	ValidatorFn
 } from '../types/Form';
 
-//TODO: Add operations/branches for form with schema
-export const createForm = <T extends object, V extends ValidatorFields<T> = ValidatorFields<T>>({
-	initialValues,
-	...formOptions
-}: FormOptionsSchema<T> | FormOptionsSchemaless<T, V>): Form<T, V> => {
-	const validateMode = formOptions.validateMode || ('initialValidators' in formOptions ? 'onChange' : 'onBlur');
-	const touched = assign(false, initialValues);
-	const dirty = assign(false, initialValues);
-	const pristine = assign(true, initialValues);
-	const validators = 'initialValidators' in formOptions ? formOptions.initialValidators ?? ({} as V) : ({} as V);
-	const errors = assign<string | false, T>(false, initialValues);
-	const deps = mergeRightDeepImpure(assign([] as string[], initialValues), formOptions.initialDeps ?? {});
-	const values = initialValues;
+export const createForm = <T extends object, V extends ValidatorFields<T> = ValidatorFields<T>>(
+	formOptions: FormOptions<T, V>
+): Form<T, V> => {
+	const isSchemaless = 'initialValidators' in formOptions;
+	const isSchemaBased = 'validationResolver' in formOptions;
+	const validateMode = formOptions.validateMode ?? (isSchemaless ? 'onChange' : isSchemaBased ? 'onBlur' : 'none');
+	const touched = assign(false, formOptions.initialValues);
+	const dirty = assign(false, formOptions.initialValues);
+	const pristine = assign(true, formOptions.initialValues);
+	const validators = isSchemaless ? formOptions.initialValidators ?? ({} as V) : ({} as V);
+	const validationResolver = isSchemaBased ? formOptions.validationResolver : undefined;
+	const errors = assign<string | false, T>(false, formOptions.initialValues);
+	const deps = mergeRightDeepImpure(assign([] as string[], formOptions.initialValues), formOptions.initialDeps ?? {});
+	const values = clone(formOptions.initialValues);
 	const state = {
 		isSubmitting: false,
-		isPristine: false,
-		isDirty: true,
+		isPristine: true,
+		isDirty: false,
 		isTouched: false,
 		isValidating: false
 	};
@@ -55,33 +59,57 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 	const state_store = writable(clone(state));
 	const validate_mode_store = writable(validateMode);
 
-	const submitForm = (submitFn: (values: T) => void, errorFn?: (errors: ErrorFields<T>) => void) => {
-		const [isValid, errors] = isFormValidImpure(get(values_store), get(values_store), get(validators_store));
-
-		if (isValid) submitFn(get(values_store));
-		else {
-			touched_store.update((x) => assignImpure(true, x, x));
-			errors_store.update((x) => mergeRightDeepImpure(x, errors));
-			if (errorFn) errorFn(get(errors_store));
+	const isFormValid = async (): Promise<[boolean, PartialErrorFields<T>]> => {
+		try {
+			if (isSchemaless) return await isFormValidSchemaless(get(values_store), get(values_store), get(validators_store));
+			if (isSchemaBased) return await isFormValidSchema(get(values_store), validationResolver!);
+			return [true, {}];
+		} catch (_) {
+			return [false, {}];
 		}
 	};
 
-	const resetForm = () => {
-		defaultValues = clone(initialValues);
+	const submitForm: SubmitFormFn<T> = (submitFn, errorFn) => {
+		return () =>
+			(async () => {
+				state_store.update((x) => mergeRightDeepImpure(x, { isSubmitting: true, isValidating: true }));
+				const [isValid, errors] = await isFormValid();
+				state_store.update((x) => setImpure('isValidating', false, x));
+				if (isValid) {
+					try {
+						await submitFn(get(values_store));
+					} finally {
+						state_store.update((x) => setImpure('isSubmitting', false, x));
+					}
+				} else {
+					touched_store.update((x) => assignImpure(true, x, x));
+					errors_store.update((x) => mergeRightDeepImpure(x, errors));
+					try {
+						if (errorFn) await errorFn(get(errors_store));
+					} finally {
+						state_store.update((x) => setImpure('isSubmitting', false, x));
+					}
+				}
+			})();
+	};
+
+	const resetForm: ResetFormFn<T> = (resetValues) => {
+		defaultValues = clone(values);
 		defaultValidators = clone(validators);
 		defaultDeps = clone(deps);
 		touched_store.set(clone(touched));
 		dirty_store.set(clone(dirty));
 		pristine_store.set(clone(pristine));
-		values_store.set(clone(initialValues));
+		values_store.set(mergeRightDeepImpure(clone(values), resetValues ?? {}));
 		validators_store.set(clone(validators));
 		errors_store.set(clone(errors));
 		deps_store.set(clone(deps));
+		state_store.update((x) => mergeRightDeepImpure(x, state));
 	};
 
-	const resetField = (
+	const resetField: ResetFieldFn = (
 		name: string,
-		{ keepTouched, keepDirty, keepError, keepPristine, keepDeps, keepValidator, keepValue }: ResetFieldOptions = {
+		resetFieldOptions = {
 			keepTouched: false,
 			keepDirty: false,
 			keepError: false,
@@ -91,13 +119,15 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 			keepValue: false
 		}
 	) => {
-		if (!keepTouched) touched_store.update((x) => setImpure(name, false, x));
-		if (!keepDirty) dirty_store.update((x) => setImpure(name, false, x));
-		if (!keepPristine) pristine_store.update((x) => setImpure(name, true, x));
-		if (!keepValue) values_store.update((x) => setImpure(name, getInternal(name, defaultValues), x));
-		if (!keepValidator) validators_store.update((x) => setImpure(name, getInternal(name, defaultValidators), x));
-		if (!keepError) errors_store.update((x) => setImpure(name, false, x));
-		if (!keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
+		if (!resetFieldOptions.keepTouched) touched_store.update((x) => setImpure(name, false, x));
+		if (!resetFieldOptions.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
+		if (!resetFieldOptions.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
+		if (!resetFieldOptions.keepValue) values_store.update((x) => setImpure(name, getInternal(name, defaultValues), x));
+		if (!resetFieldOptions.keepValidator)
+			validators_store.update((x) => setImpure(name, getInternal(name, defaultValidators), x));
+		if (!resetFieldOptions.keepError) errors_store.update((x) => setImpure(name, false, x));
+		if (!resetFieldOptions.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
+		//TODO: If the reset field is the only touched, dirty, pristine, or error field then reset the form state accordingly
 	};
 
 	const useArrayField = (name: string) => {
@@ -131,13 +161,10 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 				dirty_store.update((x) => appendImpure(name, true, x));
 				pristine_store.update((x) => appendImpure(name, false, x));
 				values_store.update((x) => appendImpure(name, val, x));
-				const array = getInternal<any[], T>(name, get(values_store))!;
+				const array = getInternal<any[]>(name, get(values_store))!;
 				if (validator) validators_store.update((x) => setImpure(`${name}.${array.length - 1}`, validator, x));
-				errors_store.update((x) => {
-					const err = validate && validator ? validator(val, get(values_store)) : false;
-					return appendImpure(name, err, x);
-				});
 				deps_store.update((x) => appendImpure(name, clone(deps), x));
+				if (validator && validate) runValidation(`${name}.${array.length - 1}`);
 			},
 			prepend: (
 				val: unknown,
@@ -154,12 +181,10 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 				dirty_store.update((x) => prependImpure(name, true, x));
 				pristine_store.update((x) => prependImpure(name, false, x));
 				values_store.update((x) => prependImpure(name, val, x));
+				const array = getInternal<any[]>(name, get(values_store))!;
 				if (validator) validators_store.update((x) => prependImpure(name, validator, x));
-				errors_store.update((x) => {
-					const err = validate && validator ? validator(val, get(values_store)) : false;
-					return prependImpure(name, err, x);
-				});
 				deps_store.update((x) => prependImpure(name, clone(deps), x));
+				if (validator && validate) runValidation(`${name}.${array.length - 1}`);
 			},
 			swap: (from: number, to: number) => {
 				const index1Path = `${name}.${from}`;
@@ -224,64 +249,66 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 		};
 	};
 
+	const runValidation = async (name: string) => {
+		state_store.update((x) => setImpure('isValidating', true, x));
+		try {
+			const values = get(values_store);
+			const value = getInternal<T[keyof T]>(name, values)!;
+			if (isSchemaless) {
+				const validator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(name, get(validators_store));
+				if (validator !== undefined) {
+					const validatorResult = await validator(value, values);
+					errors_store.update((x) => setImpure(name, validatorResult, x));
+				}
+
+				const triggers = findTriggers(name, get(deps_store));
+				for (const trigger of triggers) {
+					const triggerValue = getInternal(trigger, values);
+					const triggerValidator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(trigger, get(validators_store));
+					if (triggerValidator !== undefined) {
+						const triggerValidatorResult = await triggerValidator(triggerValue, values);
+						errors_store.update((x) => setImpure(trigger, triggerValidatorResult, x));
+					}
+				}
+			}
+
+			if (isSchemaBased) {
+				const errors = await validationResolver!(values);
+				if (isNil(errors)) return;
+
+				errors_store.update((x) => setImpure(name, getInternal<string | false>(name, errors) ?? false, x));
+
+				const triggers = findTriggers(name, get(deps_store));
+				for (const trigger of triggers)
+					errors_store.update((x) => setImpure(trigger, getInternal<string | false>(trigger, errors) ?? false, x));
+			}
+		} finally {
+			state_store.update((x) => setImpure('isValidating', false, x));
+		}
+	};
+
 	const updateOnChange = (name: string, value: unknown, parseFn?: <T>(val: unknown) => T) => {
 		const values = get(values_store);
-		const val = getInternal<number, T>(name, values);
-		// use of != is intentional here to check val of input that was changed by svelte to a number automatically based on input type
+		const val = getInternal<number>(name, values);
+		// use of != is intentional here to check here since svelte can autoParse inputs based on type and we don't want this failing on inputs with bind:value
 		if (val !== undefined && val != value)
 			values_store.update((x) => setImpure(name, parseFn !== undefined ? parseFn(value) : value, x));
 
 		dirty_store.update((x) => setImpure(name, true, x));
+		state_store.update((x) => setImpure('isDirty', true, x));
 		pristine_store.update((x) => setImpure(name, false, x));
-		if (get(validate_mode_store) === 'onChange' || get(validate_mode_store) === 'all') {
-			const values = get(values_store);
-			const value = getInternal<T[keyof T], T>(name, values);
-			const validator = getInternal<ValidatorFn<T>, ValidatorFields<T>>(name, get(validators_store));
-			if (validator !== undefined) errors_store.update((x) => setImpure(name, validator(value, values), x));
-
-			const triggers = findTriggers(name, get(deps_store));
-			for (const trigger of triggers) {
-				const triggerValue = getInternal<T[keyof T], T>(trigger, values);
-				const triggerValidator = getInternal<ValidatorFn<T>, ValidatorFields<T>>(trigger, get(validators_store));
-				if (triggerValidator !== undefined)
-					errors_store.update((x) => setImpure(trigger, triggerValidator(triggerValue, values), x));
-			}
-		}
+		state_store.update((x) => setImpure('isPristine', false, x));
+		if (get(validate_mode_store) === 'onChange' || get(validate_mode_store) === 'all') runValidation(name);
 	};
 
 	const updateOnBlur = (name: string) => {
 		touched_store.update((x) => setImpure(name, true, x));
-		if (get(validate_mode_store) === 'onBlur' || get(validate_mode_store) === 'all') {
-			const values = get(values_store);
-			const value = getInternal<T[keyof T], T>(name, values);
-			const validator = getInternal<ValidatorFn<T>, ValidatorFields<T>>(name, get(validators_store));
-			if (validator !== undefined) errors_store.update((x) => setImpure(name, validator(value, values), x));
-
-			const triggers = findTriggers(name, get(deps_store));
-			for (const trigger of triggers) {
-				const triggerValue = getInternal<T[keyof T], T>(trigger, values);
-				const triggerValidator = getInternal<ValidatorFn<T>, ValidatorFields<T>>(trigger, get(validators_store));
-				if (triggerValidator !== undefined)
-					errors_store.update((x) => setImpure(trigger, triggerValidator(triggerValue, values), x));
-			}
-		}
+		state_store.update((x) => setImpure('isTouched', true, x));
+		if (get(validate_mode_store) === 'onBlur' || get(validate_mode_store) === 'all') runValidation(name);
 	};
 
 	const updateOnFocus = (name: string) => {
-		if (get(validate_mode_store) === 'onFocus' || get(validate_mode_store) === 'all') {
-			const values = get(values_store);
-			const value = getInternal<T[keyof T], T>(name, values);
-			const validator = getInternal<ValidatorFn<T>, ValidatorFields<T>>(name, get(validators_store));
-			if (validator !== undefined) errors_store.update((x) => setImpure(name, validator(value, values), x));
-
-			const triggers = findTriggers(name, get(deps_store));
-			for (const trigger of triggers) {
-				const triggerValue = getInternal<T[keyof T], T>(trigger, values);
-				const triggerValidator = getInternal<ValidatorFn<T>, ValidatorFields<T>>(trigger, get(validators_store));
-				if (triggerValidator !== undefined)
-					errors_store.update((x) => setImpure(trigger, triggerValidator(triggerValue, values), x));
-			}
-		}
+		if (get(validate_mode_store) === 'onFocus' || get(validate_mode_store) === 'all') runValidation(name);
 	};
 
 	const form = {

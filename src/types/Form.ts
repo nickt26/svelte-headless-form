@@ -8,7 +8,7 @@ export type FormState = {
 	isDirty: boolean;
 };
 
-export type ValidateMode = 'onChange' | 'onBlur' | 'onSubmit' | 'onFocus' | 'all';
+export type ValidateMode = 'onChange' | 'onBlur' | 'onSubmit' | 'onFocus' | 'none' | 'all';
 
 export type FormObject<T extends object, S = null> = {
 	[key in keyof T]: T[key] extends object
@@ -16,14 +16,6 @@ export type FormObject<T extends object, S = null> = {
 		: S extends null
 		? T[key]
 		: S;
-};
-
-export type ErrorFormObject<T extends object> = {
-	[key in keyof T]: T[key] extends any[]
-		? string | false | ErrorFormObject<T[key]>
-		: T[key] extends object
-		? ErrorFormObject<T[key]>
-		: string | false;
 };
 
 export type PartialFormObject<T extends object, S = null> = {
@@ -34,34 +26,22 @@ export type PartialFormObject<T extends object, S = null> = {
 		: S;
 };
 
-export type ArrayValidation<O extends object, T extends object> = {
-	arrayValidator?: ValidatorFn<O, T>;
-	fieldValidators?: Validation<O, T>;
-};
-
-export type Validation<O extends object, T extends object> = {
-	[key in keyof T]?: T[key] extends any[]
-		? ArrayValidation<O, T[key]> | Validation<O, T[key]>
-		: T[key] extends object
-		? Validation<O, T[key]>
-		: ValidatorFn<O, T[key]>;
-};
-
 export type Validators<O extends object, T extends object> = {
-	[key in keyof T]?: T[key] extends object ? Validators<O, T[key]> : ValidatorFn<O, T[key]>;
+	[key in keyof T]?: T[key] extends object
+		? Validators<O, T[key]>
+		: ValidatorFn<O, T[key]> | AsyncValidatorFn<O, T[key]>;
 };
 
 export type DependencyFields<T extends object> = FormObject<T, string[]>;
 export type BooleanFields<T extends object> = FormObject<T, boolean>;
-export type ErrorFields<T extends object> = ErrorFormObject<T>;
+export type ErrorFields<T extends object> = FormObject<T, string | false>;
+export type PartialErrorFields<T extends object> = PartialFormObject<T, string | false>;
 export type ValidatorFields<T extends object> = Validators<T, T>;
-export type ValidatorFn<T extends object, V = any, R = null> = (
-	val: V,
-	formState: T
-) => R extends null ? string | false : R;
-export type TopLevelValidatorFn<T extends object> = (values: T) => PartialFormObject<T, string | false>;
 
-export type FormOptions<T extends object> = {
+export type ValidatorFn<T extends object, V = any> = (val: V, formState: T) => string | false;
+export type AsyncValidatorFn<T extends object, V = any> = (val: V, formState: T) => Promise<string | false>;
+
+export type GlobalFormOptions<T extends object> = {
 	initialValues: T;
 	validateMode?: ValidateMode;
 	initialDeps?: PartialFormObject<T, string[]>;
@@ -71,14 +51,17 @@ export type FormOptions<T extends object> = {
 	// 	keepErrors: boolean;
 	// };
 };
-
-export type FormOptionsSchemaless<T extends object, V extends object> = FormOptions<T> & {
+export type FormOptionsSchemaless<V extends object> = {
 	initialValidators?: V;
 };
-export type ValidationResolver<T extends object> = (values: T) => PartialFormObject<T, string | false>;
-export type FormOptionsSchema<T extends object> = FormOptions<T> & {
+export type FormOptionsSchema<T extends object> = {
 	validationResolver?: ValidationResolver<T>;
 };
+export type FormOptions<T extends object, V extends object> = GlobalFormOptions<T> &
+	(FormOptionsSchemaless<V> | FormOptionsSchema<T>);
+export type SyncValidationResolver<T extends object> = (values: T) => PartialFormObject<T, string | false>;
+export type AsyncValidationResolver<T extends object> = (values: T) => Promise<PartialFormObject<T, string | false>>;
+export type ValidationResolver<T extends object> = SyncValidationResolver<T> | AsyncValidationResolver<T>;
 
 export type ArrayFieldAddOptions<T extends object> = {
 	deps?: string[];
@@ -87,13 +70,13 @@ export type ArrayFieldAddOptions<T extends object> = {
 };
 
 export type ResetFieldOptions = {
-	keepTouched: boolean;
-	keepValidator: boolean;
-	keepValue: boolean;
-	keepDeps: boolean;
-	keepError: boolean;
-	keepDirty: boolean;
-	keepPristine: boolean;
+	keepTouched?: boolean;
+	keepValidator?: boolean;
+	keepValue?: boolean;
+	keepDeps?: boolean;
+	keepError?: boolean;
+	keepDirty?: boolean;
+	keepPristine?: boolean;
 };
 
 export type UseArrayField<T extends object> = {
@@ -114,12 +97,14 @@ export type Input = {
 	handleFocus: (e: Event) => void;
 };
 
-export type SubmitFormFn<T extends object> = (
-	submitFn: (values: T) => void,
-	errorFn?: (errors: ErrorFields<T>) => void
-) => void;
+export type SubmitFn<T extends object> = ((values: T) => void) | ((values: T) => Promise<void>);
+export type ErrorFn<T extends object> =
+	| ((errors: ErrorFields<T>) => void)
+	| ((errors: ErrorFields<T>) => Promise<void>);
+export type SubmitFormFn<T extends object> = (submitFn: SubmitFn<T>, errorFn?: ErrorFn<T>) => () => void;
 
 export type ResetFieldFn = (name: string, options?: ResetFieldOptions) => void;
+export type ResetFormFn<T extends object> = (resetValues?: PartialFormObject<T>) => void;
 
 export type UseArrayFieldFn<T extends object> = (name: string) => UseArrayField<T>;
 
@@ -133,7 +118,7 @@ export type Form<T extends object, V extends ValidatorFields<T>> = {
 	deps: Writable<DependencyFields<T>>;
 	state: Readable<FormState>;
 	submitForm: SubmitFormFn<T>;
-	resetForm: () => void;
+	resetForm: ResetFormFn<T>;
 	resetField: ResetFieldFn;
 	useArrayField: UseArrayFieldFn<T>;
 	validateMode: Writable<ValidateMode>;

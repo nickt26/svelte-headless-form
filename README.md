@@ -14,7 +14,7 @@ npm install svelte-headless-form
 <script>
     import { createForm } from 'svelte-headless-form';
     const { submitForm, input, errors, values } = createForm({
-        validateMode: 'onBlur', // Defaults - Schemaless:onChange Schema-Based:onBlur
+        validateMode: 'onBlur', // Defaults - Schemaless:onChange Schema:onBlur
         initialValues: {
             username: '',
             password: ''
@@ -26,7 +26,7 @@ npm install svelte-headless-form
     });
 </script>
 
-<form on:submit|preventDefault={() => submitForm((values) => console.log(values))}>
+<form on:submit|preventDefault={submitForm((values) => console.log(values))}>
     <input
         type="text"
         name="username"
@@ -76,8 +76,8 @@ These roadmap features are not ordered by priority.
  - [ ] Update README with more advanced examples.
  - [ ] Create a website with a tutorial, an API overview and documentation.
  - [ ] Send through entire form state to schemaless validators.
- - [ ] Support async schemaless validators.
- - [ ] Support schema-based validation.
+ - [x] Support async schemaless validators.
+ - [x] Support schema-based validation.
  - [ ] Unify useField and useArrayField api by passing down control.
  - [ ] Support a revalidateMode in createForm options.
  - [ ] Explore simpler options for attaching handleChange, handleBlur and handleFocus events to inputs.

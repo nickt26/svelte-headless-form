@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFormValidImpure } from '../../../internal/util/isFormValid';
+import { isFormValidSchemaless } from '../../../internal/util/isFormValid';
 import { ValidatorFields } from '../../../types/Form';
 
 describe('isFormValidImpure', () => {
@@ -25,7 +25,7 @@ describe('isFormValidImpure', () => {
 			}
 		};
 
-		expect(isFormValidImpure(formValues, formValues, formValidators)).toEqual([
+		expect(isFormValidSchemaless(formValues, formValues, formValidators)).toEqual([
 			true,
 			{
 				name: false,
@@ -62,7 +62,7 @@ describe('isFormValidImpure', () => {
 			}
 		};
 
-		expect(isFormValidImpure(formValues, formValues, formValidators)).toEqual([
+		expect(isFormValidSchemaless(formValues, formValues, formValidators)).toEqual([
 			false,
 			{
 				name: 'Name is required',
