@@ -3,8 +3,11 @@ import { FormControl } from '../types/Form';
 
 export function register<T extends object>(
 	node: HTMLInputElement,
-	{ name, control, parseFn }: { name: string; control: FormControl<T>; parseFn?: <V>(value: any) => V }
+	{ name, control, parseFn }: { name: string; control: FormControl<T>; parseFn?: (val: any) => any }
 ) {
+	const valuesUnsubscribe = control.values.subscribe(
+		(values) => (node.value = parseFn ? parseFn(getInternal(name, values)!) : getInternal(name, values)!)
+	);
 	const fieldFns = control.field;
 
 	const handleChange = ({ target: { value } }: any) => fieldFns.handleChange(name, parseFn ? parseFn(value) : value);
@@ -14,9 +17,6 @@ export function register<T extends object>(
 	node.addEventListener('input', handleChange);
 	node.addEventListener('blur', handleBlur);
 	node.addEventListener('focus', handleFocus);
-	const valuesUnsubscribe = control.values.subscribe(
-		(values) => (node.value = parseFn ? parseFn(getInternal(name, values)!) : getInternal(name, values)!)
-	);
 
 	return {
 		destroy() {

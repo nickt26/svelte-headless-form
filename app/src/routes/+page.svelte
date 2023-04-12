@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createForm } from '../../../src/core/createForm';
 	import { register } from '../../../src/core/register';
+	import type { PartialErrorFields } from '../../../src/types/Form';
 	import FieldArray from '../components/FieldArray.svelte';
 
 	const delay = <T>(fn: () => T): Promise<T> =>
@@ -11,8 +12,8 @@
 		);
 
 	const initialValues = {
-		username: '',
-		password: '',
+		username: 'username',
+		password: 'password',
 		nested: {
 			age: 0,
 			gender: false
@@ -31,31 +32,46 @@
 		resetForm,
 		resetField,
 		control,
-		validators
+		validators,
+		field
 	} = createForm({
+		validateMode: 'onChange',
 		initialValues,
-		initialValidators: {
-			username: (value) => (value.length > 0 ? false : 'Username is required'),
-			password: (value) => (value.length > 0 ? false : 'Password is required')
-		},
+		// initialValidators: {
+		// 	username: (value, values) => {
+		// 		console.log(typeof value);
+		// 		console.log(values);
+
+		// 		return value.length > 0 ? false : 'Username is required';
+		// 	},
+		// 	password: (value) => (value.length > 0 ? false : 'Password is required')
+		// },
 		initialDeps: {
 			username: ['nested']
+		},
+		validationResolver: (values) => {
+			const errors: PartialErrorFields<typeof initialValues> = {};
+
+			if (values.username.length === 0) errors.username = 'Username is required';
+
+			if (values.password.length === 0) errors.password = 'Password is required';
+			console.log(values, errors);
+
+			if (values.nested.age <= 0 || values.nested.age === null)
+				errors.nested === undefined
+					? (errors.nested = { age: 'Age must be greater than 0' })
+					: (errors.nested.age = 'Age must be greater than 0');
+
+			if (values.nested.gender === false)
+				errors.nested === undefined
+					? (errors.nested = { gender: 'Gender must be true' })
+					: (errors.nested.gender = 'Gender must be true');
+			console.log(values, errors);
+			return errors;
 		}
-		// validationResolver: (values) => {
-		// 	const errors: any = {};
-
-		// 	if (values.username.length === 0) {
-		// 		errors.username = 'Username is required';
-		// 	}
-
-		// 	if (values.password.length === 0) {
-		// 		errors.password = 'Password is required';
-		// 	}
-		// 	return errors;
-		// }
 	});
-	$validators.nested.age = (value) =>
-		value <= 0 || value === null ? 'Age must be greater than 0' : false;
+	// $validators.nested.age = (value) =>
+	// 	value <= 0 || value === null ? 'Age must be greater than 0' : false;
 	// setTimeout(() => {
 	// 	console.log('runs this');
 
@@ -63,6 +79,7 @@
 	// 		value.length >= 3 ? false : 'Username must be at least 3 characters';
 	// 	$values.username = '123455';
 	// }, 2000);
+	const parseAge = (value: string) => (isNaN(parseInt(value)) ? null : parseInt(value));
 </script>
 
 <form
@@ -71,7 +88,12 @@
 		(errors) => console.log(errors)
 	)}
 >
-	<input type="text" use:register={{ control, name: 'username' }} />
+	<input
+		type="text"
+		placeholder="Username..."
+		value={$values.username}
+		use:register={{ control, name: 'username' }}
+	/>
 	{#if $errors.username}
 		<span>
 			{$errors.username}
@@ -79,7 +101,7 @@
 	{/if}
 	<button type="button" on:click={() => resetField('username')}>Reset Username</button>
 
-	<input type="number" use:register={{ name: 'password', control }} />
+	<input type="password" placeholder="Password..." use:register={{ name: 'password', control }} />
 	{#if $errors.password}
 		<span>
 			{$errors.password}
@@ -91,12 +113,26 @@
 		use:register={{
 			name: 'nested.age',
 			control,
-			parseFn: (value) => (isNaN(parseInt(value)) ? null : parseInt(value))
+			parseFn: parseAge
 		}}
 	/>
 	{#if $errors.nested.age}
 		<span>
 			{$errors.nested.age}
+		</span>
+	{/if}
+
+	<button
+		on:click={() => {
+			field.handleChange('nested.gender', !$values.nested.gender);
+		}}
+		on:blur={() => field.handleBlur('nested.gender')}
+		on:focus={() => field.handleFocus('nested.gender')}
+		type="button">Change gender {$values.nested.gender}</button
+	>
+	{#if $errors.nested.gender}
+		<span>
+			{$errors.nested.gender}
 		</span>
 	{/if}
 

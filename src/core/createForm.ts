@@ -293,8 +293,10 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 	const updateOnChange = (name: string, value: unknown, parseFn?: <T>(val: unknown) => T) => {
 		const values = get(values_store);
 		const val = getInternal<number>(name, values);
-		// use of != is intentional here to check here since svelte can autoParse inputs based on type and we don't want this failing on inputs with bind:value
-		if (val !== undefined && val != value)
+		// Use of != will have side effects caused by svelte auto parsing the input value, if the bind:value is placed before then the value will be sent as the parsed value to the validator, if the bind:value is placed after then the value of e.target.event will be sent to the validator and the value of field will be autoparsed after the validator is run
+		// Use of !== will remove any side effects caused by svelte auto parsing the input value, regardless of the order in which the bind:value is places
+		// Using !== here to remove any side effects and to make the behaviour consistent, if the user wants to use the parsed value then making the user parse the value manually is the more preferred option. Open to ideas on this.
+		if (val !== undefined && val !== value)
 			values_store.update((x) => setImpure(name, parseFn !== undefined ? parseFn(value) : value, x));
 
 		dirty_store.update((x) => setImpure(name, true, x));
