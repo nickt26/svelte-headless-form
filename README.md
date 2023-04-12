@@ -65,8 +65,6 @@ Svelte Headless Form allows for 2 different validation implementations, called s
 In the [How To Use](#how-to-use) section we are demonstrating schemaless validation by giving each form value it's own validator in the initialValidators prop.
 If you are intereseted in using schema based validaton please give your createForm() a prop called 'validationResolver' which is a single function that returns an object with error strings located at the same path of the corresponding values. In the future we plan to have pre-built validation resolvers for all the major schema based validators like zod, yup and joi to name a few.
 
-### **Please note that schema based validation is not implemented yet**
-
 ## Roadmap
 
 These roadmap features are not ordered by priority.
@@ -78,8 +76,8 @@ These roadmap features are not ordered by priority.
  - [ ] Send through entire form state to schemaless validators.
  - [x] Support async schemaless validators.
  - [x] Support schema-based validation.
- - [ ] Unify useField and useArrayField api by passing down control.
+ - [x] Unify useField and useFieldArray api by passing down control.
  - [ ] Support a revalidateMode in createForm options.
- - [ ] Explore simpler options for attaching handleChange, handleBlur and handleFocus events to inputs.
+ - [x] Explore simpler options for attaching handleChange, handleBlur and handleFocus events to inputs.
 
 Please consider svelte-headless-form in beta until a 1.0 release.

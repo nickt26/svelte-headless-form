@@ -27,6 +27,12 @@ export type PartialFormObject<T extends object, S = null> = {
 };
 
 export type Validators<O extends object, T extends object> = {
+	[key in keyof T]: T[key] extends object
+		? Validators<O, T[key]>
+		: ValidatorFn<O, T[key]> | AsyncValidatorFn<O, T[key]> | undefined;
+};
+
+export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: T[key] extends object
 		? Validators<O, T[key]>
 		: ValidatorFn<O, T[key]> | AsyncValidatorFn<O, T[key]>;
@@ -37,6 +43,7 @@ export type BooleanFields<T extends object> = FormObject<T, boolean>;
 export type ErrorFields<T extends object> = FormObject<T, string | false>;
 export type PartialErrorFields<T extends object> = PartialFormObject<T, string | false>;
 export type ValidatorFields<T extends object> = Validators<T, T>;
+export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
 
 export type ValidatorFn<T extends object, V = any> = (val: V, formState: T) => string | false;
 export type AsyncValidatorFn<T extends object, V = any> = (val: V, formState: T) => Promise<string | false>;
@@ -51,16 +58,15 @@ export type GlobalFormOptions<T extends object> = {
 	// 	keepErrors: boolean;
 	// };
 };
-export type FormOptionsSchemaless<V extends object> = {
-	initialValidators?: V;
+export type FormOptionsSchemaless<T extends object> = {
+	initialValidators?: PartialValidatorFields<T>;
 };
 export type FormOptionsSchema<T extends object> = {
 	validationResolver?: ValidationResolver<T>;
 };
-export type FormOptions<T extends object, V extends object> = GlobalFormOptions<T> &
-	(FormOptionsSchemaless<V> | FormOptionsSchema<T>);
-export type SyncValidationResolver<T extends object> = (values: T) => PartialFormObject<T, string | false>;
-export type AsyncValidationResolver<T extends object> = (values: T) => Promise<PartialFormObject<T, string | false>>;
+export type FormOptions<T extends object> = GlobalFormOptions<T> & (FormOptionsSchemaless<T> | FormOptionsSchema<T>);
+export type SyncValidationResolver<T extends object> = (values: T) => PartialErrorFields<T>;
+export type AsyncValidationResolver<T extends object> = (values: T) => Promise<PartialErrorFields<T>>;
 export type ValidationResolver<T extends object> = SyncValidationResolver<T> | AsyncValidationResolver<T>;
 
 export type ArrayFieldAddOptions<T extends object> = {
@@ -108,12 +114,12 @@ export type ResetFormFn<T extends object> = (resetValues?: PartialFormObject<T>)
 
 export type UseArrayFieldFn<T extends object> = (name: string) => UseArrayField<T>;
 
-export type Form<T extends object, V extends ValidatorFields<T>> = {
+export type Form<T extends object> = {
 	touched: Readable<BooleanFields<T>>;
 	values: Writable<T>;
 	dirty: Readable<BooleanFields<T>>;
 	pristine: Readable<BooleanFields<T>>;
-	validators: Writable<V>;
+	validators: Writable<ValidatorFields<T>>;
 	errors: Readable<ErrorFields<T>>;
 	deps: Writable<DependencyFields<T>>;
 	state: Readable<FormState>;
@@ -124,7 +130,7 @@ export type Form<T extends object, V extends ValidatorFields<T>> = {
 	validateMode: Writable<ValidateMode>;
 	field: Field;
 	input: Input;
-	control: FormControl<T, V>;
+	control: FormControl<T>;
 };
 
-export type FormControl<T extends object, V extends ValidatorFields<T>> = Omit<Form<T, V>, 'control'>;
+export type FormControl<T extends object> = Omit<Form<T>, 'control'>;

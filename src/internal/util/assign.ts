@@ -25,7 +25,7 @@ export const assignImpure = <T, S extends object, K extends object>(
 	return objectToAssignTo;
 };
 
-export const assign = <T, S extends object>(value: T, objStructure: S): FormObject<S, T> => {
+export const assign = <T, S extends object = object>(value: T, objStructure: S): FormObject<S, T> => {
 	const toReturn = empty(objStructure) as FormObject<S, T>;
 	for (const key in objStructure) {
 		const val = objStructure[key];

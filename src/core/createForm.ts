@@ -23,18 +23,18 @@ import type {
 	ValidatorFn
 } from '../types/Form';
 
-export const createForm = <T extends object, V extends ValidatorFields<T> = ValidatorFields<T>>(
-	formOptions: FormOptions<T, V>
-): Form<T, V> => {
+export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<T> => {
 	const isSchemaless = 'initialValidators' in formOptions;
-	const isSchemaBased = 'validationResolver' in formOptions;
-	const validateMode = formOptions.validateMode ?? (isSchemaless ? 'onChange' : isSchemaBased ? 'onBlur' : 'none');
+	const isSchema = 'validationResolver' in formOptions;
+	const validateMode = formOptions.validateMode ?? (isSchemaless ? 'onChange' : isSchema ? 'onBlur' : 'none');
 	const touched = assign(false, formOptions.initialValues);
 	const dirty = assign(false, formOptions.initialValues);
 	const pristine = assign(true, formOptions.initialValues);
-	const validators = isSchemaless ? formOptions.initialValidators ?? ({} as V) : ({} as V);
-	const validationResolver = isSchemaBased ? formOptions.validationResolver : undefined;
-	const errors = assign<string | false, T>(false, formOptions.initialValues);
+	const validators = isSchemaless
+		? mergeRightDeepImpure(assign(undefined, formOptions.initialValues), formOptions.initialValidators!)
+		: ({} as ValidatorFields<T>);
+	const validationResolver = isSchema ? formOptions.validationResolver : undefined;
+	const errors = assign(false as string | false, formOptions.initialValues);
 	const deps = mergeRightDeepImpure(assign([] as string[], formOptions.initialValues), formOptions.initialDeps ?? {});
 	const values = clone(formOptions.initialValues);
 	const state = {
@@ -61,8 +61,10 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 
 	const isFormValid = async (): Promise<[boolean, PartialErrorFields<T>]> => {
 		try {
+			console.log(get(validators_store));
+
 			if (isSchemaless) return await isFormValidSchemaless(get(values_store), get(values_store), get(validators_store));
-			if (isSchemaBased) return await isFormValidSchema(get(values_store), validationResolver!);
+			if (isSchema) return await isFormValidSchema(get(values_store), validationResolver!);
 			return [true, {}];
 		} catch (_) {
 			return [false, {}];
@@ -128,9 +130,10 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 		if (!resetFieldOptions.keepError) errors_store.update((x) => setImpure(name, false, x));
 		if (!resetFieldOptions.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
 		//TODO: If the reset field is the only touched, dirty, pristine, or error field then reset the form state accordingly
+		//TODO: Decide if these options are still valid when resetting an array field
 	};
 
-	const useArrayField = (name: string) => {
+	const useFieldArray = (name: string) => {
 		if (!Array.isArray(getInternal(name, get(values_store))))
 			throw Error('Attempting to use createArrayField on a field that is not an Array');
 		return {
@@ -272,7 +275,7 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 				}
 			}
 
-			if (isSchemaBased) {
+			if (isSchema) {
 				const errors = await validationResolver!(values);
 				if (isNil(errors)) return;
 
@@ -356,7 +359,7 @@ export const createForm = <T extends object, V extends ValidatorFields<T> = Vali
 				updateOnFocus(event.target.name);
 			}
 		},
-		useArrayField,
+		useArrayField: useFieldArray,
 		submitForm,
 		resetForm,
 		resetField

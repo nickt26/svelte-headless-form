@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { createForm } from '../../../src/core/createForm';
+	import { register } from '../../../src/core/register';
+	import FieldArray from '../components/FieldArray.svelte';
 
 	const delay = <T>(fn: () => T): Promise<T> =>
 		new Promise((resolve) =>
@@ -10,7 +12,12 @@
 
 	const initialValues = {
 		username: '',
-		password: ''
+		password: '',
+		nested: {
+			age: 0,
+			gender: false
+		},
+		roles: ['admin', 'user', 'guest']
 	};
 	const {
 		submitForm,
@@ -22,16 +29,17 @@
 		dirty,
 		pristine,
 		resetForm,
-		resetField
+		resetField,
+		control,
+		validators
 	} = createForm({
-		initialDeps: {
-			username: ['password']
-		},
 		initialValues,
 		initialValidators: {
-			username: async (value) =>
-				await delay(() => (value.length > 0 ? false : 'Username is required')),
+			username: (value) => (value.length > 0 ? false : 'Username is required'),
 			password: (value) => (value.length > 0 ? false : 'Password is required')
+		},
+		initialDeps: {
+			username: ['nested']
 		}
 		// validationResolver: (values) => {
 		// 	const errors: any = {};
@@ -46,20 +54,24 @@
 		// 	return errors;
 		// }
 	});
+	$validators.nested.age = (value) =>
+		value <= 0 || value === null ? 'Age must be greater than 0' : false;
+	// setTimeout(() => {
+	// 	console.log('runs this');
+
+	// 	$validators.username = (value) =>
+	// 		value.length >= 3 ? false : 'Username must be at least 3 characters';
+	// 	$values.username = '123455';
+	// }, 2000);
 </script>
 
-<form on:submit|preventDefault={submitForm((values) => delay(() => console.log(values)))}>
-	<input
-		type="text"
-		name="username"
-		value={$values.username}
-		on:input={input.handleChange}
-		on:blur={input.handleBlur}
-		on:focus={input.handleFocus}
-	/>
-	<span>touched: {$touched.username}</span>
-	<span>dirty: {$dirty.username}</span>
-	<span>pristine: {$pristine.username}</span>
+<form
+	on:submit|preventDefault={submitForm(
+		(values) => delay(() => console.log(values)),
+		(errors) => console.log(errors)
+	)}
+>
+	<input type="text" use:register={{ control, name: 'username' }} />
 	{#if $errors.username}
 		<span>
 			{$errors.username}
@@ -67,19 +79,28 @@
 	{/if}
 	<button type="button" on:click={() => resetField('username')}>Reset Username</button>
 
-	<input
-		type="password"
-		name="password"
-		value={$values.password}
-		on:input={input.handleChange}
-		on:blur={input.handleBlur}
-		on:focus={input.handleFocus}
-	/>
+	<input type="number" use:register={{ name: 'password', control }} />
 	{#if $errors.password}
 		<span>
 			{$errors.password}
 		</span>
 	{/if}
+
+	<input
+		type="number"
+		use:register={{
+			name: 'nested.age',
+			control,
+			parseFn: (value) => (isNaN(parseInt(value)) ? null : parseInt(value))
+		}}
+	/>
+	{#if $errors.nested.age}
+		<span>
+			{$errors.nested.age}
+		</span>
+	{/if}
+
+	<FieldArray name="roles" {control} />
 
 	<button type="submit" disabled={$state.isSubmitting || $state.isValidating}>Submit</button>
 	<button type="button" on:click={() => resetForm({ username: '123' })}>Reset</button>
