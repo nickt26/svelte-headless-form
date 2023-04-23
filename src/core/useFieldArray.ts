@@ -1,32 +1,24 @@
-import { Readable, derived } from 'svelte/store';
+import { derived } from 'svelte/store';
+import { UseFieldArray, UseFieldArrayOptions } from '../internal/types/UseFieldArray';
 import { getInternal } from '../internal/util/get';
-import { ArrayFieldAddOptions, FormControl } from '../types/Form';
-
-export type UseFieldArrayOptions<T extends object> = {
-	name: string;
-	control: FormControl<T>;
-};
-
-export type UseFieldArray<S, T extends object> = {
-	fields: Readable<S[]>;
-	remove: (index: number) => void;
-	append: (value: unknown, options?: ArrayFieldAddOptions<T>) => void;
-	prepend: (value: unknown, options?: ArrayFieldAddOptions<T>) => void;
-	swap: (from: number, to: number) => void;
-	form: FormControl<T>;
-};
+import { setImpure } from '../internal/util/set';
 
 export const useFieldArray = <S, T extends object = object>({
 	name,
-	control
+	control,
 }: UseFieldArrayOptions<T>): UseFieldArray<S, T> => {
-	const fields_store = derived(control.values, ($values) => getInternal<S[]>(name, $values)!);
+	const fields_store = derived(control.values, ($values) => getInternal<S[]>(name, $values) as S[]);
 
-	const functions = control.useArrayField(name);
+	const functions = control.useFieldArray(name);
 
 	return {
-		fields: { subscribe: fields_store.subscribe },
+		fields: {
+			subscribe: fields_store.subscribe,
+			set: (value: S[]) => control.values.update((x) => setImpure(name, value, x)),
+			update: (fn: (value: S[]) => S[]) =>
+				control.values.update((x) => setImpure(name, fn(getInternal<S[]>(name, x)!), x)),
+		},
 		...functions,
-		form: control
+		form: control,
 	};
 };

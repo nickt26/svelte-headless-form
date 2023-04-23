@@ -1,4 +1,6 @@
-import { get, writable } from 'svelte/store';
+import { onDestroy } from 'svelte';
+import { derived, get, writable } from 'svelte/store';
+import { InternalFormState, InternalFormStateCounter } from '../internal/types/Form';
 import { appendImpure } from '../internal/util/append';
 import { assign, assignImpure } from '../internal/util/assign';
 import { clone } from '../internal/util/clone';
@@ -6,65 +8,126 @@ import { findTriggers } from '../internal/util/findTriggers';
 import { getInternal } from '../internal/util/get';
 import { isFormValidSchema, isFormValidSchemaless } from '../internal/util/isFormValid';
 import { isNil } from '../internal/util/isNil';
+import { isObject } from '../internal/util/isObject';
 import { mergeRightDeepImpure } from '../internal/util/mergeRightDeep';
 import { prependImpure } from '../internal/util/prepend';
 import { removePropertyImpure } from '../internal/util/removeProperty';
 import { setImpure } from '../internal/util/set';
-import type {
-	ArrayFieldAddOptions,
+import {
 	AsyncValidatorFn,
+	BooleanFields,
+	DependencyFields,
+	ErrorFields,
+	Field,
 	Form,
+	FormControl,
 	FormOptions,
+	FormState,
 	PartialErrorFields,
+	PartialFormObject,
+	RegisterFn,
 	ResetFieldFn,
 	ResetFormFn,
 	SubmitFormFn,
+	UseFieldArrayFn,
+	ValidateMode,
 	ValidatorFields,
-	ValidatorFn
+	ValidatorFn,
 } from '../types/Form';
 
 export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<T> => {
 	const isSchemaless = 'initialValidators' in formOptions;
 	const isSchema = 'validationResolver' in formOptions;
 	const validateMode = formOptions.validateMode ?? (isSchemaless ? 'onChange' : isSchema ? 'onBlur' : 'none');
-	const touched = assign(false, formOptions.initialValues);
-	const dirty = assign(false, formOptions.initialValues);
-	const pristine = assign(true, formOptions.initialValues);
-	const validators = isSchemaless
+	const initialTouched = assign(false, formOptions.initialValues);
+	const initialDirty = assign(false, formOptions.initialValues);
+	const initialPristine = assign(true, formOptions.initialValues);
+	const initialValidators = isSchemaless
 		? mergeRightDeepImpure(assign(undefined, formOptions.initialValues), formOptions.initialValidators!)
 		: ({} as ValidatorFields<T>);
 	const validationResolver = isSchema ? formOptions.validationResolver : undefined;
-	const errors = assign(false as string | false, formOptions.initialValues);
-	const deps = mergeRightDeepImpure(assign([] as string[], formOptions.initialValues), formOptions.initialDeps ?? {});
-	const values = clone(formOptions.initialValues);
-	const state = {
+	const initialErrors = assign(false as string | false, formOptions.initialValues);
+	const initialDeps = mergeRightDeepImpure(
+		assign([] as string[], formOptions.initialValues),
+		formOptions.initialDeps ?? {},
+	);
+	const initialValues = clone(formOptions.initialValues);
+	const initialState: FormState = {
 		isSubmitting: false,
 		isPristine: true,
 		isDirty: false,
 		isTouched: false,
-		isValidating: false
+		isValidating: false,
+		submitCount: 0,
+		resetCount: 0,
 	};
 
-	let defaultValues = clone(values);
-	let defaultValidators = clone(validators);
-	let defaultDeps = clone(deps);
+	let defaultValues = clone(initialValues); // Used to track all default values that may be added by useFieldArray methods
+	let defaultValidators = clone(initialValidators); // Used to track all default validators that may be added by useFieldArray methods
+	let defaultDeps = clone(initialDeps); // Used to track all default deps that may be added by useFieldArray methods
 
-	const touched_store = writable(clone(touched));
-	const dirty_store = writable(clone(dirty));
-	const pristine_store = writable(clone(pristine));
-	const values_store = writable(clone(values));
-	const validators_store = writable(clone(validators));
-	const errors_store = writable(clone(errors));
-	const deps_store = writable(clone(deps));
-	const state_store = writable(clone(state));
-	const validate_mode_store = writable(validateMode);
+	const touched_store = writable<BooleanFields<T>>(clone(initialTouched));
+	const dirty_store = writable<BooleanFields<T>>(clone(initialDirty));
+	const pristine_store = writable<BooleanFields<T>>(clone(initialPristine));
+	const values_store = writable<T>(clone(initialValues));
+	const validators_store = writable<ValidatorFields<T>>(clone(initialValidators));
+	const errors_store = writable<ErrorFields<T>>(clone(initialErrors));
+	const deps_store = writable<DependencyFields<T>>(clone(initialDeps));
+	const state_store = writable<FormState>(clone(initialState));
+	const validate_mode_store = writable<ValidateMode>(validateMode);
 
-	const isFormValid = async (): Promise<[boolean, PartialErrorFields<T>]> => {
+	const internal_counter_store = writable<InternalFormStateCounter>({
+		validations: 0,
+		submits: 0,
+	});
+	const internal_state_store = derived(
+		[
+			values_store,
+			touched_store,
+			dirty_store,
+			pristine_store,
+			validators_store,
+			errors_store,
+			deps_store,
+			state_store,
+			validate_mode_store,
+		],
+		([$values, $touched, $dirty, $pristine, $validators, $errors, $deps, $state, $validateMode]) =>
+			({
+				values: $values,
+				touched: $touched,
+				dirty: $dirty,
+				pristine: $pristine,
+				validators: $validators,
+				errors: $errors,
+				deps: $deps,
+				state: $state,
+				validateMode: $validateMode,
+			} as InternalFormState<T>),
+	);
+
+	const valuesUnsub = values_store.subscribe((x) => console.log('values change', x));
+	const counterUnsub = internal_counter_store.subscribe((x) => {
+		x.validations > 0
+			? state_store.update((x) => setImpure('isValidating', true, x))
+			: state_store.update((x) => setImpure('isValidating', false, x));
+
+		x.submits > 0
+			? state_store.update((x) => setImpure('isSubmitting', true, x))
+			: state_store.update((x) => setImpure('isSubmitting', false, x));
+	});
+
+	onDestroy(() => {
+		console.log('destroyed');
+		valuesUnsub();
+		counterUnsub();
+	});
+
+	const isFormValid = async (formState: InternalFormState<T>): Promise<[boolean, PartialErrorFields<T>]> => {
 		try {
-			console.log(get(validators_store));
-
-			if (isSchemaless) return await isFormValidSchemaless(get(values_store), get(values_store), get(validators_store));
-			if (isSchema) return await isFormValidSchema(get(values_store), validationResolver!);
+			if (isSchemaless)
+				return await isFormValidSchemaless(formState.values, formState.values, formState.validators, formState);
+			if (isSchema) return await isFormValidSchema(formState.values, validationResolver!);
 			return [true, {}];
 		} catch (_) {
 			return [false, {}];
@@ -74,70 +137,66 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 	const submitForm: SubmitFormFn<T> = (submitFn, errorFn) => {
 		return () =>
 			(async () => {
-				state_store.update((x) => mergeRightDeepImpure(x, { isSubmitting: true, isValidating: true }));
-				const [isValid, errors] = await isFormValid();
-				state_store.update((x) => setImpure('isValidating', false, x));
+				const formState = get(internal_state_store);
+				state_store.update((x) => setImpure('submitCount', x.submitCount + 1, x));
+				internal_counter_store.update((x) =>
+					mergeRightDeepImpure(x, { validations: x.validations + 1, submits: x.submits + 1 }),
+				);
+				const [isValid, errors] = await isFormValid(formState);
+				internal_counter_store.update((x) => setImpure('validations', x.validations - 1, x));
 				if (isValid) {
-					try {
-						await submitFn(get(values_store));
-					} finally {
-						state_store.update((x) => setImpure('isSubmitting', false, x));
-					}
+					//prettier-ignore
+					try { await submitFn(formState.values); } finally { internal_counter_store.update((x) => setImpure('submits', x.submits - 1, x)); }
 				} else {
 					touched_store.update((x) => assignImpure(true, x, x));
 					errors_store.update((x) => mergeRightDeepImpure(x, errors));
-					try {
-						if (errorFn) await errorFn(get(errors_store));
-					} finally {
-						state_store.update((x) => setImpure('isSubmitting', false, x));
-					}
+					//prettier-ignore
+					try { if (errorFn) await errorFn(get(errors_store)); } finally { internal_counter_store.update((x) => setImpure('submits', x.submits - 1, x)); }
 				}
 			})();
 	};
 
-	const resetForm: ResetFormFn<T> = (resetValues) => {
-		defaultValues = clone(values);
-		defaultValidators = clone(validators);
-		defaultDeps = clone(deps);
-		touched_store.set(clone(touched));
-		dirty_store.set(clone(dirty));
-		pristine_store.set(clone(pristine));
-		values_store.set(mergeRightDeepImpure(clone(values), resetValues ?? {}));
-		validators_store.set(clone(validators));
-		errors_store.set(clone(errors));
-		deps_store.set(clone(deps));
-		state_store.update((x) => mergeRightDeepImpure(x, state));
+	const resetForm: ResetFormFn<T> = (resetValues = {}, options) => {
+		defaultValues = mergeRightDeepImpure(clone(initialValues), resetValues, options);
+		defaultValidators = mergeRightDeepImpure(clone(initialValidators), assign(undefined, resetValues), options);
+		defaultDeps = mergeRightDeepImpure(clone(initialDeps), assign([] as string[], resetValues), options);
+		touched_store.set(assign(false, defaultValues));
+		dirty_store.set(assign(false, defaultValues));
+		pristine_store.set(assign(true, defaultValues));
+		values_store.set(clone(defaultValues));
+		validators_store.set(defaultValidators);
+		errors_store.set(assign(false as string | false, defaultValues));
+		deps_store.set(clone(defaultDeps));
+		state_store.update((x) =>
+			mergeRightDeepImpure(x, {
+				isDirty: false,
+				isPristine: true,
+				isTouched: false,
+				resetCount: x.resetCount + 1,
+			} as PartialFormObject<FormState>),
+		);
 	};
 
-	const resetField: ResetFieldFn = (
-		name: string,
-		resetFieldOptions = {
-			keepTouched: false,
-			keepDirty: false,
-			keepError: false,
-			keepPristine: false,
-			keepDeps: false,
-			keepValidator: false,
-			keepValue: false
-		}
-	) => {
-		if (!resetFieldOptions.keepTouched) touched_store.update((x) => setImpure(name, false, x));
-		if (!resetFieldOptions.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
-		if (!resetFieldOptions.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
-		if (!resetFieldOptions.keepValue) values_store.update((x) => setImpure(name, getInternal(name, defaultValues), x));
-		if (!resetFieldOptions.keepValidator)
+	const resetField: ResetFieldFn = (name, resetFieldOptions) => {
+		//TODO: Decide how to handle object and array field resets
+		if (isObject(getInternal(name, defaultValues)) || Array.isArray(getInternal(name, defaultValues)))
+			throw new Error('Cannot reset object or array value');
+		if (!resetFieldOptions?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
+		if (!resetFieldOptions?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
+		if (!resetFieldOptions?.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
+		if (!resetFieldOptions?.keepValue) values_store.update((x) => setImpure(name, getInternal(name, defaultValues), x));
+		if (!resetFieldOptions?.keepValidator)
 			validators_store.update((x) => setImpure(name, getInternal(name, defaultValidators), x));
-		if (!resetFieldOptions.keepError) errors_store.update((x) => setImpure(name, false, x));
-		if (!resetFieldOptions.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
+		if (!resetFieldOptions?.keepError) errors_store.update((x) => setImpure(name, false, x));
+		if (!resetFieldOptions?.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
 		//TODO: If the reset field is the only touched, dirty, pristine, or error field then reset the form state accordingly
-		//TODO: Decide if these options are still valid when resetting an array field
 	};
 
-	const useFieldArray = (name: string) => {
+	const useFieldArray: UseFieldArrayFn<T> = (name) => {
 		if (!Array.isArray(getInternal(name, get(values_store))))
-			throw Error('Attempting to use createArrayField on a field that is not an Array');
+			throw Error('Can not call useFieldArray on a field that is not an Array');
 		return {
-			remove: (index: number): void => {
+			remove: (index) => {
 				const path = `${name}.${index}`;
 				removePropertyImpure(path, defaultValues);
 				removePropertyImpure(path, defaultValidators);
@@ -150,15 +209,15 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				errors_store.update((x) => removePropertyImpure(path, x));
 			},
 			append: (
-				val: unknown,
-				{ deps = [], validate = false, validator }: ArrayFieldAddOptions<T> = {
+				val,
+				{ deps = [], validate = false, validator } = {
 					deps: [],
 					validate: false,
-					validator: undefined
-				}
-			): void => {
+					validator: undefined,
+				},
+			) => {
 				appendImpure(name, val, defaultValues);
-				if (validator) appendImpure(name, validator, defaultValidators);
+				appendImpure(name, validator, defaultValidators);
 				appendImpure(name, clone(deps), defaultDeps);
 				touched_store.update((x) => appendImpure(name, false, x));
 				dirty_store.update((x) => appendImpure(name, true, x));
@@ -167,18 +226,18 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				const array = getInternal<any[]>(name, get(values_store))!;
 				if (validator) validators_store.update((x) => setImpure(`${name}.${array.length - 1}`, validator, x));
 				deps_store.update((x) => appendImpure(name, clone(deps), x));
-				if (validator && validate) runValidation(`${name}.${array.length - 1}`);
+				if (validator && validate) runValidation(`${name}.${array.length - 1}`, get(internal_state_store));
 			},
 			prepend: (
-				val: unknown,
-				{ deps = [], validate = false, validator }: ArrayFieldAddOptions<T> = {
+				val,
+				{ deps = [], validate = false, validator } = {
 					deps: [],
 					validate: false,
-					validator: undefined
-				}
-			): void => {
+					validator: undefined,
+				},
+			) => {
 				prependImpure(name, val, defaultValues);
-				if (validator) prependImpure(name, validator, defaultValidators);
+				prependImpure(name, validator, defaultValidators);
 				prependImpure(name, clone(deps), defaultDeps);
 				touched_store.update((x) => prependImpure(name, false, x));
 				dirty_store.update((x) => prependImpure(name, true, x));
@@ -187,39 +246,43 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				const array = getInternal<any[]>(name, get(values_store))!;
 				if (validator) validators_store.update((x) => prependImpure(name, validator, x));
 				deps_store.update((x) => prependImpure(name, clone(deps), x));
-				if (validator && validate) runValidation(`${name}.${array.length - 1}`);
+				if (validator && validate) runValidation(`${name}.${array.length - 1}`, get(internal_state_store));
 			},
-			swap: (from: number, to: number) => {
+			swap: (from, to) => {
 				const index1Path = `${name}.${from}`;
+				const formState = get(internal_state_store);
 				const fromItems = {
-					touched: getInternal(index1Path, get(touched_store)),
-					dirty: getInternal(index1Path, get(dirty_store)),
-					pristine: getInternal(index1Path, get(pristine_store)),
-					value: getInternal(index1Path, get(values_store)),
-					validators: getInternal(index1Path, get(validators_store)),
-					error: getInternal(index1Path, get(errors_store)),
-					deps: getInternal(index1Path, get(deps_store))
+					touched: getInternal(index1Path, formState.touched),
+					dirty: getInternal(index1Path, formState.dirty),
+					pristine: getInternal(index1Path, formState.pristine),
+					value: getInternal(index1Path, formState.values),
+					validators: getInternal(index1Path, formState.validators),
+					error: getInternal(index1Path, formState.errors),
+					deps: getInternal(index1Path, formState.deps),
 				};
 
 				const index2Path = `${name}.${to}`;
 				const toItems = {
-					touched: getInternal(index2Path, get(touched_store)),
-					error: getInternal(index2Path, get(errors_store)),
-					dirty: getInternal(index2Path, get(dirty_store)),
-					pristine: getInternal(index2Path, get(pristine_store)),
-					value: getInternal(index2Path, get(values_store)),
-					validators: getInternal(index2Path, get(validators_store)),
-					deps: getInternal(index2Path, get(deps_store))
+					touched: getInternal(index2Path, formState.touched),
+					dirty: getInternal(index2Path, formState.dirty),
+					pristine: getInternal(index2Path, formState.pristine),
+					value: getInternal(index2Path, formState.values),
+					validators: getInternal(index2Path, formState.validators),
+					error: getInternal(index2Path, formState.errors),
+					deps: getInternal(index2Path, formState.deps),
 				};
 
 				if (fromItems.touched === undefined || toItems.touched === undefined) return;
 
 				setImpure(index1Path, toItems.value, defaultValues);
 				setImpure(index2Path, fromItems.value, defaultValues);
+
 				setImpure(index1Path, toItems.validators, defaultValidators);
 				setImpure(index2Path, fromItems.validators, defaultValidators);
+
 				setImpure(index1Path, toItems.deps, defaultDeps);
 				setImpure(index2Path, fromItems.deps, defaultDeps);
+
 				touched_store.update((x) => {
 					setImpure(index1Path, toItems.touched, x);
 					return setImpure(index2Path, fromItems.touched, x);
@@ -248,127 +311,136 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 					setImpure(index1Path, toItems.validators, x);
 					return setImpure(index2Path, fromItems.validators, x);
 				});
-			}
+			},
 		};
 	};
 
-	const runValidation = async (name: string) => {
-		state_store.update((x) => setImpure('isValidating', true, x));
+	const runValidation = async (name: string, formState: InternalFormState<T>) => {
+		internal_counter_store.update((x) => setImpure('validations', x.validations + 1, x));
 		try {
-			const values = get(values_store);
-			const value = getInternal<T[keyof T]>(name, values)!;
+			const value = getInternal<T[keyof T]>(name, formState.values)!;
 			if (isSchemaless) {
-				const validator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(name, get(validators_store));
-				if (validator !== undefined) {
-					const validatorResult = await validator(value, values);
-					errors_store.update((x) => setImpure(name, validatorResult, x));
+				const validator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(name, formState.validators);
+				if (validator) {
+					const validatorResult = await validator(value, formState);
+					if (getInternal(name, errors_store) !== validatorResult)
+						errors_store.update((x) => setImpure(name, validatorResult, x));
 				}
 
-				const triggers = findTriggers(name, get(deps_store));
-				for (const trigger of triggers) {
-					const triggerValue = getInternal(trigger, values);
-					const triggerValidator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(trigger, get(validators_store));
-					if (triggerValidator !== undefined) {
-						const triggerValidatorResult = await triggerValidator(triggerValue, values);
-						errors_store.update((x) => setImpure(trigger, triggerValidatorResult, x));
+				for (const trigger of findTriggers(name, get(deps_store))) {
+					const triggerValue = getInternal(trigger, formState.values);
+					const triggerValidator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(trigger, formState.validators);
+					if (triggerValidator) {
+						const triggerValidatorResult = await triggerValidator(triggerValue, formState);
+						if (getInternal(trigger, errors_store) !== triggerValidatorResult)
+							errors_store.update((x) => setImpure(trigger, triggerValidatorResult, x));
 					}
 				}
 			}
 
 			if (isSchema) {
-				const errors = await validationResolver!(values);
+				const errors = await validationResolver!(initialValues);
 				if (isNil(errors)) return;
 
 				errors_store.update((x) => setImpure(name, getInternal<string | false>(name, errors) ?? false, x));
 
-				const triggers = findTriggers(name, get(deps_store));
-				for (const trigger of triggers)
+				for (const trigger of findTriggers(name, get(deps_store)))
 					errors_store.update((x) => setImpure(trigger, getInternal<string | false>(trigger, errors) ?? false, x));
 			}
 		} finally {
-			state_store.update((x) => setImpure('isValidating', false, x));
+			internal_counter_store.update((x) => setImpure('validations', x.validations - 1, x));
 		}
 	};
 
-	const updateOnChange = (name: string, value: unknown, parseFn?: <T>(val: unknown) => T) => {
-		const values = get(values_store);
-		const val = getInternal<number>(name, values);
-		// Use of != will have side effects caused by svelte auto parsing the input value, if the bind:value is placed before then the value will be sent as the parsed value to the validator, if the bind:value is placed after then the value of e.target.event will be sent to the validator and the value of field will be autoparsed after the validator is run
+	const updateOnChange = (name: string, value?: unknown) => {
+		// Use of != will have side effects caused by svelte auto parsing the input value, if the bind:value is placed before the change handler then the value will be sent as the parsed value to the validator, if the bind:value is placed after then the value of e.target.event will be sent to the validator and the value of field will be autoparsed after the validator is run
 		// Use of !== will remove any side effects caused by svelte auto parsing the input value, regardless of the order in which the bind:value is places
 		// Using !== here to remove any side effects and to make the behaviour consistent, if the user wants to use the parsed value then making the user parse the value manually is the more preferred option. Open to ideas on this.
-		if (val !== undefined && val !== value)
-			values_store.update((x) => setImpure(name, parseFn !== undefined ? parseFn(value) : value, x));
+		// if (getInternal(name, get(form_state_store).values) != value)
+		// 	values_store.update((x) => setImpure(name, parseFn ? parseFn(value) : value, x));
+		if (value !== undefined) values_store.update((x) => setImpure(name, value, x));
 
-		dirty_store.update((x) => setImpure(name, true, x));
-		state_store.update((x) => setImpure('isDirty', true, x));
-		pristine_store.update((x) => setImpure(name, false, x));
-		state_store.update((x) => setImpure('isPristine', false, x));
-		if (get(validate_mode_store) === 'onChange' || get(validate_mode_store) === 'all') runValidation(name);
+		const formState = get(internal_state_store);
+		if (!getInternal(name, formState.dirty)) dirty_store.update((x) => setImpure(name, true, x));
+		if (getInternal(name, formState.pristine)) pristine_store.update((x) => setImpure(name, false, x));
+		if (!formState.state.isDirty && formState.state.isPristine)
+			state_store.update((x) => mergeRightDeepImpure(x, { isDirty: true, isPristine: false }));
+		if (get(validate_mode_store) === 'onChange' || get(validate_mode_store) === 'all') runValidation(name, formState);
 	};
 
 	const updateOnBlur = (name: string) => {
-		touched_store.update((x) => setImpure(name, true, x));
-		state_store.update((x) => setImpure('isTouched', true, x));
-		if (get(validate_mode_store) === 'onBlur' || get(validate_mode_store) === 'all') runValidation(name);
+		const formState = get(internal_state_store);
+		if (!getInternal(name, formState.touched)) touched_store.update((x) => setImpure(name, true, x));
+		if (!formState.state.isTouched) state_store.update((x) => setImpure('isTouched', true, x));
+		if (formState.validateMode === 'onBlur' || formState.validateMode === 'all') runValidation(name, formState);
 	};
 
 	const updateOnFocus = (name: string) => {
-		if (get(validate_mode_store) === 'onFocus' || get(validate_mode_store) === 'all') runValidation(name);
+		const formState = get(internal_state_store);
+		if (formState.validateMode === 'onFocus' || formState.validateMode === 'all') runValidation(name, formState);
 	};
 
-	const form = {
+	const register: RegisterFn = (node, { name, changeEvent }) => {
+		const handleChange = () => field.handleChange(name);
+		const handleBlur = () => field.handleBlur(name);
+		const handleFocus = () => field.handleFocus(name);
+
+		if (typeof changeEvent === 'string') node.addEventListener(changeEvent, handleChange);
+		else if (Array.isArray(changeEvent)) changeEvent.forEach((event) => node.addEventListener(event, handleChange));
+		else node.addEventListener('input', handleChange);
+
+		node.addEventListener('blur', handleBlur);
+		node.addEventListener('focus', handleFocus);
+
+		return {
+			destroy() {
+				if (typeof changeEvent === 'string') node.removeEventListener(changeEvent, handleChange);
+				else if (Array.isArray(changeEvent))
+					changeEvent.forEach((event) => node.removeEventListener(event, handleChange));
+				else node.removeEventListener('input', handleChange);
+
+				node.removeEventListener('blur', handleBlur);
+				node.removeEventListener('focus', handleFocus);
+			},
+		};
+	};
+
+	const field: Field = {
+		handleChange: (name, val) => updateOnChange(name, val),
+		handleBlur: (name) => updateOnBlur(name),
+		handleFocus: (name) => updateOnFocus(name),
+	};
+
+	const form: FormControl<T> = {
 		touched: {
-			subscribe: touched_store.subscribe
+			subscribe: touched_store.subscribe,
 		},
 		values: values_store,
 		dirty: {
-			subscribe: dirty_store.subscribe
+			subscribe: dirty_store.subscribe,
 		},
 		pristine: {
-			subscribe: pristine_store.subscribe
+			subscribe: pristine_store.subscribe,
 		},
 		validators: validators_store,
 		errors: {
-			subscribe: errors_store.subscribe
+			subscribe: errors_store.subscribe,
 		},
 		deps: deps_store,
 		state: {
-			subscribe: state_store.subscribe
+			subscribe: state_store.subscribe,
 		},
 		validateMode: validate_mode_store,
-		field: {
-			handleChange: (name: string, val: unknown) => updateOnChange(name, val),
-			handleBlur: (name: string) => updateOnBlur(name),
-			handleFocus: (name: string) => updateOnFocus(name)
-		},
-		input: {
-			handleChange: (e: Event, parseFn?: <T>(val: unknown) => T) => {
-				const event = e as Event & {
-					target: EventTarget & HTMLInputElement;
-				};
-				updateOnChange(event.target.name, event.target.value, parseFn);
-			},
-			handleBlur: (e: Event) => {
-				const event = e as Event & {
-					target: EventTarget & HTMLInputElement;
-				};
-				updateOnBlur(event.target.name);
-			},
-			handleFocus: (e: Event) => {
-				const event = e as Event & {
-					target: EventTarget & HTMLInputElement;
-				};
-				updateOnFocus(event.target.name);
-			}
-		},
-		useArrayField: useFieldArray,
+		field,
+		useFieldArray,
 		submitForm,
 		resetForm,
-		resetField
+		resetField,
+		register,
 	};
 	const control = form;
 	return {
 		control,
-		...form
+		...form,
 	};
 };

@@ -1,21 +1,17 @@
 <script lang="ts">
-	import type { FormValues } from '../types/FormValues';
+	import type { FormValues, Roles } from '../types/FormValues';
 
-	import { register } from '../../../src/core/register';
 	import { useFieldArray } from '../../../src/core/useFieldArray';
 	import type { FormControl } from '../../../src/types/Form';
+	import Input from './Input.svelte';
 
 	export let control: FormControl<FormValues>;
 	export let name: string;
-	const {
-		fields,
-		form: { values }
-	} = useFieldArray<string, FormValues>({ name, control });
+	const { fields } = useFieldArray<Roles, FormValues>({ name, control });
 </script>
 
 <div>
 	{#each $fields as _, index}
-		<input type="text" use:register={{ control, name: `${name}.${index}` }} />
-		{$values.username}
+		<Input {control} name={`${name}.${index}`} />
 	{/each}
 </div>

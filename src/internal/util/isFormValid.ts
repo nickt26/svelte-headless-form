@@ -1,22 +1,28 @@
-import { PartialFormObject, ValidationResolver, ValidatorFields } from '../../types/Form';
+import {
+	PartialErrorFields,
+	PartialFormObject,
+	ValidationResolver,
+	ValidatorFields,
+	ValidatorFormState
+} from '../../types/Form';
 import { empty } from './empty';
 import { isObject } from './isObject';
 
 export const isFormValidSchemaless = async <T extends object, V extends object>(
 	currentValue: V,
 	values: T,
-	currentValidator: ValidatorFields<V> | undefined,
+	currentValidator: ValidatorFields<V>,
+	validatorFormState: ValidatorFormState<T>,
 	formValidity = true,
-	errors = {} as PartialFormObject<T, string | false>
+	errors: PartialErrorFields<T> = {}
 ): Promise<[boolean, PartialFormObject<T, string | false>]> => {
 	const currentValueKeys = Object.keys(currentValue);
 	for (let i = 0; i < currentValueKeys.length; i++) {
 		const key = currentValueKeys[i] as keyof V;
 		const val = currentValue[key];
-		const validateFn = currentValidator && currentValidator[key];
-		if (validateFn && (typeof validateFn === 'function' || validateFn instanceof Promise)) {
-			// @ts-ignore
-			const errResult = await validateFn(val, values as any);
+		const validateFn = currentValidator[key];
+		if (validateFn && typeof validateFn === 'function') {
+			const errResult = await validateFn(val, validatorFormState as any);
 			Object.assign(errors, {
 				[key]: errResult
 			});
@@ -26,9 +32,10 @@ export const isFormValidSchemaless = async <T extends object, V extends object>(
 			const [isValid, childErrors] = await isFormValidSchemaless<T, typeof val>(
 				val,
 				values,
-				validateFn as ValidatorFields<typeof val> | undefined,
+				validateFn as ValidatorFields<typeof val>,
+				validatorFormState,
 				formValidity,
-				empty(val) as PartialFormObject<T, string | false>
+				empty(val)
 			);
 			formValidity = formValidity ? isValid : formValidity;
 			Object.assign(errors, {
