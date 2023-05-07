@@ -158,13 +158,27 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 
 	const resetForm: ResetFormFn<T> = (resetValues = {}, options) => {
 		defaultValues = mergeRightDeepImpure(clone(initialValues), resetValues, options);
-		defaultValidators = mergeRightDeepImpure(clone(initialValidators), assign(undefined, resetValues), options);
-		defaultDeps = mergeRightDeepImpure(clone(initialDeps), assign([] as string[], resetValues), options);
+		defaultValidators = mergeRightDeepImpure(
+			clone(initialValidators),
+			mergeRightDeepImpure(assign(undefined, resetValues), defaultValidators, {
+				replaceArrays: options?.replaceArrays,
+				onlySameKeys: true,
+			}),
+			options,
+		);
+		defaultDeps = mergeRightDeepImpure(
+			clone(initialDeps),
+			mergeRightDeepImpure(assign([] as string[], resetValues), defaultDeps, {
+				replaceArrays: options?.replaceArrays,
+				onlySameKeys: true,
+			}),
+			options,
+		);
 		touched_store.set(assign(false, defaultValues));
 		dirty_store.set(assign(false, defaultValues));
 		pristine_store.set(assign(true, defaultValues));
 		values_store.set(clone(defaultValues));
-		validators_store.set(defaultValidators);
+		validators_store.set(clone(defaultValidators));
 		errors_store.set(assign(false as string | false, defaultValues));
 		deps_store.set(clone(defaultDeps));
 		state_store.update((x) =>
@@ -173,23 +187,51 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				isPristine: true,
 				isTouched: false,
 				resetCount: x.resetCount + 1,
-			} as PartialFormObject<FormState>),
+			} satisfies PartialFormObject<FormState>),
 		);
 	};
 
 	const resetField: ResetFieldFn = (name, resetFieldOptions) => {
-		//TODO: Decide how to handle object and array field resets
-		if (isObject(getInternal(name, defaultValues)) || Array.isArray(getInternal(name, defaultValues)))
-			throw new Error('Cannot reset object or array value');
+		const value = getInternal(name, defaultValues);
+		if (isObject(value) || Array.isArray(value)) {
+			const existsInInitial = getInternal(name, initialValues) !== undefined;
+			const valuesObject = clone(value);
+			const touchedObject = existsInInitial
+				? clone(getInternal<object>(name, initialTouched)!)
+				: assign(false, valuesObject);
+			const dirtyObject = existsInInitial
+				? clone(getInternal<object>(name, initialDirty)!)
+				: assign(false, valuesObject);
+			const pristineObject = existsInInitial
+				? clone(getInternal<object>(name, initialPristine)!)
+				: assign(true, valuesObject);
+			const validatorsObject = existsInInitial
+				? clone(getInternal<object>(name, initialValidators)!)
+				: clone(getInternal<object>(name, defaultValidators)!);
+			const errorsObject = existsInInitial
+				? clone(getInternal<object>(name, initialErrors)!)
+				: assign(false as string | false, value);
+			const depsObject = existsInInitial
+				? clone(getInternal<object>(name, initialDeps)!)
+				: clone(getInternal<object>(name, defaultDeps)!);
+			touched_store.update((x) => setImpure(name, touchedObject, x));
+			dirty_store.update((x) => setImpure(name, dirtyObject, x));
+			pristine_store.update((x) => setImpure(name, pristineObject, x));
+			values_store.update((x) => setImpure(name, valuesObject, x));
+			validators_store.update((x) => setImpure(name, validatorsObject, x));
+			errors_store.update((x) => setImpure(name, errorsObject, x));
+			deps_store.update((x) => setImpure(name, depsObject, x));
+			return;
+		}
 		if (!resetFieldOptions?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
 		if (!resetFieldOptions?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
 		if (!resetFieldOptions?.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
-		if (!resetFieldOptions?.keepValue) values_store.update((x) => setImpure(name, getInternal(name, defaultValues), x));
+		if (!resetFieldOptions?.keepValue) values_store.update((x) => setImpure(name, value, x));
 		if (!resetFieldOptions?.keepValidator)
 			validators_store.update((x) => setImpure(name, getInternal(name, defaultValidators), x));
 		if (!resetFieldOptions?.keepError) errors_store.update((x) => setImpure(name, false, x));
 		if (!resetFieldOptions?.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
-		//TODO: If the reset field is the only touched, dirty, pristine, or error field then reset the form state accordingly
+		//TODO: If the reset field is the only touched, dirty, pristine, or error field then reset the form state accordingly. Might be a heavy operation if the form has many nested fields due to deep value searching. Consider tracking fields by name with a derived store
 	};
 
 	const useFieldArray: UseFieldArrayFn<T> = (name) => {

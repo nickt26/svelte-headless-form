@@ -7,11 +7,17 @@
 
 	export let control: FormControl<FormValues>;
 	export let name: string;
-	const { fields } = useFieldArray<Roles, FormValues>({ name, control });
+	const {
+		fields,
+		form: { touched, dirty, pristine },
+	} = useFieldArray<Roles, FormValues>({ name, control });
 </script>
 
 <div>
 	{#each $fields as _, index}
 		<Input {control} name={`${name}.${index}`} />
+		<div>touched: {$touched.roles[index]}</div>
+		<div>dirty: {$dirty.roles[index]}</div>
+		<div>pristine: {$pristine.roles[index]}</div>
 	{/each}
 </div>

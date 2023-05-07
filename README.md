@@ -13,7 +13,7 @@ npm install svelte-headless-form
 ```html
 <script>
     import { createForm } from 'svelte-headless-form';
-    const { submitForm, input, errors, values } = createForm({
+    const { submitForm, input, errors, values, register } = createForm({
         validateMode: 'onBlur', // Defaults - Schemaless:onChange Schema:onBlur
         initialValues: {
             username: '',
@@ -29,11 +29,8 @@ npm install svelte-headless-form
 <form on:submit|preventDefault={submitForm((values) => console.log(values))}>
     <input
         type="text"
-        name="username"
-        value={$values.username}
-        on:input={input.handleChange}
-        on:blur={input.handleBlur}
-        on:focus={input.handleFocus}
+        bind:value={$values.username}
+        use:register={{ name: 'username' }}
     />
     {#if $errors.username}
         <div>
@@ -43,11 +40,8 @@ npm install svelte-headless-form
 
     <input
         type="password"
-        name="password"
-        value={$values.password}
-        on:input={input.handleChange}
-        on:blur={input.handleBlur}
-        on:focus={input.handleFocus}
+        bind:value={$values.password}
+        use:register={{ name: 'password' }}
     />
     {#if $errors.password}
         <div>
@@ -73,7 +67,7 @@ These roadmap features are not ordered by priority.
  - [x] Support validation dependencies.
  - [ ] Update README with more advanced examples.
  - [ ] Create a website with a tutorial, an API overview and documentation.
- - [ ] Send through entire form state to schemaless validators.
+ - [x] Send through entire form state to schemaless validators.
  - [x] Support async schemaless validators.
  - [x] Support schema-based validation.
  - [x] Unify useField and useFieldArray api by passing down control.

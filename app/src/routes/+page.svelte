@@ -21,6 +21,7 @@
 		roles: ['admin', 'user', 'guest'],
 		rolesAreUnique: null,
 	};
+
 	const { submitForm, errors, values, state, resetForm, resetField, control, register, touched } =
 		createForm<FormValues>({
 			initialValues,
@@ -98,6 +99,7 @@
 	{/if}
 
 	<FieldArray name="roles" {control} />
+	<button type="button" on:click={() => resetField('roles')}>Reset Roles</button>
 	{#if $errors.rolesAreUnique}
 		<div>{$errors.rolesAreUnique}</div>
 	{/if}

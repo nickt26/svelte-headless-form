@@ -28,7 +28,7 @@ export type Validators<O extends object, T extends object> = {
 
 export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: T[key] extends object
-		? Validators<O, T[key]>
+		? PartialValidators<O, T[key]>
 		: ValidatorFn<O, T[key]> | AsyncValidatorFn<O, T[key]>;
 };
 
@@ -50,10 +50,6 @@ export type GlobalFormOptions<T extends object> = {
 	validateMode?: ValidateMode;
 	initialDeps?: PartialFormObject<T, string[]>;
 	// revalidateMode: ValidateMode;
-	// resetOptions: {
-	// 	keepDirtyValues: boolean;
-	// 	keepErrors: boolean;
-	// };
 };
 export type FormOptionsSchemaless<T extends object> = {
 	initialValidators?: PartialValidatorFields<T>;
