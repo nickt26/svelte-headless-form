@@ -26,7 +26,10 @@
 		"forms",
 		"form",
 		"validation",
-		"form-validation"
+		"form-validation",
+		"svelte-forms",
+		"svelte-form",
+		"svelte-form-validation"
 	],
 	"type": "module",
 	"devDependencies": {
@@ -48,5 +51,12 @@
 		"typescript": "^4.9.5",
 		"vite": "^4.2.1",
 		"vitest": "^0.29.8"
+	},
+	"peerDependencies": {
+		"svelte": "^3.0.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nickt26/svelte-headless-form"
 	}
 }
