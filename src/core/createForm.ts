@@ -106,7 +106,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 			} as InternalFormState<T>),
 	);
 
-	const valuesUnsub = values_store.subscribe((x) => console.log('values change', x));
 	const counterUnsub = internal_counter_store.subscribe((x) => {
 		x.validations > 0
 			? state_store.update((x) => setImpure('isValidating', true, x))
@@ -117,11 +116,7 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 			: state_store.update((x) => setImpure('isSubmitting', false, x));
 	});
 
-	onDestroy(() => {
-		console.log('destroyed');
-		valuesUnsub();
-		counterUnsub();
-	});
+	onDestroy(() => counterUnsub());
 
 	const isFormValid = async (formState: InternalFormState<T>): Promise<[boolean, PartialErrorFields<T>]> => {
 		try {
