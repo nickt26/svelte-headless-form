@@ -120,8 +120,7 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 
 	const isFormValid = async (formState: InternalFormState<T>): Promise<[boolean, PartialErrorFields<T>]> => {
 		try {
-			if (isSchemaless)
-				return await isFormValidSchemaless(formState.values, formState.values, formState.validators, formState);
+			if (isSchemaless) return await isFormValidSchemaless(formState.values, formState.validators, formState);
 			if (isSchema) return await isFormValidSchema(formState.values, validationResolver!);
 			return [true, {}];
 		} catch (_) {

@@ -8,7 +8,7 @@ export default defineConfig({
 		environment: 'jsdom',
 		coverage: {
 			all: true,
-			include: ['src/internal/util.ts', 'src/core/*.ts']
-		}
-	}
+			include: ['src/internal/util/*.ts', 'src/core/*.ts'],
+		},
+	},
 });
