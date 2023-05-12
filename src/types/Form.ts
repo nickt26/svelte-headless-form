@@ -6,6 +6,7 @@ export type FormState = {
 	isTouched: boolean;
 	isPristine: boolean;
 	isDirty: boolean;
+	hasErrors: boolean;
 	submitCount: number;
 	resetCount: number;
 };
@@ -76,6 +77,7 @@ export type ResetFieldOptions = {
 	keepError?: boolean;
 	keepDirty?: boolean;
 	keepPristine?: boolean;
+	keepDependentErrors?: boolean;
 };
 
 export type FormUseFieldArray<T extends object, S = unknown> = {
@@ -99,15 +101,20 @@ export type SubmitFormFn<T extends object> = (submitFn: SubmitFn<T>, errorFn?: E
 
 export type ResetFieldFn = (name: string, options?: ResetFieldOptions) => void;
 export type ResetFormFn<T extends object> = (
-	resetValues?: PartialFormObject<T>,
-	options?: { replaceArrays: boolean },
+	values?: PartialFormObject<T>,
+	options?: {
+		replaceArrays: boolean;
+		validators?: (newValues: T) => PartialValidatorFields<T>;
+		deps?: (newValues: T) => PartialFormObject<T, string[]>;
+	},
 ) => void;
 
 export type UseFieldArrayFn<T extends object> = (name: string) => FormUseFieldArray<T>;
 
 export type RegisterOptions = {
 	name: string;
-	changeEvent?: string | string[];
+	changeEvent?: string | string[] | false;
+	valuesAsNumber?: boolean;
 };
 
 export type RegisterFn = (node: HTMLElement, options: RegisterOptions) => { destroy: Noop };

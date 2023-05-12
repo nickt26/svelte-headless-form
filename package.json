@@ -6,8 +6,8 @@
 	"module": "./dist/svelte-headless-form.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"test": "vitest --config ./vitest.config.ts",
-		"coverage": "vitest --config ./vitest.config.ts --coverage",
+		"test": "vitest run --config ./vitest.config.ts",
+		"coverage": "vitest run --config ./vitest.config.ts --coverage",
 		"build": "tsc -p tsconfig.dist.json"
 	},
 	"author": "Nicholas Trummer (nickt26)",

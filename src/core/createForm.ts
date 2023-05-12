@@ -13,6 +13,7 @@ import { mergeRightDeepImpure } from '../internal/util/mergeRightDeep';
 import { prependImpure } from '../internal/util/prepend';
 import { removePropertyImpure } from '../internal/util/removeProperty';
 import { setImpure } from '../internal/util/set';
+import { someDeep } from '../internal/util/someDeep';
 import {
 	AsyncValidatorFn,
 	BooleanFields,
@@ -58,6 +59,7 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		isDirty: false,
 		isTouched: false,
 		isValidating: false,
+		hasErrors: false,
 		submitCount: 0,
 		resetCount: 0,
 	};
@@ -150,22 +152,30 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 			})();
 	};
 
-	const resetForm: ResetFormFn<T> = (resetValues = {}, options) => {
-		defaultValues = mergeRightDeepImpure(clone(initialValues), resetValues, options);
+	const resetForm: ResetFormFn<T> = (values = {}, options) => {
+		defaultValues = mergeRightDeepImpure(clone(initialValues), values, options);
 		defaultValidators = mergeRightDeepImpure(
 			clone(initialValidators),
-			mergeRightDeepImpure(assign(undefined, resetValues), defaultValidators, {
-				replaceArrays: options?.replaceArrays,
-				onlySameKeys: true,
-			}),
+			mergeRightDeepImpure(
+				assign(undefined, values),
+				mergeRightDeepImpure(defaultValidators, options?.validators ? options.validators(defaultValues) : {}),
+				{
+					replaceArrays: options?.replaceArrays,
+					onlySameKeys: true,
+				},
+			),
 			options,
 		);
 		defaultDeps = mergeRightDeepImpure(
 			clone(initialDeps),
-			mergeRightDeepImpure(assign([] as string[], resetValues), defaultDeps, {
-				replaceArrays: options?.replaceArrays,
-				onlySameKeys: true,
-			}),
+			mergeRightDeepImpure(
+				assign([] as string[], values),
+				mergeRightDeepImpure(defaultDeps, options?.deps ? options.deps(defaultValues) : {}),
+				{
+					replaceArrays: options?.replaceArrays,
+					onlySameKeys: true,
+				},
+			),
 			options,
 		);
 		touched_store.set(assign(false, defaultValues));
@@ -180,57 +190,99 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				isDirty: false,
 				isPristine: true,
 				isTouched: false,
+				hasErrors: false,
+				submitCount: 0,
 				resetCount: x.resetCount + 1,
-			} satisfies PartialFormObject<FormState>),
+			} satisfies Partial<FormState>),
 		);
 	};
 
-	const resetField: ResetFieldFn = (name, resetFieldOptions) => {
-		const value = getInternal(name, defaultValues);
-		if (isObject(value) || Array.isArray(value)) {
-			const existsInInitial = getInternal(name, initialValues) !== undefined;
-			const valuesObject = clone(value);
-			const touchedObject = existsInInitial
-				? clone(getInternal<object>(name, initialTouched)!)
-				: assign(false, valuesObject);
-			const dirtyObject = existsInInitial
-				? clone(getInternal<object>(name, initialDirty)!)
-				: assign(false, valuesObject);
-			const pristineObject = existsInInitial
-				? clone(getInternal<object>(name, initialPristine)!)
-				: assign(true, valuesObject);
-			const validatorsObject = existsInInitial
-				? clone(getInternal<object>(name, initialValidators)!)
-				: clone(getInternal<object>(name, defaultValidators)!);
-			const errorsObject = existsInInitial
-				? clone(getInternal<object>(name, initialErrors)!)
-				: assign(false as string | false, value);
-			const depsObject = existsInInitial
-				? clone(getInternal<object>(name, initialDeps)!)
-				: clone(getInternal<object>(name, defaultDeps)!);
-			touched_store.update((x) => setImpure(name, touchedObject, x));
-			dirty_store.update((x) => setImpure(name, dirtyObject, x));
-			pristine_store.update((x) => setImpure(name, pristineObject, x));
-			values_store.update((x) => setImpure(name, valuesObject, x));
-			validators_store.update((x) => setImpure(name, validatorsObject, x));
-			errors_store.update((x) => setImpure(name, errorsObject, x));
-			deps_store.update((x) => setImpure(name, depsObject, x));
+	const checkFormForStateReset = () => {
+		const internal_state = get(internal_state_store);
+		const isDirty = someDeep((x) => x === true, internal_state.dirty);
+		const hasErrors = someDeep((x) => typeof x === 'string', internal_state.errors);
+		const isTouched = someDeep((x) => x === true, internal_state.touched);
+		if (isDirty !== internal_state.state.isDirty) state_store.update((x) => setImpure('isDirty', isDirty, x));
+		if (!isDirty !== internal_state.state.isPristine) state_store.update((x) => setImpure('isPristine', !isDirty, x));
+		if (hasErrors !== internal_state.state.hasErrors) state_store.update((x) => setImpure('hasErrors', hasErrors, x));
+		if (isTouched !== internal_state.state.isTouched) state_store.update((x) => setImpure('isTouched', isTouched, x));
+	};
+
+	const resetField: ResetFieldFn = (name, options) => {
+		const defaultValue = getInternal(name, defaultValues);
+		if (isObject(defaultValue) || Array.isArray(defaultValue)) {
+			const initialValue = getInternal<object>(name, initialValues);
+			const existsInInitial = initialValue !== undefined;
+			const valuesObject = existsInInitial ? clone(initialValue) : clone(defaultValue);
+			if (!options?.keepValue) {
+				values_store.update((x) => setImpure(name, valuesObject, x));
+			}
+			if (!options?.keepTouched) {
+				const touchedObject = existsInInitial
+					? clone(getInternal<object>(name, initialTouched)!)
+					: assign(false, valuesObject);
+				touched_store.update((x) => setImpure(name, touchedObject, x));
+			}
+			if (!options?.keepDirty) {
+				const dirtyObject = existsInInitial
+					? clone(getInternal<object>(name, initialDirty)!)
+					: assign(false, valuesObject);
+				dirty_store.update((x) => setImpure(name, dirtyObject, x));
+			}
+			if (!options?.keepPristine) {
+				const pristineObject = existsInInitial
+					? clone(getInternal<object>(name, initialPristine)!)
+					: assign(true, valuesObject);
+				pristine_store.update((x) => setImpure(name, pristineObject, x));
+			}
+			if (!options?.keepError) {
+				const errorsObject = existsInInitial
+					? clone(getInternal<object>(name, initialErrors)!)
+					: assign(false as string | false, defaultValue);
+				errors_store.update((x) => setImpure(name, errorsObject, x));
+			}
+			if (!options?.keepValidator) {
+				const validatorsObject = existsInInitial
+					? clone(getInternal<object>(name, initialValidators)!)
+					: clone(getInternal<object>(name, defaultValidators)!);
+				validators_store.update((x) => setImpure(name, validatorsObject, x));
+			}
+			if (!options?.keepDeps) {
+				const depsObject = existsInInitial
+					? clone(getInternal<object>(name, initialDeps)!)
+					: clone(getInternal<object>(name, defaultDeps)!);
+				deps_store.update((x) => setImpure(name, depsObject, x));
+			}
+			if (!options?.keepDependentErrors) {
+				const triggers = findTriggers(name, get(deps_store));
+				const errors = {} as PartialFormObject<T, string | false>;
+
+				for (const trigger of triggers) setImpure(trigger, false, errors);
+				errors_store.update((x) => mergeRightDeepImpure(x, errors));
+			}
+			checkFormForStateReset();
 			return;
 		}
-		if (!resetFieldOptions?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
-		if (!resetFieldOptions?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
-		if (!resetFieldOptions?.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
-		if (!resetFieldOptions?.keepValue) values_store.update((x) => setImpure(name, value, x));
-		if (!resetFieldOptions?.keepValidator)
+		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
+		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
+		if (!options?.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
+		if (!options?.keepValue) values_store.update((x) => setImpure(name, defaultValue, x));
+		if (!options?.keepValidator)
 			validators_store.update((x) => setImpure(name, getInternal(name, defaultValidators), x));
-		if (!resetFieldOptions?.keepError) errors_store.update((x) => setImpure(name, false, x));
-		if (!resetFieldOptions?.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
-		//TODO: If the reset field is the only touched, dirty, pristine, or error field then reset the form state accordingly. Might be a heavy operation if the form has many nested fields due to deep value searching. Consider tracking fields by name with a derived store
+		if (!options?.keepError) errors_store.update((x) => setImpure(name, false, x));
+		if (!options?.keepDeps) deps_store.update((x) => setImpure(name, getInternal(name, defaultDeps), x));
+		if (!options?.keepDependentErrors) {
+			const triggers = findTriggers(name, get(deps_store));
+			const errors = {} as PartialFormObject<T, string | false>;
+
+			for (const trigger of triggers) setImpure(trigger, false, errors);
+			errors_store.update((x) => mergeRightDeepImpure(x, errors));
+		}
+		checkFormForStateReset();
 	};
 
 	const useFieldArray: UseFieldArrayFn<T> = (name) => {
-		if (!Array.isArray(getInternal(name, get(values_store))))
-			throw Error('Can not call useFieldArray on a field that is not an Array');
+		if (!Array.isArray(getInternal(name, get(values_store)))) throw Error(name + ' is not an array');
 		return {
 			remove: (index) => {
 				const path = `${name}.${index}`;
@@ -243,6 +295,7 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				values_store.update((x) => removePropertyImpure(path, x));
 				validators_store.update((x) => removePropertyImpure(path, x));
 				errors_store.update((x) => removePropertyImpure(path, x));
+				checkFormForStateReset();
 			},
 			append: (
 				val,
@@ -359,49 +412,52 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				const validator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(name, formState.validators);
 				if (validator) {
 					const validatorResult = await validator(value, formState);
-					if (getInternal(name, errors_store) !== validatorResult)
+					if (getInternal(name, formState.errors) !== validatorResult) {
 						errors_store.update((x) => setImpure(name, validatorResult, x));
+						if (!formState.state.hasErrors) state_store.update((x) => setImpure('hasErrors', true, x));
+					}
 				}
 
-				for (const trigger of findTriggers(name, get(deps_store))) {
+				for (const trigger of findTriggers(name, formState.deps)) {
 					const triggerValue = getInternal(trigger, formState.values);
 					const triggerValidator = getInternal<ValidatorFn<T> | AsyncValidatorFn<T>>(trigger, formState.validators);
 					if (triggerValidator) {
 						const triggerValidatorResult = await triggerValidator(triggerValue, formState);
-						if (getInternal(trigger, errors_store) !== triggerValidatorResult)
+						if (getInternal(trigger, formState.errors) !== triggerValidatorResult) {
 							errors_store.update((x) => setImpure(trigger, triggerValidatorResult, x));
+							if (!formState.state.hasErrors) state_store.update((x) => setImpure('hasErrors', true, x));
+						}
 					}
 				}
 			}
 
 			if (isSchema) {
-				const errors = await validationResolver!(initialValues);
+				const errors = await validationResolver!(formState.values);
 				if (isNil(errors)) return;
 
 				errors_store.update((x) => setImpure(name, getInternal<string | false>(name, errors) ?? false, x));
 
-				for (const trigger of findTriggers(name, get(deps_store)))
+				for (const trigger of findTriggers(name, formState.deps))
 					errors_store.update((x) => setImpure(trigger, getInternal<string | false>(trigger, errors) ?? false, x));
 			}
 		} finally {
 			internal_counter_store.update((x) => setImpure('validations', x.validations - 1, x));
+			console.log(formState.errors);
+
+			if (!someDeep((x) => typeof x === 'string', formState.errors) && formState.state.hasErrors)
+				state_store.update((x) => setImpure('hasErrors', false, x));
 		}
 	};
 
 	const updateOnChange = (name: string, value?: unknown) => {
-		// Use of != will have side effects caused by svelte auto parsing the input value, if the bind:value is placed before the change handler then the value will be sent as the parsed value to the validator, if the bind:value is placed after then the value of e.target.event will be sent to the validator and the value of field will be autoparsed after the validator is run
-		// Use of !== will remove any side effects caused by svelte auto parsing the input value, regardless of the order in which the bind:value is places
-		// Using !== here to remove any side effects and to make the behaviour consistent, if the user wants to use the parsed value then making the user parse the value manually is the more preferred option. Open to ideas on this.
-		// if (getInternal(name, get(form_state_store).values) != value)
-		// 	values_store.update((x) => setImpure(name, parseFn ? parseFn(value) : value, x));
-		if (value !== undefined) values_store.update((x) => setImpure(name, value, x));
+		if (value !== undefined) values_store.set(setImpure(name, value, get(values_store)));
 
 		const formState = get(internal_state_store);
 		if (!getInternal(name, formState.dirty)) dirty_store.update((x) => setImpure(name, true, x));
 		if (getInternal(name, formState.pristine)) pristine_store.update((x) => setImpure(name, false, x));
 		if (!formState.state.isDirty && formState.state.isPristine)
 			state_store.update((x) => mergeRightDeepImpure(x, { isDirty: true, isPristine: false }));
-		if (get(validate_mode_store) === 'onChange' || get(validate_mode_store) === 'all') runValidation(name, formState);
+		if (formState.validateMode === 'onChange' || formState.validateMode === 'all') runValidation(name, formState);
 	};
 
 	const updateOnBlur = (name: string) => {
@@ -421,19 +477,23 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		const handleBlur = () => field.handleBlur(name);
 		const handleFocus = () => field.handleFocus(name);
 
-		if (typeof changeEvent === 'string') node.addEventListener(changeEvent, handleChange);
-		else if (Array.isArray(changeEvent)) changeEvent.forEach((event) => node.addEventListener(event, handleChange));
-		else node.addEventListener('input', handleChange);
+		if (changeEvent !== false) {
+			if (typeof changeEvent === 'string') node.addEventListener(changeEvent, handleChange);
+			else if (Array.isArray(changeEvent)) changeEvent.forEach((event) => node.addEventListener(event, handleChange));
+			else node.addEventListener('input', handleChange);
+		}
 
 		node.addEventListener('blur', handleBlur);
 		node.addEventListener('focus', handleFocus);
 
 		return {
 			destroy() {
-				if (typeof changeEvent === 'string') node.removeEventListener(changeEvent, handleChange);
-				else if (Array.isArray(changeEvent))
-					changeEvent.forEach((event) => node.removeEventListener(event, handleChange));
-				else node.removeEventListener('input', handleChange);
+				if (changeEvent !== false) {
+					if (typeof changeEvent === 'string') node.removeEventListener(changeEvent, handleChange);
+					else if (Array.isArray(changeEvent))
+						changeEvent.forEach((event) => node.removeEventListener(event, handleChange));
+					else node.removeEventListener('input', handleChange);
+				}
 
 				node.removeEventListener('blur', handleBlur);
 				node.removeEventListener('focus', handleFocus);

@@ -12,7 +12,7 @@
 	const {
 		field: { value },
 		fieldState: { error, isTouched },
-		form: { register }
+		form: { register },
 	} = useField<string | number | null, IncomingFormValues & object>({ name, control });
 </script>
 

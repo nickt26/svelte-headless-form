@@ -41,8 +41,8 @@
 				},
 			},
 			initialDeps: {
-				username: ['nested'],
-				password: ['username'],
+				// username: ['nested'],
+				// password: ['username'],
 				rolesAreUnique: ['roles'],
 			},
 			// validationResolver: (values) => {
@@ -66,9 +66,6 @@
 		});
 
 	let showUsername = true;
-	$: {
-		console.log('touched', $touched);
-	}
 </script>
 
 <form
@@ -112,9 +109,14 @@
 				{
 					username: 'banana',
 					nested: { age: 10 },
-					roles: ['baker'],
+					roles: ['baker', 'admin', 'user', 'omega'],
 				},
-				{ replaceArrays: false },
+				{
+					replaceArrays: false,
+					validators: (values) => ({
+						roles: values.roles.map((_) => (val) => !roles.includes(val) ? 'Role is invalid' : false),
+					}),
+				},
 			)}>Reset</button
 	>
 
@@ -132,5 +134,8 @@
 	</div>
 	<div>
 		isPristine: {$state.isPristine ? 'Yes' : 'No'}
+	</div>
+	<div>
+		hasErrors: {$state.hasErrors ? 'Yes' : 'No'}
 	</div>
 </form>
