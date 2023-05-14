@@ -1,6 +1,6 @@
 {
 	"name": "svelte-headless-form",
-	"version": "0.1.7",
+	"version": "0.2.0",
 	"description": "A fast, light and batteries-included form library to make you more productive",
 	"main": "./dist/svelte-headless-form.umd.js",
 	"module": "./dist/svelte-headless-form.js",
