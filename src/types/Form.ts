@@ -103,9 +103,9 @@ export type ResetFieldFn = (name: string, options?: ResetFieldOptions) => void;
 export type ResetFormFn<T extends object> = (
 	values?: PartialFormObject<T>,
 	options?: {
-		replaceArrays: boolean;
-		validators?: (newValues: T) => PartialValidatorFields<T>;
-		deps?: (newValues: T) => PartialFormObject<T, string[]>;
+		replaceArrays?: boolean;
+		validators?: (values: ReadonlyDeep<T>) => PartialValidatorFields<T>;
+		deps?: (values: ReadonlyDeep<T>) => PartialFormObject<T, string[]>;
 	},
 ) => void;
 
@@ -114,7 +114,8 @@ export type UseFieldArrayFn<T extends object> = (name: string) => FormUseFieldAr
 export type RegisterOptions = {
 	name: string;
 	changeEvent?: string | string[] | false;
-	valuesAsNumber?: boolean;
+	blurEvent?: string | string[] | false;
+	focusEvent?: string | string[] | false;
 };
 
 export type RegisterFn = (node: HTMLElement, options: RegisterOptions) => { destroy: Noop };
@@ -138,12 +139,16 @@ export type Form<T extends object> = {
 	control: FormControl<T>;
 };
 
+export type ReadonlyDeep<T extends object> = {
+	readonly [key in keyof T]: T[key] extends object ? ReadonlyDeep<T[key]> : T[key];
+};
+
 export type ValidatorFormState<T extends object> = {
-	values: T;
-	dirty: BooleanFields<T>;
-	pristine: BooleanFields<T>;
-	errors: ErrorFields<T>;
-	touched: BooleanFields<T>;
+	values: ReadonlyDeep<T>;
+	dirty: ReadonlyDeep<BooleanFields<T>>;
+	pristine: ReadonlyDeep<BooleanFields<T>>;
+	errors: ReadonlyDeep<ErrorFields<T>>;
+	touched: ReadonlyDeep<BooleanFields<T>>;
 };
 
 export type FormControl<T extends object> = Omit<Form<T>, 'control'>;

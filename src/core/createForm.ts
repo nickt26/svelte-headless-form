@@ -472,7 +472,7 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		if (formState.validateMode === 'onFocus' || formState.validateMode === 'all') runValidation(name, formState);
 	};
 
-	const register: RegisterFn = (node, { name, changeEvent }) => {
+	const register: RegisterFn = (node, { name, changeEvent, blurEvent, focusEvent }) => {
 		const handleChange = () => field.handleChange(name);
 		const handleBlur = () => field.handleBlur(name);
 		const handleFocus = () => field.handleFocus(name);
@@ -483,8 +483,17 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 			else node.addEventListener('input', handleChange);
 		}
 
-		node.addEventListener('blur', handleBlur);
-		node.addEventListener('focus', handleFocus);
+		if (blurEvent !== false) {
+			if (typeof blurEvent === 'string') node.addEventListener(blurEvent, handleBlur);
+			else if (Array.isArray(blurEvent)) blurEvent.forEach((event) => node.addEventListener(event, handleBlur));
+			else node.addEventListener('blur', handleBlur);
+		}
+
+		if (focusEvent !== false) {
+			if (typeof focusEvent === 'string') node.addEventListener(focusEvent, handleBlur);
+			else if (Array.isArray(focusEvent)) focusEvent.forEach((event) => node.addEventListener(event, handleBlur));
+			else node.addEventListener('focus', handleFocus);
+		}
 
 		return {
 			destroy() {
@@ -495,8 +504,19 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 					else node.removeEventListener('input', handleChange);
 				}
 
-				node.removeEventListener('blur', handleBlur);
-				node.removeEventListener('focus', handleFocus);
+				if (blurEvent !== false) {
+					if (typeof blurEvent === 'string') node.removeEventListener(blurEvent, handleChange);
+					else if (Array.isArray(blurEvent))
+						blurEvent.forEach((event) => node.removeEventListener(event, handleChange));
+					else node.removeEventListener('blur', handleBlur);
+				}
+
+				if (focusEvent !== false) {
+					if (typeof focusEvent === 'string') node.removeEventListener(focusEvent, handleChange);
+					else if (Array.isArray(focusEvent))
+						focusEvent.forEach((event) => node.removeEventListener(event, handleChange));
+					else node.removeEventListener('focus', handleFocus);
+				}
 			},
 		};
 	};
