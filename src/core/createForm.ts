@@ -42,7 +42,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 	const validateMode = formOptions.validateMode ?? (isSchemaless ? 'onChange' : isSchema ? 'onBlur' : 'none');
 	const initialTouched = assign(false, formOptions.initialValues);
 	const initialDirty = assign(false, formOptions.initialValues);
-	const initialPristine = assign(true, formOptions.initialValues);
 	const initialValidators = isSchemaless
 		? mergeRightDeepImpure(assign(undefined, formOptions.initialValues), formOptions.initialValidators!)
 		: ({} as ValidatorFields<T>);
@@ -55,7 +54,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 	const initialValues = clone(formOptions.initialValues);
 	const initialState: FormState = {
 		isSubmitting: false,
-		isPristine: true,
 		isDirty: false,
 		isTouched: false,
 		isValidating: false,
@@ -70,7 +68,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 
 	const touched_store = writable<BooleanFields<T>>(clone(initialTouched));
 	const dirty_store = writable<BooleanFields<T>>(clone(initialDirty));
-	const pristine_store = writable<BooleanFields<T>>(clone(initialPristine));
 	const values_store = writable<T>(clone(initialValues));
 	const validators_store = writable<ValidatorFields<T>>(clone(initialValidators));
 	const errors_store = writable<ErrorFields<T>>(clone(initialErrors));
@@ -87,19 +84,17 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 			values_store,
 			touched_store,
 			dirty_store,
-			pristine_store,
 			validators_store,
 			errors_store,
 			deps_store,
 			state_store,
 			validate_mode_store,
 		],
-		([$values, $touched, $dirty, $pristine, $validators, $errors, $deps, $state, $validateMode]) =>
+		([$values, $touched, $dirty, $validators, $errors, $deps, $state, $validateMode]) =>
 			({
 				values: $values,
 				touched: $touched,
 				dirty: $dirty,
-				pristine: $pristine,
 				validators: $validators,
 				errors: $errors,
 				deps: $deps,
@@ -180,7 +175,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		);
 		touched_store.set(assign(false, defaultValues));
 		dirty_store.set(assign(false, defaultValues));
-		pristine_store.set(assign(true, defaultValues));
 		values_store.set(clone(defaultValues));
 		validators_store.set(clone(defaultValidators));
 		errors_store.set(assign(false as string | false, defaultValues));
@@ -188,7 +182,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		state_store.update((x) =>
 			mergeRightDeepImpure(x, {
 				isDirty: false,
-				isPristine: true,
 				isTouched: false,
 				hasErrors: false,
 				submitCount: 0,
@@ -203,7 +196,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		const hasErrors = someDeep((x) => typeof x === 'string', internal_state.errors);
 		const isTouched = someDeep((x) => x === true, internal_state.touched);
 		if (isDirty !== internal_state.state.isDirty) state_store.update((x) => setImpure('isDirty', isDirty, x));
-		if (!isDirty !== internal_state.state.isPristine) state_store.update((x) => setImpure('isPristine', !isDirty, x));
 		if (hasErrors !== internal_state.state.hasErrors) state_store.update((x) => setImpure('hasErrors', hasErrors, x));
 		if (isTouched !== internal_state.state.isTouched) state_store.update((x) => setImpure('isTouched', isTouched, x));
 	};
@@ -228,12 +220,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 					? clone(getInternal<object>(name, initialDirty)!)
 					: assign(false, valuesObject);
 				dirty_store.update((x) => setImpure(name, dirtyObject, x));
-			}
-			if (!options?.keepPristine) {
-				const pristineObject = existsInInitial
-					? clone(getInternal<object>(name, initialPristine)!)
-					: assign(true, valuesObject);
-				pristine_store.update((x) => setImpure(name, pristineObject, x));
 			}
 			if (!options?.keepError) {
 				const errorsObject = existsInInitial
@@ -265,7 +251,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		}
 		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
 		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
-		if (!options?.keepPristine) pristine_store.update((x) => setImpure(name, true, x));
 		if (!options?.keepValue) values_store.update((x) => setImpure(name, defaultValue, x));
 		if (!options?.keepValidator)
 			validators_store.update((x) => setImpure(name, getInternal(name, defaultValidators), x));
@@ -291,7 +276,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				removePropertyImpure(path, defaultDeps);
 				touched_store.update((x) => removePropertyImpure(path, x));
 				dirty_store.update((x) => removePropertyImpure(path, x));
-				pristine_store.update((x) => removePropertyImpure(path, x));
 				values_store.update((x) => removePropertyImpure(path, x));
 				validators_store.update((x) => removePropertyImpure(path, x));
 				errors_store.update((x) => removePropertyImpure(path, x));
@@ -310,7 +294,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				appendImpure(name, clone(deps), defaultDeps);
 				touched_store.update((x) => appendImpure(name, false, x));
 				dirty_store.update((x) => appendImpure(name, true, x));
-				pristine_store.update((x) => appendImpure(name, false, x));
 				values_store.update((x) => appendImpure(name, val, x));
 				const array = getInternal<any[]>(name, get(values_store))!;
 				if (validator) validators_store.update((x) => setImpure(`${name}.${array.length - 1}`, validator, x));
@@ -330,7 +313,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				prependImpure(name, clone(deps), defaultDeps);
 				touched_store.update((x) => prependImpure(name, false, x));
 				dirty_store.update((x) => prependImpure(name, true, x));
-				pristine_store.update((x) => prependImpure(name, false, x));
 				values_store.update((x) => prependImpure(name, val, x));
 				const array = getInternal<any[]>(name, get(values_store))!;
 				if (validator) validators_store.update((x) => prependImpure(name, validator, x));
@@ -343,7 +325,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				const fromItems = {
 					touched: getInternal(index1Path, formState.touched),
 					dirty: getInternal(index1Path, formState.dirty),
-					pristine: getInternal(index1Path, formState.pristine),
 					value: getInternal(index1Path, formState.values),
 					validators: getInternal(index1Path, formState.validators),
 					error: getInternal(index1Path, formState.errors),
@@ -354,7 +335,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				const toItems = {
 					touched: getInternal(index2Path, formState.touched),
 					dirty: getInternal(index2Path, formState.dirty),
-					pristine: getInternal(index2Path, formState.pristine),
 					value: getInternal(index2Path, formState.values),
 					validators: getInternal(index2Path, formState.validators),
 					error: getInternal(index2Path, formState.errors),
@@ -383,10 +363,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 				dirty_store.update((x) => {
 					setImpure(index1Path, toItems.dirty, x);
 					return setImpure(index2Path, fromItems.dirty, x);
-				});
-				pristine_store.update((x) => {
-					setImpure(index1Path, toItems.pristine, x);
-					return setImpure(index2Path, fromItems.pristine, x);
 				});
 				deps_store.update((x) => {
 					setImpure(index1Path, toItems.deps, x);
@@ -454,9 +430,7 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 
 		const formState = get(internal_state_store);
 		if (!getInternal(name, formState.dirty)) dirty_store.update((x) => setImpure(name, true, x));
-		if (getInternal(name, formState.pristine)) pristine_store.update((x) => setImpure(name, false, x));
-		if (!formState.state.isDirty && formState.state.isPristine)
-			state_store.update((x) => mergeRightDeepImpure(x, { isDirty: true, isPristine: false }));
+		state_store.update((x) => mergeRightDeepImpure(x, { isDirty: true } as Partial<FormState>));
 		if (formState.validateMode === 'onChange' || formState.validateMode === 'all') runValidation(name, formState);
 	};
 
@@ -534,9 +508,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 		values: values_store,
 		dirty: {
 			subscribe: dirty_store.subscribe,
-		},
-		pristine: {
-			subscribe: pristine_store.subscribe,
 		},
 		validators: validators_store,
 		errors: {

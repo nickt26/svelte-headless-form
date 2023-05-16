@@ -10,7 +10,6 @@ import {
 export type InternalFormState<T extends object> = {
 	values: T;
 	dirty: BooleanFields<T>;
-	pristine: BooleanFields<T>;
 	errors: ErrorFields<T>;
 	touched: BooleanFields<T>;
 	validators: ValidatorFields<T>;
