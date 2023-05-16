@@ -12,8 +12,10 @@ export const removePropertyImpure = <T extends object>(path: string, obj: T): T 
 		if (isNil(val) || (!isObject(val) && !Array.isArray(val))) return obj;
 	}
 
-	if (Array.isArray(val) && canParseToInt(splitPath[splitPath.length - 1])) val.splice(parseInt(splitPath.at(-1)!), 1);
-	else if (Array.isArray(val) && !canParseToInt(splitPath[splitPath.length - 1])) return obj;
-	else delete val[splitPath.pop()!];
+	const lastPathItem = splitPath[splitPath.length - 1];
+
+	if (Array.isArray(val) && canParseToInt(lastPathItem)) val.splice(parseInt(lastPathItem), 1);
+	else if (Array.isArray(val) && !canParseToInt(lastPathItem)) return obj;
+	else delete val[lastPathItem];
 	return obj;
 };

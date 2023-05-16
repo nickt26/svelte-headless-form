@@ -5,8 +5,8 @@ describe('setImpure', () => {
 	it('should change the property value', () => {
 		const obj = {
 			nested: {
-				banana: 'lemon'
-			}
+				banana: 'lemon',
+			},
 		};
 
 		setImpure('nested.banana', 'apple', obj);
@@ -17,8 +17,8 @@ describe('setImpure', () => {
 	it('should not do anything when path is incorrect', () => {
 		const obj = {
 			nested: {
-				banana: 'lemon'
-			}
+				banana: 'lemon',
+			},
 		};
 
 		setImpure('nested.apple', 'banana', obj);
@@ -47,12 +47,22 @@ describe('setImpure', () => {
 	it('should have referential equality for the returned object', () => {
 		const obj = {
 			nested: {
-				banana: 'lemon'
-			}
+				banana: 'lemon',
+			},
 		};
 
 		const tester = setImpure('nested.banana', 'apple', obj);
 
 		expect(obj).toBe(tester);
+	});
+
+	it('should correctly detect if the next element is an index to an array', () => {
+		const obj = {
+			nested: {},
+		};
+
+		setImpure('nested.apple.0', 3, obj);
+
+		expect(obj).toEqual({ nested: { apple: [3] } });
 	});
 });

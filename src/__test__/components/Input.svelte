@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { useField } from 'src/core/useField';
-	import type { FormControl } from 'src/internal/types/Form';
+	import { useField } from '../../core/useField';
+	import { FormControl } from '../../types/Form';
+
 	type IncomingForm = $$Generic;
 	type IncomingValidators = $$Generic;
-	export let control: FormControl<IncomingForm & object, IncomingValidators & object>;
+	export let control: FormControl<IncomingForm & object>;
 	export let name: string;
 	const {
 		field: { value },
 		form: { values }
-	} = useField<string>({ name, control });
+	} = useField<string, IncomingForm & object>({ name, control });
 </script>
 
-<input type="text" bind:value={$value} on:blur />
+<input type="text" />

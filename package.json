@@ -1,13 +1,13 @@
 {
 	"name": "svelte-headless-form",
-	"version": "0.1.6",
+	"version": "0.2.0",
 	"description": "A fast, light and batteries-included form library to make you more productive",
 	"main": "./dist/svelte-headless-form.umd.js",
 	"module": "./dist/svelte-headless-form.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"test": "vitest --config ./vitest.config.ts",
-		"coverage": "vitest --config ./vitest.config.ts --coverage",
+		"test": "vitest run --config ./vitest.config.ts",
+		"coverage": "vitest run --config ./vitest.config.ts --coverage",
 		"build": "tsc -p tsconfig.dist.json"
 	},
 	"author": "Nicholas Trummer (nickt26)",
@@ -26,7 +26,10 @@
 		"forms",
 		"form",
 		"validation",
-		"form-validation"
+		"form-validation",
+		"svelte-forms",
+		"svelte-form",
+		"svelte-form-validation"
 	],
 	"type": "module",
 	"devDependencies": {
@@ -43,10 +46,17 @@
 		"prettier": "^2.8.4",
 		"prettier-plugin-svelte": "^2.9.0",
 		"svelte": "^3.55.1",
-		"svelte-check": "^3.0.4",
+		"svelte-check": "^3.2.0",
 		"tslib": "^2.5.0",
 		"typescript": "^4.9.5",
 		"vite": "^4.2.1",
 		"vitest": "^0.29.8"
+	},
+	"peerDependencies": {
+		"svelte": "^3.0.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nickt26/svelte-headless-form"
 	}
 }

@@ -1,43 +1,43 @@
-import { Readable, derived, get, writable } from 'svelte/store';
+import { derived } from 'svelte/store';
+import { UseField, UseFieldOptions } from '../internal/types/UseField';
 import { getInternal } from '../internal/util/get';
 import { setImpure } from '../internal/util/set';
-import { Form, FormControl, ValidatorFields } from '../types/Form';
 
-type UseFieldOptions<T extends object, V extends ValidatorFields<T>> = {
-	name: string;
-	control: FormControl<T, V>;
-};
-
-type UseField<S, T extends object, V extends ValidatorFields<T>> = {
-	field: {
-		value: Readable<S>;
-		handleChange: (value: S) => void;
-		handleBlur: () => void;
-		handleFocus: () => void;
-	};
-	form: Form<T, V>;
-};
-
-export const useField = <S = unknown, T extends object = object, V extends ValidatorFields<T> = ValidatorFields<T>>({
+export const useField = <S = unknown, T extends object = object>({
 	name,
-	control
-}: UseFieldOptions<T, V>): UseField<S, T, V> => {
-	//TODO: Revisit this logic to see if readonly value_store is needed
-	// const value = getInternal<S, T>(name, get(control.values));
-	// const value_store = derived(control.values, ($values) => getInternal<S>(name, $values)!);
-	const value_store = writable(getInternal<S>(name, get(control.values)))!;
-	const _ = derived(value_store, ($value) => setImpure(name, $value, get(control.values)));
-	const handleChange = (value: S) => control.field.handleChange(name, value);
+	control,
+}: UseFieldOptions<T>): UseField<S, T> => {
+	const value_store = derived(control.values, ($values) => getInternal<S>(name, $values) as S);
+
+	const touched_store = derived(control.touched, ($touched) => getInternal<boolean>(name, $touched) as boolean);
+	const dirty_store = derived(control.dirty, ($dirty) => getInternal<boolean>(name, $dirty) as boolean);
+	const pristine_store = derived(control.pristine, ($pristine) => getInternal<boolean>(name, $pristine) as boolean);
+	const error_store = derived(
+		control.errors,
+		($errors) => getInternal<string | false>(name, $errors) as string | false,
+	);
+
+	const handleChange = (value?: S) => control.field.handleChange(name, value);
 	const handleBlur = () => control.field.handleBlur(name);
 	const handleFocus = () => control.field.handleFocus(name);
 
 	return {
 		field: {
-			value: value_store,
+			value: {
+				subscribe: value_store.subscribe,
+				set: (value: S) => control.values.update((x) => setImpure(name, value, x)),
+				update: (fn: (value: S) => S) => control.values.update((x) => setImpure(name, fn(getInternal<S>(name, x)!), x)),
+			},
 			handleChange,
 			handleBlur,
-			handleFocus
+			handleFocus,
 		},
-		form: { control, ...control }
+		fieldState: {
+			isTouched: touched_store,
+			isDirty: dirty_store,
+			isPristine: pristine_store,
+			error: error_store,
+		},
+		form: control,
 	};
 };
