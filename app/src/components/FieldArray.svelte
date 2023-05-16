@@ -10,7 +10,7 @@
 	const {
 		fields,
 		remove,
-		form: { touched, dirty, pristine },
+		form: { touched, dirty },
 	} = useFieldArray<Roles, FormValues>({ name, control });
 </script>
 
@@ -20,6 +20,6 @@
 		<button type="button" on:click={() => remove(index)}>Remove</button>
 		<div>touched: {$touched.roles[index]}</div>
 		<div>dirty: {$dirty.roles[index]}</div>
-		<div>pristine: {$pristine.roles[index]}</div>
+		<div>pristine: {!$dirty.roles[index]}</div>
 	{/each}
 </div>
