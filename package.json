@@ -2,13 +2,17 @@
 	"name": "svelte-headless-form",
 	"version": "0.2.1",
 	"description": "A fast, light and batteries-included form library to make you more productive",
-	"main": "./dist/svelte-headless-form.umd.js",
-	"module": "./dist/svelte-headless-form.js",
 	"types": "dist/index.d.ts",
+	"main": "dist/svelte-headless-form.cjs",
+	"module": "dist/svelte-headless-form.js",
+	"umd:main": "dist/svelte-headless-form.umd.js",
 	"scripts": {
 		"test": "vitest run --config ./vitest.config.ts",
-		"coverage": "vitest run --config ./vitest.config.ts --coverage",
-		"build": "tsc -p tsconfig.dist.json"
+		"test:coverage": "vitest run --config ./vitest.config.ts --coverage",
+		"build": "tsc -p tsconfig.dist.json",
+		"build:prod": "npm run clean && npm run build && npm run package && npm run build && rm -f dist/index.js && rm -r dist/index.js.map",
+		"clean": "rm -rf dist",
+		"package": "npx vite build ."
 	},
 	"author": "Nicholas Trummer (nickt26)",
 	"license": "MIT",
@@ -17,8 +21,9 @@
 	],
 	"exports": {
 		".": {
+			"types": "./dist/index.d.ts",
 			"import": "./dist/svelte-headless-form.js",
-			"require": "./dist/svelte-headless-form.umd.js"
+			"require": "./dist/svelte-headless-form.cjs"
 		}
 	},
 	"keywords": [
