@@ -7,6 +7,7 @@ const config: UserConfig = {
 			entry: resolve(__dirname, 'dist/index.js'),
 			name: 'svelte-headless-form',
 			fileName: 'svelte-headless-form',
+			formats: ['es', 'umd', 'cjs'],
 		},
 	},
 };

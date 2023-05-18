@@ -418,8 +418,6 @@ export const createForm = <T extends object>(formOptions: FormOptions<T>): Form<
 			}
 		} finally {
 			internal_counter_store.update((x) => setImpure('validations', x.validations - 1, x));
-			console.log(formState.errors);
-
 			if (!someDeep((x) => typeof x === 'string', formState.errors) && formState.state.hasErrors)
 				state_store.update((x) => setImpure('hasErrors', false, x));
 		}
