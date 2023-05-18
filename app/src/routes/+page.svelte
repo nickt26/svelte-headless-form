@@ -133,7 +133,7 @@
 		isDirty: {$state.isDirty ? 'Yes' : 'No'}
 	</div>
 	<div>
-		isPristine: {$state.isPristine ? 'Yes' : 'No'}
+		isPristine: {!$state.isDirty ? 'Yes' : 'No'}
 	</div>
 	<div>
 		hasErrors: {$state.hasErrors ? 'Yes' : 'No'}

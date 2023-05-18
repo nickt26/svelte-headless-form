@@ -4,7 +4,6 @@ export type FormState = {
 	isSubmitting: boolean;
 	isValidating: boolean;
 	isTouched: boolean;
-	isPristine: boolean;
 	isDirty: boolean;
 	hasErrors: boolean;
 	submitCount: number;
@@ -76,7 +75,6 @@ export type ResetFieldOptions = {
 	keepDeps?: boolean;
 	keepError?: boolean;
 	keepDirty?: boolean;
-	keepPristine?: boolean;
 	keepDependentErrors?: boolean;
 };
 
@@ -124,7 +122,6 @@ export type Form<T extends object> = {
 	touched: Readable<BooleanFields<T>>;
 	values: Writable<T>;
 	dirty: Readable<BooleanFields<T>>;
-	pristine: Readable<BooleanFields<T>>;
 	validators: Writable<ValidatorFields<T>>;
 	errors: Readable<ErrorFields<T>>;
 	deps: Writable<DependencyFields<T>>;
@@ -146,7 +143,6 @@ export type ReadonlyDeep<T extends object> = {
 export type ValidatorFormState<T extends object> = {
 	values: ReadonlyDeep<T>;
 	dirty: ReadonlyDeep<BooleanFields<T>>;
-	pristine: ReadonlyDeep<BooleanFields<T>>;
 	errors: ReadonlyDeep<ErrorFields<T>>;
 	touched: ReadonlyDeep<BooleanFields<T>>;
 };

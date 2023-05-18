@@ -16,7 +16,6 @@ export type UseField<S, T extends object> = {
 	fieldState: {
 		isTouched: Readable<boolean>;
 		isDirty: Readable<boolean>;
-		isPristine: Readable<boolean>;
 		error: Readable<string | false>;
 	};
 	form: FormControl<T>;
