@@ -10,7 +10,27 @@ describe('isNil', () => {
 		expect(isNil(undefined)).toBe(true);
 	});
 
-	it('should not return true for not nil', () => {
-		expect(isNil(123)).toBe(false);
+	it('should not return true for not nil [number]', () => {
+		expect(isNil(0)).toBe(false);
+	});
+
+	it('should not return true for not nil [string]', () => {
+		expect(isNil('')).toBe(false);
+	});
+
+	it('should not return true for not nil [boolean]', () => {
+		expect(isNil(false)).toBe(false);
+	});
+
+	it('should not return true for not nil [object]', () => {
+		expect(isNil({})).toBe(false);
+	});
+
+	it('should not return true for not nil [array]', () => {
+		expect(isNil([])).toBe(false);
+	});
+
+	it('should not return true for not nil [NaN]', () => {
+		expect(isNil(NaN)).toBe(false);
 	});
 });

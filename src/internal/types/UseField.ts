@@ -1,15 +1,15 @@
 import { Readable, Writable } from 'svelte/store';
-import { FormControl } from '../../types/Form';
+import { DotPaths, FormControl } from '../../types/Form';
 
 export type UseFieldOptions<T extends object> = {
-	name: string;
+	name: DotPaths<T>;
 	control: FormControl<T>;
 };
 
 export type UseField<S, T extends object> = {
 	field: {
 		value: Writable<S>;
-		handleChange: (value: S) => void;
+		// handleChange: (value: S) => void;
 		handleBlur: () => void;
 		handleFocus: () => void;
 	};

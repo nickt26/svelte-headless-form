@@ -12,55 +12,362 @@ export type FormState = {
 
 export type ValidateMode = 'onChange' | 'onBlur' | 'onSubmit' | 'onFocus' | 'none' | 'all';
 
-export type FormObject<T extends object, S = null> = {
-	[key in keyof T]: T[key] extends object ? FormObject<T[key], S> : S extends null ? T[key] : S;
+export type ObjectDeep<T extends object, S = null> = {
+	[key in keyof T]: Extract<T[key], object> extends never
+		? S extends null
+			? T[key]
+			: S
+		: ObjectDeep<Extract<T[key], object>, S> | Exclude<T[key], object>;
 };
 
-export type PartialFormObject<T extends object, S = null> = {
-	[key in keyof T]?: T[key] extends object ? PartialFormObject<T[key], S> : S extends null ? T[key] : S;
+export type PartialDeep<T extends object | null, S = null> = {
+	[key in keyof T]?: Extract<T[key], object> extends never
+		? S extends null
+			? T[key]
+			: S
+		: PartialDeep<Extract<T[key], object>, S> | Exclude<T[key], object>;
 };
+
+export type ReadonlyDeep<T extends object> = {
+	readonly [key in keyof T]: Extract<T[key], object> extends never
+		? T[key]
+		: ReadonlyDeep<Extract<T[key], object>> | Exclude<T[key], object>;
+};
+
+// type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+// type LastOf<T> = UnionToIntersection<T extends any ? () => T : never> extends () => infer R ? R : never;
+
+// // TS4.0+
+// type Push<T extends any[], V> = [...T, V];
+
+// // TS4.1+
+// type UnionToTuple<T, L = LastOf<T>, N = [T] extends [never] ? true : false> = true extends N
+// 	? []
+// 	: Push<UnionToTuple<Exclude<T, L>>, L>;
+
+// type TupleToUnion<T extends any[]> = T[number];
+
+// type StringArrayFromDotPath<T extends string, Arr extends string[] = []> = T extends `${infer U}.${infer V}`
+// 	? StringArrayFromDotPath<V, [...Arr, U]>
+// 	: T extends `${infer U}`
+// 	? [...Arr, U]
+// 	: never;
+export type Equals<T, U> = (<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2
+	? true
+	: false;
+
+// type TupleContains<
+// 	Tuple extends string[],
+// 	Item extends string,
+// 	Acc extends 1[] = [],
+// > = Tuple[Acc['length']] extends Item
+// 	? true
+// 	: [1, ...Acc]['length'] extends Tuple['length']
+// 	? false
+// 	: TupleContains<Tuple, Item, [1, ...Acc]>;
+// type KeyIn<T extends object, Key extends string | number | symbol> = Equals<T[Key], unknown> extends true
+// 	? false
+// 	: true;
+
+// type TypeOfKeyInUnionObjects<
+// 	Tuple extends object[],
+// 	Key extends string | number | symbol,
+// 	TypeTuple extends any[] = [],
+// 	Acc extends 1[] = [],
+// > = Acc['length'] extends Tuple['length']
+// 	? TupleToUnion<TypeTuple>
+// 	: KeyIn<Tuple[Acc['length']], Key> extends true
+// 	? TypeOfKeyInUnionObjects<Tuple, Key, [Tuple[Acc['length']][Key], ...TypeTuple], [1, ...Acc]>
+// 	: TypeOfKeyInUnionObjects<Tuple, Key, TypeTuple, [1, ...Acc]>;
+// type TypeOfKeyInObject<Obj extends object, Key extends string | number | symbol> = KeyIn<Obj, Key> extends true
+// 	? Obj[Key & keyof Obj]
+// 	: never;
+
+// type Test = NestedValueOf<Yes, `nested.roles.${number}.apple`>;
+
+export type ValueOf<T, Key extends string> = Equals<T, object> extends true
+	? unknown
+	: T extends object
+	? Key extends `${infer Parent}.${infer Leaf}`
+		? ValueOf<T[Parent & keyof T], Leaf>
+		: T[Key & keyof T]
+	: never;
+
+export type ArrayValueOf<T, Key extends string> = Equals<T, object> extends true
+	? unknown
+	: T extends object
+	? Key extends `${infer Parent}.${infer Leaf}`
+		? ValueOf<T[Parent & keyof T], Leaf>
+		: T[Key & keyof T] extends any[]
+		? T[Key & keyof T][number]
+		: never
+	: never;
+
+// type Get<Obj, Path extends DotPath<Obj>> = NestedValueOf<Obj, Path & string>;
+// type GetTest = Get<Yes, 'nested.roles.3.banana.1.animal.food.type.amount'>;
+
+// type DotPath<
+// 	Obj,
+// 	Key = null,
+// 	KeyChain extends string | null = null,
+// 	SentByArray extends boolean = false,
+// 	SentByObject extends boolean = false,
+// > = Obj extends any[]
+// 	? SentByObject extends true
+// 		? DotPath<Obj, Obj[number], `${KeyChain}.${number}`, true>
+// 		: SentByArray extends true
+// 		? Key extends any[]
+// 			? DotPath<Key, Key[number], `${KeyChain}.${number}`, true>
+// 			: Key extends object
+// 			? DotPath<Key, keyof Key, KeyChain>
+// 			: KeyChain
+// 		: Key extends null
+// 		? `${number}` | DotPath<Obj, Obj[number], `${number}`, true>
+// 		:
+// 				| DotPath<Obj, Obj[number], KeyChain extends null ? `${number}` : `${KeyChain}.${number}`, true>
+// 				| (KeyChain extends null ? never : KeyChain)
+// 	: Obj extends object
+// 	? SentByObject extends true
+// 		? DotPath<Obj, keyof Obj, KeyChain>
+// 		: Key extends null
+// 		? keyof Obj | DotPath<Obj, keyof Obj>
+// 		:
+// 				| DotPath<
+// 						Obj[Key & keyof Obj],
+// 						Obj[Key & keyof Obj] extends any[]
+// 							? `${number}`
+// 							: Obj[Key & keyof Obj] extends object
+// 							? keyof Obj[Key & keyof Obj]
+// 							: null,
+// 						KeyChain extends null ? Key & string : `${KeyChain}.${Key & string}`,
+// 						false,
+// 						Obj[Key & keyof Obj] extends object ? false : true
+// 				  >
+// 				| (KeyChain extends null ? never : KeyChain)
+// 	: KeyChain;
+
+const dotPathSymbol = Symbol('dotPath');
+const remainSymbol = Symbol('remain');
+
+type IsEmptyTuple<T extends any[]> = 0 extends T['length'] ? true : false;
+
+type BrowserNativeObject = Date | FileList | File;
+
+type KeyChainVal<
+	KeyChain extends string | null,
+	Key extends string | number | symbol,
+> = KeyChain extends null ? `${Key & string}` : `${KeyChain}.${Key & string}`;
+
+type DotPathValue<
+	Val,
+	KeyChain extends string | null,
+	key extends string | number | symbol,
+> = Val extends BrowserNativeObject
+	? KeyChainVal<KeyChain, key>
+	: Val extends object
+	? {
+			[dotPathSymbol]: KeyChainVal<KeyChain, key>;
+			[remainSymbol]: DotPathObject<Val, KeyChainVal<KeyChain, key>>;
+	  }
+	: KeyChainVal<KeyChain, key>;
+
+type DotPathEmptyTuple<
+	T,
+	KeyChain extends string | null,
+	IgnoreKey extends boolean,
+> = T extends any[]
+	? T[number] extends BrowserNativeObject
+		? KeyChainVal<KeyChain, `${number}`>
+		: T[number] extends object
+		? {
+				[dotPathSymbol]: KeyChainVal<KeyChain, `${number}`>;
+				[remainSymbol]: DotPathObject<T[number], KeyChainVal<KeyChain, `${number}`>>;
+		  }
+		: KeyChainVal<KeyChain, `${number}`>
+	: // ? DotPathObject<T[number] | 1[], KeyChainVal<KeyChain, `${number}`>, true>
+	  // : `${KeyChain}${IgnoreKey extends true ? '' : `.${number}`}`
+	  never;
+
+type DotPathObject<
+	T,
+	KeyChain extends string | null = null,
+	IgnoreKey extends boolean = false,
+	StrippedObject = { -readonly [key in keyof T]-?: T[key] },
+> = Equals<T, object> extends true
+	? { [dotPathSymbol]: string }
+	: T extends any[]
+	? IsEmptyTuple<T> extends true
+		? DotPathEmptyTuple<StrippedObject, KeyChain, IgnoreKey>
+		: {
+				-readonly [key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
+		  }
+	: T extends object
+	? {
+			-readonly [key in keyof StrippedObject]-?: DotPathValue<StrippedObject[key], KeyChain, key>;
+	  }
+	: never;
+
+type ValueDeep<T> = T extends any[]
+	? { [key in keyof T]: ValueDeep<T[key]> }[number]
+	: T extends object
+	? {
+			[key in keyof T]: ValueDeep<T[key]>;
+	  }[keyof T]
+	: T;
+
+export type DotPaths<T> = ValueDeep<DotPathObject<T>>;
+
+// type SimpleObj = {
+// 	a: {
+// 		b: string;
+// 		c: number;
+// 		d: {
+// 			e: boolean;
+// 			f: true;
+// 		};
+// 	};
+// 	form: {
+// 		roles:
+// 			| [
+// 					[{ user: { firstName: string; lastName: string } }],
+// 					{ username: string } | { banana: boolean },
+// 					{ age: number; gender: string },
+// 					[string],
+// 			  ]
+// 			| { username: string }
+// 			| number[];
+// 		bake: number[];
+// 	};
+// };
+// type Yes =
+// 	| {
+// 			nested:
+// 				| {
+// 						roles: [
+// 							{ banana: { lemon: true } },
+// 							1,
+// 							{ banana: number; apple: true | { lemon: string } },
+// 							{
+// 								banana: [
+// 									{ person: string },
+// 									{
+// 										animal: {
+// 											numOfLegs: 2 | 4;
+// 											type: 'mammal' | 'reptile';
+// 											food: { name: 'lemon' | 'orange'; type: { name: string; amount: number } };
+// 										};
+// 									},
+// 									boolean,
+// 								];
+// 							},
+// 							{ apple: number },
+// 						];
+// 				  }
+// 				| number;
+// 			roles: [{ type: 'cat' }];
+// 			age: number;
+// 			gender: string;
+// 			height: number;
+// 			weight: number;
+// 	  }
+// 	| number
+// 	| null;
+
+// type simpleobjtest = DotPathObject<object>;
+// type dotpathtest = ValueDeep<simpleobjtest>;
+// const dotpathtest: dotpathtest = `roles.0.type`;
 
 export type Validators<O extends object, T extends object> = {
-	[key in keyof T]: T[key] extends object
-		? Validators<O, T[key]>
-		: ValidatorFn<O, T[key]> | AsyncValidatorFn<O, T[key]> | undefined;
+	[key in keyof T]: Extract<T[key], object> extends never
+		? ValidatorFn<O, T[key]> | undefined
+		: Validators<O, Extract<T[key], object>> | ValidatorFn<O, Exclude<T[key], object>>;
 };
-
 export type PartialValidators<O extends object, T extends object> = {
-	[key in keyof T]?: T[key] extends object
-		? PartialValidators<O, T[key]>
-		: ValidatorFn<O, T[key]> | AsyncValidatorFn<O, T[key]>;
+	[key in keyof T]?: Extract<T[key], object> extends never
+		? ValidatorFn<O, T[key]>
+		: PartialValidators<O, Extract<T[key], object>> | ValidatorFn<O, Exclude<T[key], object>>;
 };
 
-export type DependencyFields<T extends object> = FormObject<T, string[]>;
-export type BooleanFields<T extends object> = FormObject<T, boolean>;
-export type ErrorFields<T extends object> = FormObject<T, string | false>;
-export type PartialErrorFields<T extends object> = PartialFormObject<T, string | false>;
-export type ValidatorFields<T extends object> = Validators<T, T>;
+export const AllFields = Symbol('special');
+type DependenciesOnObject<T extends object, S, TCurrentPath extends string> = {
+	[key in keyof T]?: Extract<T[key], object> extends never
+		? S extends null
+			? T[key]
+			: Exclude<S[number], TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`>[]
+		:
+				| Dependecies<
+						Extract<T[key], object>,
+						S,
+						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`
+				  >
+				| Exclude<T[key], object>;
+};
+type Dependecies<
+	T extends object,
+	S,
+	TCurrentPath extends string = '',
+	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
+> = T extends any[]
+	? { [AllFields]: S; values?: TDepsOnObject } | TDepsOnObject
+	: TDepsOnObject & { [AllFields]?: S };
+
+export type DependencyFields<T extends object = object> = Dependecies<T, DotPaths<T>[]>;
+export type DependencyFieldsInternal<T extends object = object> = PartialDeep<T, string[]>;
+export type BooleanFields<T extends object = object> = ObjectDeep<T, boolean>;
+export type ErrorFields<T extends object = object> = ObjectDeep<T, string | false>;
+export type PartialErrorFields<T extends object> = PartialDeep<T, string | false>;
+export type ValidatorFields<T extends object = object> = Validators<T, T>;
 export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
 
-export type ValidatorFn<T extends object, V = any> = (val: V, formState: ValidatorFormState<T>) => string | false;
-export type AsyncValidatorFn<T extends object, V = any> = (
-	val: V,
+export type TriggerObject<T extends object = object> = {
+	triggers?: string[];
+	values?: T;
+};
+export type TriggerFields<T extends object> = {
+	[Key in keyof T]?: Extract<T[Key], object> extends never
+		? string[]
+		: TriggerObject<TriggerFields<Extract<T[Key], object>>>;
+};
+
+export type ValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(
+	val: Value,
 	formState: ValidatorFormState<T>,
-) => Promise<string | false>;
+) => string | false | Promise<string | false>;
+// export type AsyncValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(
+// 	val: Value,
+// 	formState: ReadonlyDeep<ValidatorFormState<T>>,
+// ) => Promise<string | false>;
 
 export type GlobalFormOptions<T extends object> = {
 	initialValues: T;
 	validateMode?: ValidateMode;
-	initialDeps?: PartialFormObject<T, string[]>;
+	initialDeps?: PartialDeep<T, DotPaths<T>[]>;
 	// revalidateMode: ValidateMode;
 };
-export type FormOptionsSchemaless<T extends object> = {
-	initialValidators?: PartialValidatorFields<T>;
+export type FormOptionsSchemaless<T extends object> = GlobalFormOptions<T> & {
+	initialValidators?:
+		| PartialValidatorFields<T>
+		| ((values: ReadonlyDeep<T>) => PartialValidatorFields<T>);
 };
-export type FormOptionsSchema<T extends object> = {
+
+export type FormOptionsSchema<T extends object> = GlobalFormOptions<T> & {
 	validationResolver?: ValidationResolver<T>;
 };
-export type FormOptions<T extends object> = GlobalFormOptions<T> & (FormOptionsSchemaless<T> | FormOptionsSchema<T>);
-export type SyncValidationResolver<T extends object> = (values: T) => PartialErrorFields<T>;
-export type AsyncValidationResolver<T extends object> = (values: T) => Promise<PartialErrorFields<T>>;
-export type ValidationResolver<T extends object> = SyncValidationResolver<T> | AsyncValidationResolver<T>;
+export type FormOptions<T extends object> = GlobalFormOptions<T> &
+	(
+		| Pick<FormOptionsSchemaless<T>, 'initialValidators'>
+		| Pick<FormOptionsSchema<T>, 'validationResolver'>
+	);
+export type SyncValidationResolver<T extends object> = (
+	values: ReadonlyDeep<T>,
+) => PartialErrorFields<T>;
+export type AsyncValidationResolver<T extends object> = (
+	values: ReadonlyDeep<T>,
+) => Promise<PartialErrorFields<T>>;
+// export type ValidationResolver<T extends object> = SyncValidationResolver<T> | AsyncValidationResolver<T>;
+export type ValidationResolver<T extends object> = (
+	values: T,
+) => PartialErrorFields<T> | Promise<PartialErrorFields<T>>;
 
 export type ArrayFieldAddOptions<T extends object> = {
 	deps?: string[];
@@ -68,7 +375,12 @@ export type ArrayFieldAddOptions<T extends object> = {
 	validator?: ValidatorFn<T>;
 };
 
-export type ResetFieldOptions = {
+type ResetFieldValues<T extends object, Val> = {
+	value: Val;
+	deps?: DotPaths<T>[];
+	validator?: ValidatorFn<T, Val>;
+};
+type ResetFieldRetains = {
 	keepTouched?: boolean;
 	keepValidator?: boolean;
 	keepValue?: boolean;
@@ -77,6 +389,7 @@ export type ResetFieldOptions = {
 	keepDirty?: boolean;
 	keepDependentErrors?: boolean;
 };
+export type ResetFieldOptions<T extends object, Val> = ResetFieldRetains & ResetFieldValues<T, Val>;
 
 export type FormUseFieldArray<T extends object, S = unknown> = {
 	remove: (index: number) => void;
@@ -85,68 +398,112 @@ export type FormUseFieldArray<T extends object, S = unknown> = {
 	swap: (from: number, to: number) => void;
 };
 
-export type Field = {
-	handleChange: <T>(name: string, val?: T) => void;
-	handleBlur: (name: string) => void;
-	handleFocus: (name: string) => void;
-};
+// export type Field<T extends object> = {
+// 	handleChange: <Obj extends T, Path extends DotPath<T>>(path: Path, value: NestedValueOf<Obj, Path & string>) => void;
+// 	handleBlur: (name: string) => void;
+// 	handleFocus: (name: string) => void;
+// };
 
-export type SubmitFn<T extends object> = ((values: T) => void) | ((values: T) => Promise<void>);
-export type ErrorFn<T extends object> =
-	| ((errors: ErrorFields<T>) => void)
-	| ((errors: ErrorFields<T>) => Promise<void>);
-export type SubmitFormFn<T extends object> = (submitFn: SubmitFn<T>, errorFn?: ErrorFn<T>) => Noop;
+export type HandleChangeFn = (
+	e: Event & { currentTarget: EventTarget & HTMLInputElement },
+) => Promise<void>;
 
-export type ResetFieldFn = (name: string, options?: ResetFieldOptions) => void;
-export type ResetFormFn<T extends object> = (
-	values?: PartialFormObject<T>,
-	options?: {
-		replaceArrays?: boolean;
-		validators?: (values: ReadonlyDeep<T>) => PartialValidatorFields<T>;
-		deps?: (values: ReadonlyDeep<T>) => PartialFormObject<T, string[]>;
-	},
+export type UpdateValueFn<T extends object> = <TObject extends T, Path extends DotPaths<T>>(
+	path: Path,
+	value: ValueOf<TObject, Path & string>,
+) => Promise<void>;
+
+export type HandlerFn<T extends object = object> = <
+	TObject extends T,
+	Path extends DotPaths<TObject>,
+>(
+	name: Path,
+) => Promise<void>;
+
+export type SubmitFn<T extends object> = (values: T) => void | Promise<void>;
+
+export type ErrorFn<T extends object> = (errors: ErrorFields<T>) => void | Promise<void>;
+
+export type SubmitFormFn<T extends object> = (
+	submitFn: SubmitFn<T>,
+	errorFn?: ErrorFn<T>,
+) => (e: Event) => Promise<void>;
+
+export type ResetFieldFn<T extends object> = <TObject extends T, Path extends DotPaths<TObject>>(
+	name: Path,
+	options?: ResetFieldOptions<TObject, ValueOf<TObject, Path & string>>,
 ) => void;
 
-export type UseFieldArrayFn<T extends object> = (name: string) => FormUseFieldArray<T>;
-
-export type RegisterOptions = {
-	name: string;
-	changeEvent?: string | string[] | false;
-	blurEvent?: string | string[] | false;
-	focusEvent?: string | string[] | false;
+export type ResetFormOptions<T extends object> = {
+	values: T;
+	validators?: ValidatorFields<T>;
+	deps?: PartialDeep<T, DotPaths<T>[]>;
 };
 
-export type RegisterFn = (node: HTMLElement, options: RegisterOptions) => { destroy: Noop };
+export type ResetFormFn<T extends object> = <TValues extends T>(
+	options?: ResetFormOptions<TValues>,
+) => void;
 
-export type Form<T extends object> = {
+export type UseFieldArrayFn<T extends object> = <Path extends DotPaths<T>>(
+	name: Path,
+) => FormUseFieldArray<T, ArrayValueOf<T, Path & string>>;
+
+export type UseFieldArrayFnInternal<T extends object = object> = (
+	name: string,
+) => FormUseFieldArray<T>;
+
+export type RegisterOptions<Path> = {
+	name: Path;
+};
+
+export type RegisterFn<T extends object> = <Path extends DotPaths<T>>(
+	node: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+	options: RegisterOptions<Path>,
+) => { destroy: () => void };
+
+type BeforeOrAfter = 'before' | 'after';
+type FieldEvent = 'change' | 'blur' | 'focus' | 'reset' | 'validate';
+export type FieldEventHook = `${BeforeOrAfter}${Capitalize<FieldEvent>}`;
+
+export type LatestFieldEvent = {
+	field: string;
+	event: FieldEventHook;
+};
+
+export type ValidateFn<T extends object> = <Path extends DotPaths<T>>(name: Path) => void;
+
+export type Form<T extends object = object> = {
 	touched: Readable<BooleanFields<T>>;
 	values: Writable<T>;
 	dirty: Readable<BooleanFields<T>>;
-	validators: Writable<ValidatorFields<T>>;
 	errors: Readable<ErrorFields<T>>;
 	deps: Writable<DependencyFields<T>>;
 	state: Readable<FormState>;
 	submitForm: SubmitFormFn<T>;
 	resetForm: ResetFormFn<T>;
-	resetField: ResetFieldFn;
+	resetField: ResetFieldFn<T>;
 	useFieldArray: UseFieldArrayFn<T>;
 	validateMode: Writable<ValidateMode>;
-	field: Field;
-	register: RegisterFn;
+	// field: Field<T>;
+	handleChange: HandleChangeFn;
+	updateValue: UpdateValueFn<T>;
+	handleBlur: HandlerFn<T>;
+	handleFocus: HandlerFn<T>;
+	register: RegisterFn<T>;
 	control: FormControl<T>;
-};
-
-export type ReadonlyDeep<T extends object> = {
-	readonly [key in keyof T]: T[key] extends object ? ReadonlyDeep<T[key]> : T[key];
+	initialValues: T;
+	initialValidators: ValidatorFields<T>;
+	initialDeps: DependencyFields<T>;
+	validate: ValidateFn<T>;
+	latestFieldEvent: Readable<LatestFieldEvent>;
+	validators: Writable<ValidatorFields<T>>;
 };
 
 export type ValidatorFormState<T extends object> = {
-	values: ReadonlyDeep<T>;
-	dirty: ReadonlyDeep<BooleanFields<T>>;
-	errors: ReadonlyDeep<ErrorFields<T>>;
-	touched: ReadonlyDeep<BooleanFields<T>>;
+	values: T;
+	dirty: BooleanFields<T>;
+	errors: ErrorFields<T>;
+	touched: BooleanFields<T>;
 };
 
-export type FormControl<T extends object> = Omit<Form<T>, 'control'>;
-
-export type Noop = () => void;
+export type FormControl<T extends object = object> = Omit<Form<T>, 'control'>;

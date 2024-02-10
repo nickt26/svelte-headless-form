@@ -43,7 +43,7 @@
 		"@typescript-eslint/eslint-plugin": "^5.53.0",
 		"@typescript-eslint/parser": "^5.53.0",
 		"@vitest/coverage-c8": "^0.29.8",
-		"eslint": "^8.34.0",
+		"eslint": "^8.47.0",
 		"eslint-config-prettier": "^8.6.0",
 		"eslint-plugin-svelte3": "^4.0.0",
 		"jest": "^29.5.0",
@@ -58,7 +58,7 @@
 		"vitest": "^0.29.8"
 	},
 	"peerDependencies": {
-		"svelte": "^3.0.0"
+		"svelte": ">=3"
 	},
 	"repository": {
 		"type": "git",

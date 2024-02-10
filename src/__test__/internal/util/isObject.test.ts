@@ -6,19 +6,19 @@ describe('isObject', () => {
 		expect(isObject({})).toBe(true);
 	});
 
-	it('should return false for nil', () => {
+	it('should return false for nil [null]', () => {
 		expect(isObject(null)).toBe(false);
 	});
 
-	it('should return false for primitive number', () => {
-		expect(isObject(123)).toBe(false);
+	it('should return false for nil [undefined]', () => {
+		expect(isObject(undefined)).toBe(false);
 	});
 
-	it('should return false for primitive string', () => {
-		expect(isObject('123')).toBe(false);
+	it('should return false for primitive [number]', () => {
+		expect(isObject(0)).toBe(false);
 	});
 
-	it('should return false for primitive big int', () => {
-		expect(isObject(123_000)).toBe(false);
+	it('should return false for primitive [string]', () => {
+		expect(isObject('')).toBe(false);
 	});
 });

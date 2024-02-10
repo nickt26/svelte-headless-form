@@ -1,5 +1,13 @@
-export const isObject = <T extends object | unknown = null>(
-	val: unknown
-): val is T extends null ? Record<string | number | symbol, unknown> : T => {
-	return typeof val === 'object' && !Array.isArray(val) && val !== null && !(val instanceof Date);
+export const isObject = (arg: any): arg is Record<string | number | symbol, unknown> => {
+	// export const isObject = (arg: any): arg is object => {
+	if (
+		typeof arg !== 'object' ||
+		Array.isArray(arg) ||
+		arg === null
+		// (Date !== undefined && arg instanceof Date) ||
+		// (File !== undefined && arg instanceof File) ||
+		// (FileList !== undefined && arg instanceof FileList)
+	)
+		return false;
+	return true;
 };

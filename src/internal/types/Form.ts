@@ -1,8 +1,9 @@
 import {
 	BooleanFields,
-	DependencyFields,
+	DependencyFieldsInternal,
 	ErrorFields,
 	FormState,
+	TriggerFields,
 	ValidateMode,
 	ValidatorFields,
 } from '../../types/Form';
@@ -13,7 +14,8 @@ export type InternalFormState<T extends object> = {
 	errors: ErrorFields<T>;
 	touched: BooleanFields<T>;
 	validators: ValidatorFields<T>;
-	deps: DependencyFields<T>;
+	deps: DependencyFieldsInternal<T>;
+	triggers: TriggerFields<T>;
 	state: FormState;
 	validateMode: ValidateMode;
 };

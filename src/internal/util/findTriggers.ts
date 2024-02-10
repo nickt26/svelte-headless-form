@@ -1,19 +1,41 @@
-import { isObject } from './isObject';
+// export const findTriggers = <T extends object>(
+// 	path: string,
+// 	deps: DependencyFieldsInternal<T>,
+// 	currentPath = '',
+// ): string[] => {
+// 	const triggers = [] as string[];
+// 	for (const key in deps) {
+// 		const pathToInsert = `${currentPath}${currentPath.length !== 0 ? '.' : ''}${key}`;
+// 		if (pathToInsert === path) continue;
+// 		const val = deps[key as keyof typeof deps] as unknown;
+// 		if (isObject(val) || (Array.isArray(val) && val.some((x) => isObject(x) || Array.isArray(x)))) {
+// 			triggers.push(...findTriggers(path, val as DependencyFieldsInternal<T[keyof T] & object>, pathToInsert));
+// 			continue;
+// 		}
 
-export const findTriggers = (path: string, deps: any, currentPath = ''): string[] => {
-	const triggers = [] as string[];
-	for (const key in deps) {
-		const pathToInsert = `${currentPath}${currentPath ? '.' : ''}${key}`;
-		const val = deps[key] as string[];
-		if (isObject(val) || (Array.isArray(val) && val.some((x) => isObject(x) || Array.isArray(x)))) {
-			triggers.push(...findTriggers(path, val, pathToInsert));
-			continue;
-		}
+// 		for (const dep of val as string[]) if (path.startsWith(dep)) triggers.push(pathToInsert);
+// 	}
 
-		for (const dep of val) {
-			if (path.startsWith(dep)) triggers.push(pathToInsert);
-		}
-	}
+// 	return triggers;
+// };
 
-	return triggers;
-};
+// export const findAllTriggers = <T extends object>(
+// 	path: string,
+// 	deps: DependencyFieldsInternal<T>,
+// 	currentPath = '',
+// 	triggers = [] as string[],
+// ): string[][] => {
+// 	for (const key in deps) {
+// 		const pathToInsert = `${currentPath}${currentPath.length !== 0 ? '.' : ''}${key}`;
+// 		if (pathToInsert === path) continue;
+// 		const val = deps[key as keyof typeof deps] as unknown;
+// 		if (isObject(val) || (Array.isArray(val) && val.some((x) => isObject(x) || Array.isArray(x)))) {
+// 			triggers.push(...findTriggers(path, val as DependencyFieldsInternal<T[keyof T] & object>, pathToInsert));
+// 			continue;
+// 		}
+
+// 		for (const dep of val as string[]) if (path.startsWith(dep)) triggers.push(pathToInsert);
+// 	}
+
+// 	return triggers;
+// };

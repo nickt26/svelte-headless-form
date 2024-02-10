@@ -1,191 +1,254 @@
 import { describe, expect, it } from 'vitest';
 import { assign } from '../../../internal/util/assign';
-import { isFormValidSchema, isFormValidSchemaless } from '../../../internal/util/isFormValid';
-import { setImpure } from '../../../internal/util/set';
-import { PartialErrorFields, ValidationResolver, ValidatorFields } from '../../../types/Form';
+import { createTriggers } from '../../../internal/util/createTriggers';
+import { isFormValidSchemaless } from '../../../internal/util/isFormValid';
+import { DependencyFields, ValidatorFields } from '../../../types/Form';
+
+const allowedRoles = ['admin', 'developer'];
 
 describe('isFormValidSchemaless', () => {
-	it('should return true and no errors for valid form', async () => {
+	it('should return error string for fields with error', async () => {
 		const formValues = {
-			name: 'John',
+			firstName: 'John',
+			lastName: 'Doe',
 			age: 20,
-			email: 'johndoe@gmail.com',
-			lastName: 'Doe',
-			location: {
-				lat: 123,
-				lng: 123,
-			},
-		};
-		const formValidators: ValidatorFields<typeof formValues> = {
-			name: (value) => (value.length > 0 ? false : 'Name is required'),
-			age: (value: number) => (value > 18 ? false : 'Age must be greater than 18'),
-			email: (value: string) => (value.includes('@') ? false : 'Email must contain @'),
-			lastName: (value: string) => (value.length > 0 ? false : 'Last name is required'),
-			location: {
-				lat: (value: number) => (value > 0 ? false : 'Latitude must be greater than 0'),
-				lng: (value: number) => (value > 0 ? false : 'Longitude must be greater than 0'),
-			},
-		};
-		const touched = assign(false, formValues);
-		const pristine = assign(true, formValues);
-		const dirty = assign(false, formValues);
-		const errors = assign(false as string | false, formValues);
-
-		expect(
-			await isFormValidSchemaless(formValues, formValidators, { touched, dirty, pristine, values: formValues, errors }),
-		).toEqual([
-			true,
-			{
-				name: false,
-				age: false,
-				email: false,
-				lastName: false,
-				location: {
-					lat: false,
-					lng: false,
-				},
-			},
-		]);
-	});
-
-	it('should return false and error strings for invalid form', async () => {
-		const formValues = {
-			name: '',
-			age: 10,
-			email: 'johndoe@gmail.com',
-			lastName: 'Doe',
+			email: 'john.doe@test.com',
 			location: {
 				lat: 0,
 				lng: 0,
 			},
+			roles: ['admin', 'tester', 'developer'],
 		};
 		const formValidators: ValidatorFields<typeof formValues> = {
-			name: (value) => (value.length > 0 ? false : 'Name is required'),
-			age: (value: number) => (value > 18 ? false : 'Age must be greater than 18'),
-			email: (value: string) => (value.includes('@') ? false : 'Email must contain @'),
-			lastName: (value: string) => (value.length > 0 ? false : 'Last name is required'),
+			firstName: (value) => (value.length > 0 ? false : 'First name is required'),
+			lastName: (value) => (value.length > 0 ? false : 'Last name is required'),
+			age: (value) => (value >= 18 ? false : 'Age must be 18 or over'),
+			email: (value) => (value.includes('@') ? false : 'Email must contain @'),
 			location: {
-				lat: (value: number) => (value > 0 ? false : 'Latitude must be greater than 0'),
-				lng: (value: number) => (value > 0 ? false : 'Longitude must be greater than 0'),
+				lat: (value) => (value > 0 ? false : 'Latitude must be greater than 0'),
+				lng: (value) => (value > 0 ? false : 'Longitude must be greater than 0'),
 			},
+			roles: formValues.roles.map(
+				() => (value) => allowedRoles.includes(value) ? false : 'Invalid role',
+			),
 		};
-		const touched = assign(false, formValues);
-		const pristine = assign(true, formValues);
-		const dirty = assign(false, formValues);
-		const errors = assign(false as string | false, formValues);
+		const depFields: DependencyFields<typeof formValues> = {
+			email: ['location.lat'],
+		};
+		const triggerFields = createTriggers(formValues, depFields);
+		const touchedFields = assign(false, formValues);
+		const dirtyFields = assign(false, formValues);
 
-		expect(
-			await isFormValidSchemaless(formValues, formValidators, { touched, dirty, pristine, values: formValues, errors }),
-		).toEqual([
-			false,
-			{
-				name: 'Name is required',
-				age: 'Age must be greater than 18',
-				email: false,
-				lastName: false,
-				location: {
-					lat: 'Latitude must be greater than 0',
-					lng: 'Longitude must be greater than 0',
-				},
+		const [isValid, errors] = await isFormValidSchemaless(
+			formValues,
+			formValidators,
+			depFields,
+			triggerFields,
+			touchedFields,
+			dirtyFields,
+			formValues,
+			formValidators,
+			triggerFields,
+			depFields,
+		);
+
+		expect(isValid).toBe(false);
+		expect(errors).toEqual({
+			firstName: false,
+			lastName: false,
+			age: false,
+			email: false,
+			location: {
+				lat: 'Latitude must be greater than 0',
+				lng: 'Longitude must be greater than 0',
 			},
-		]);
+			roles: [false, 'Invalid role', false],
+		});
 	});
 });
 
-describe('isFormValidSchema', () => {
-	it('should return true and no errors for valid form', async () => {
-		const formValues = {
-			name: 'John',
-			age: 20,
-			email: 'johndoe@gmail.com',
-			lastName: 'Doe',
-			location: {
-				lat: 1,
-				lng: 2,
-			},
-		};
-		const validationResolver: ValidationResolver<typeof formValues> = (values) => {
-			const errors: PartialErrorFields<typeof formValues> = {};
-			if (values.name.length === 0) {
-				errors.name = 'Name is required';
-			}
+// describe('isFormValidSchemaless', () => {
+// 	it('should return true and no errors for valid form', async () => {
+// 		const formValues = {
+// 			name: 'John',
+// 			age: 20,
+// 			email: 'johndoe@gmail.com',
+// 			lastName: 'Doe',
+// 			location: {
+// 				lat: 123,
+// 				lng: 123,
+// 			},
+// 		};
+// 		const formValidators: ValidatorFields<typeof formValues> = {
+// 			name: (value) => (value.length > 0 ? false : 'Name is required'),
+// 			age: (value: number) => (value > 18 ? false : 'Age must be greater than 18'),
+// 			email: (value: string) => (value.includes('@') ? false : 'Email must contain @'),
+// 			lastName: (value: string) => (value.length > 0 ? false : 'Last name is required'),
+// 			location: {
+// 				lat: (value: number) => (value > 0 ? false : 'Latitude must be greater than 0'),
+// 				lng: (value: number) => (value > 0 ? false : 'Longitude must be greater than 0'),
+// 			},
+// 		};
+// 		const touched = assign(false, formValues);
+// 		const pristine = assign(true, formValues);
+// 		const dirty = assign(false, formValues);
+// 		const errors = assign(false as string | false, formValues);
 
-			if (values.age < 18) {
-				errors.age = 'Age must be greater than 18';
-			}
+// 		expect(
+// 			await isFormValidSchemaless(formValues, formValidators, { touched, dirty, pristine, values: formValues, errors }),
+// 		).toEqual([
+// 			true,
+// 			{
+// 				name: false,
+// 				age: false,
+// 				email: false,
+// 				lastName: false,
+// 				location: {
+// 					lat: false,
+// 					lng: false,
+// 				},
+// 			},
+// 		]);
+// 	});
 
-			if (!values.email.includes('@')) {
-				errors.email = 'Email must contain @';
-			}
+// 	it('should return false and error strings for invalid form', async () => {
+// 		const formValues = {
+// 			name: '',
+// 			age: 10,
+// 			email: 'johndoe@gmail.com',
+// 			lastName: 'Doe',
+// 			location: {
+// 				lat: 0,
+// 				lng: 0,
+// 			},
+// 		};
+// 		const formValidators: ValidatorFields<typeof formValues> = {
+// 			name: (value) => (value.length > 0 ? false : 'Name is required'),
+// 			age: (value: number) => (value > 18 ? false : 'Age must be greater than 18'),
+// 			email: (value: string) => (value.includes('@') ? false : 'Email must contain @'),
+// 			lastName: (value: string) => (value.length > 0 ? false : 'Last name is required'),
+// 			location: {
+// 				lat: (value: number) => (value > 0 ? false : 'Latitude must be greater than 0'),
+// 				lng: (value: number) => (value > 0 ? false : 'Longitude must be greater than 0'),
+// 			},
+// 		};
+// 		const touched = assign(false, formValues);
+// 		const pristine = assign(true, formValues);
+// 		const dirty = assign(false, formValues);
+// 		const errors = assign(false as string | false, formValues);
 
-			if (values.lastName.length === 0) {
-				errors.lastName = 'Last name is required';
-			}
+// 		expect(
+// 			await isFormValidSchemaless(formValues, formValidators, { touched, dirty, pristine, values: formValues, errors }),
+// 		).toEqual([
+// 			false,
+// 			{
+// 				name: 'Name is required',
+// 				age: 'Age must be greater than 18',
+// 				email: false,
+// 				lastName: false,
+// 				location: {
+// 					lat: 'Latitude must be greater than 0',
+// 					lng: 'Longitude must be greater than 0',
+// 				},
+// 			},
+// 		]);
+// 	});
+// });
 
-			if (values.location.lat <= 0) {
-				setImpure('location.lat', 'Latitude must be greater than 0', errors);
-			}
+// describe('isFormValidSchema', () => {
+// 	it('should return true and no errors for valid form', async () => {
+// 		const formValues = {
+// 			name: 'John',
+// 			age: 20,
+// 			email: 'johndoe@gmail.com',
+// 			lastName: 'Doe',
+// 			location: {
+// 				lat: 1,
+// 				lng: 2,
+// 			},
+// 		};
+// 		const validationResolver: ValidationResolver<typeof formValues> = (values) => {
+// 			const errors: PartialErrorFields<typeof formValues> = {};
+// 			if (values.name.length === 0) {
+// 				errors.name = 'Name is required';
+// 			}
 
-			if (values.location.lng <= 0) {
-				setImpure('location.lng', 'Longitude must be greater than 0', errors);
-			}
+// 			if (values.age < 18) {
+// 				errors.age = 'Age must be greater than 18';
+// 			}
 
-			return errors;
-		};
+// 			if (!values.email.includes('@')) {
+// 				errors.email = 'Email must contain @';
+// 			}
 
-		expect(await isFormValidSchema(formValues, validationResolver)).toEqual([true, {}]);
-	});
+// 			if (values.lastName.length === 0) {
+// 				errors.lastName = 'Last name is required';
+// 			}
 
-	it('should return false and errors for invalid form', async () => {
-		const formValues = {
-			name: '',
-			age: 10,
-			email: 'johndoe@gmail.com',
-			lastName: 'Doe',
-			location: {
-				lat: 0,
-				lng: 0,
-			},
-		};
-		const validationResolver: ValidationResolver<typeof formValues> = (values) => {
-			const errors: PartialErrorFields<typeof formValues> = {};
-			if (values.name.length === 0) {
-				errors.name = 'Name is required';
-			}
+// 			if (values.location.lat <= 0) {
+// 				setImpure('location.lat', 'Latitude must be greater than 0', errors);
+// 			}
 
-			if (values.age < 18) {
-				errors.age = 'Age must be greater than 18';
-			}
+// 			if (values.location.lng <= 0) {
+// 				setImpure('location.lng', 'Longitude must be greater than 0', errors);
+// 			}
 
-			if (!values.email.includes('@')) {
-				errors.email = 'Email must contain @';
-			}
+// 			return errors;
+// 		};
 
-			if (values.lastName.length === 0) {
-				errors.lastName = 'Last name is required';
-			}
+// 		expect(await isFormValidSchema(formValues, validationResolver)).toEqual([true, {}]);
+// 	});
 
-			if (values.location.lat <= 0) {
-				setImpure('location.lat', 'Latitude must be greater than 0', errors);
-			}
+// 	it('should return false and errors for invalid form', async () => {
+// 		const formValues = {
+// 			name: '',
+// 			age: 10,
+// 			email: 'johndoe@gmail.com',
+// 			lastName: 'Doe',
+// 			location: {
+// 				lat: 0,
+// 				lng: 0,
+// 			},
+// 		};
+// 		const validationResolver: ValidationResolver<typeof formValues> = (values) => {
+// 			const errors: PartialErrorFields<typeof formValues> = {};
+// 			if (values.name.length === 0) {
+// 				errors.name = 'Name is required';
+// 			}
 
-			if (values.location.lng <= 0) {
-				setImpure('location.lng', 'Longitude must be greater than 0', errors);
-			}
+// 			if (values.age < 18) {
+// 				errors.age = 'Age must be greater than 18';
+// 			}
 
-			return errors;
-		};
+// 			if (!values.email.includes('@')) {
+// 				errors.email = 'Email must contain @';
+// 			}
 
-		expect(await isFormValidSchema(formValues, validationResolver)).toEqual([
-			false,
-			{
-				name: 'Name is required',
-				age: 'Age must be greater than 18',
-				location: {
-					lat: 'Latitude must be greater than 0',
-					lng: 'Longitude must be greater than 0',
-				},
-			},
-		]);
-	});
-});
+// 			if (values.lastName.length === 0) {
+// 				errors.lastName = 'Last name is required';
+// 			}
+
+// 			if (values.location.lat <= 0) {
+// 				setImpure('location.lat', 'Latitude must be greater than 0', errors);
+// 			}
+
+// 			if (values.location.lng <= 0) {
+// 				setImpure('location.lng', 'Longitude must be greater than 0', errors);
+// 			}
+
+// 			return errors;
+// 		};
+
+// 		expect(await isFormValidSchema(formValues, validationResolver)).toEqual([
+// 			false,
+// 			{
+// 				name: 'Name is required',
+// 				age: 'Age must be greater than 18',
+// 				location: {
+// 					lat: 'Latitude must be greater than 0',
+// 					lng: 'Longitude must be greater than 0',
+// 				},
+// 			},
+// 		]);
+// 	});
+// });

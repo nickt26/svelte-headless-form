@@ -10,5 +10,6 @@ export default defineConfig({
 			all: true,
 			include: ['src/internal/util/*.ts', 'src/core/*.ts'],
 		},
+		// include: ['src/__test__/internal/util/isFormValid.test.ts']
 	},
 });
