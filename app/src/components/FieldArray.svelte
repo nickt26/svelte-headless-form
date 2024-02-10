@@ -7,6 +7,7 @@
 
 	export let control: FormControl<FormValues>;
 	export let name: string;
+	// export let onInput: () => void = () => {};
 	const {
 		fields,
 		remove,
@@ -15,11 +16,11 @@
 </script>
 
 <div>
-	{#each $fields as _, index}
-		<Input {control} name={`${name}.${index}`} />
-		<button type="button" on:click={() => remove(index)}>Remove</button>
-		<div>touched: {$touched.roles[index]}</div>
-		<div>dirty: {$dirty.roles[index]}</div>
-		<div>pristine: {!$dirty.roles[index]}</div>
+	{#each $fields as _, i}
+		<Input {control} name={`${name}.${i}`} />
+		<button type="button" on:click={() => remove(i)}>Remove</button>
+		<div>touched: {$touched.roles[i]}</div>
+		<div>dirty: {$dirty.roles[i]}</div>
+		<div>pristine: {!$dirty.roles[i]}</div>
 	{/each}
 </div>

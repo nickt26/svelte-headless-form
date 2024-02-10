@@ -5,9 +5,15 @@ export type FormValues = {
 	username: string;
 	password: string;
 	roles: Roles[];
-	nested: {
-		age: number;
-		gender: boolean;
-	};
+	nested:
+		| {
+				age: number;
+				gender: boolean;
+		  }
+		| {
+				height: number;
+				weight: number;
+		  };
 	rolesAreUnique: null;
+	files: FileList | null;
 };
