@@ -1,5 +1,12 @@
 import { Readable, Writable } from 'svelte/store';
 
+type Expect<T extends true> = T;
+type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (x: infer I) => void
+	? I
+	: never;
+type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true;
+type IsPrimitive<T> = T extends object ? false : true;
+
 export type FormState = {
 	isSubmitting: boolean;
 	isValidating: boolean;
@@ -148,6 +155,7 @@ export type ArrayValueOf<T, Key extends string> = Equals<T, object> extends true
 
 const dotPathSymbol = Symbol('dotPath');
 const remainSymbol = Symbol('remain');
+const starSymbol = Symbol('star');
 
 type IsEmptyTuple<T extends any[]> = 0 extends T['length'] ? true : false;
 
@@ -156,7 +164,10 @@ type BrowserNativeObject = Date | FileList | File;
 type KeyChainVal<
 	KeyChain extends string | null,
 	Key extends string | number | symbol,
-> = KeyChain extends null ? `${Key & string}` : `${KeyChain}.${Key & string}`;
+	AddStar extends boolean = false,
+> = KeyChain extends null
+	? `${Key & string}${AddStar extends true ? '*' : ''}`
+	: `${KeyChain}.${Key & string}`;
 
 type DotPathValue<
 	Val,
@@ -199,11 +210,11 @@ type DotPathObject<
 	? IsEmptyTuple<T> extends true
 		? DotPathEmptyTuple<StrippedObject, KeyChain, IgnoreKey>
 		: {
-				-readonly [key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
+				[key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
 		  }
 	: T extends object
 	? {
-			-readonly [key in keyof StrippedObject]-?: DotPathValue<StrippedObject[key], KeyChain, key>;
+			[key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
 	  }
 	: never;
 
@@ -288,17 +299,194 @@ export type PartialValidators<O extends object, T extends object> = {
 		: PartialValidators<O, Extract<T[key], object>> | ValidatorFn<O, Exclude<T[key], object>>;
 };
 
+type Test<T> = T extends [...infer R, infer L] ? L : never;
+type Test2 = Test<['a', 'b', 'c']>;
+
+type Test3<T extends any[], S extends any[]> =
+	| T[number]
+	| (S extends [...infer R, 'f'] ? R[number] : never);
+type Test4 = Test3<['a', 'b', 'c'], ['d', 'e', 'f']>;
+
+type MeTest<T extends string> = T extends `${infer F}.${infer R}`
+	? R
+	: T extends `${infer F}`
+	? F
+	: never;
+type MeTest1 = MeTest<`a.${number}`>;
+
+type ReplaceOn<
+	TReplacement extends string | number,
+	TToReplace extends string,
+	TString extends string,
+	TRes extends string = '',
+> = TString extends `${infer R}${TToReplace}${infer L}`
+	? ReplaceOn<
+			TReplacement,
+			TToReplace,
+			L,
+			`${TRes extends '' ? TRes : `${TRes}${TReplacement}`}${R}`
+	  >
+	: `${TRes extends '' ? TRes : `${TRes}${TReplacement}`}${TString}`;
+type TestReplaceOn = ReplaceOn<'.*.', '.', ['a.d.e', 'b.a', 'c', `f.${number}`][number]>;
+
+type FormValues = {
+	firstName: string;
+	lastName: string;
+	age: number;
+	allRolesAreUnique: boolean;
+	extra: {
+		location: {
+			lat: number;
+			lng: number;
+			address: {
+				unitNumber?: string;
+				streetNumber: string;
+				streetName: string;
+				suburb: string;
+				city: string;
+				postCode: string;
+			};
+		};
+		roles: { value: string; label: string }[] | string[];
+	};
+	middleNames: string[];
+};
+
+type CreateStarPaths<
+	TString extends string,
+	TRes extends string = '',
+> = TString extends `${infer First}.${infer Rest}`
+	? Rest extends `${number}`
+		? CreateStarPaths<'', `${TRes extends '' ? TRes : `${TRes}.`}${First}`>
+		: CreateStarPaths<Rest, `${TRes extends '' ? TRes : `${TRes}.`}${First}.*`>
+	: TRes extends ''
+	? never
+	: TRes;
+// : `${TRes extends '' ? TRes : `${TRes}.*.`}${TString}`;
+// type DotPathsTest = DotPaths<FormValues>;
+type TestCreateStarPaths = CreateStarPaths<
+	'a.b.c.d' | 'a.b.c' | 'a.b' | 'a' | `a.${number}` | `a.${number}.${number}` | `a.b.${number}`
+>;
+
+type CreateStarPaths2<
+	TForm extends object,
+	TString extends string,
+	TRes extends string = '',
+> = TString extends `${infer First}.${infer Rest}`
+	? Rest extends `${infer NextFirst}.${infer NextRest}`
+		? CreateStarPaths2<TForm, NextRest, `${TRes extends '' ? TRes : `${TRes}.`}${First}.*`>
+		: `${TRes extends '' ? TRes : `${TRes}.`}${First}.*`
+	: TRes extends ''
+	? never
+	: `${TRes}.${TString}`;
+
+type ReplaceMiddlePathsWithStar<
+	TString extends string,
+	TRes extends string = '',
+> = TString extends `${infer First}.${infer Rest}`
+	? Rest extends `${infer RestFirst}.${infer RestNext}`
+		? TRes extends ''
+			? ReplaceMiddlePathsWithStar<Rest, `${First}.*`>
+			: ReplaceMiddlePathsWithStar<Rest, `${TRes}.*`>
+		: TRes extends ''
+		? never
+		: `${TRes}.${Rest}`
+	: TRes extends ''
+	? never
+	: `${TRes}.${TString}`;
+
+type ReplaceRightWithStarAndDropLast<
+	TString extends string,
+	TRes extends string = '',
+> = TString extends `${infer First}.${infer Rest}`
+	? Rest extends `${infer RestFirst}.${infer RestNext}`
+		? TRes extends ''
+			? ReplaceMiddlePathsWithStar<Rest, `${First}.*`>
+			: ReplaceMiddlePathsWithStar<Rest, `${TRes}.*`>
+		: TRes extends ''
+		? never
+		: `${TRes}.${Rest}`
+	: TRes extends ''
+	? never
+	: `${TRes}.${TString}`;
+
+type ReplaceMiddlePathsWithStarTest = ReplaceMiddlePathsWithStar<'a.g.c'>;
+type CreateStarPaths3<
+	TForm,
+	TPath extends string,
+	TRes extends string,
+	TPathValue extends ValueOf<TForm, TPath> = ValueOf<TForm, TPath>,
+> = TPathValue extends object
+	? ReplaceRightWithStarAndDropLast<TPath>
+	: ReplaceMiddlePathsWithStar<TPath>;
+type TestCreateStarPaths2 = CreateStarPaths2<
+	object,
+	'a.b.c.d' | 'a.b.c' | 'a.b' | 'a' | `a.${number}` | `a.${number}.${number}` | `a.b.${number}`
+>;
+type TestCreateStarPaths22 = CreateStarPaths2<FormValues, DotPaths<FormValues>>;
+
+type Form1 = {
+	extra: {
+		location: {
+			lat: string;
+		};
+	};
+};
+type Form1Tester = CreateStarPaths2<Form1, DotPaths<Form1>>;
+type TesterCreateStartPaths21 = Expect<
+	Equals<CreateStarPaths2<Form1, DotPaths<Form1>>, 'extra.location.lat'>
+>;
+
+type Form2 = {
+	extra: {
+		location: {
+			lat: string;
+			lng: string;
+		};
+	};
+};
+type Form2Tester = CreateStarPaths2<Form2, DotPaths<Form2>>;
+type TesterCreateStartPaths21 = Expect<
+	Equals<CreateStarPaths2<Form2, DotPaths<Form2>>, 'extra.*.lat' | 'extra.*.lng'>
+>;
+type TesterCreateStartPaths2 = Expect<
+	Equals<
+		CreateStarPaths2<DotPaths<FormValues>>,
+		| 'extra.*.lat'
+		| 'extra.*.lng'
+		| `extra.*.${number}`
+		| `extra.*.${number}.value`
+		| `extra.*.${number}.label`
+		| `extra.*.*.value`
+		| `extra.*.*.label`
+	>
+>;
+
+type Test5<T extends string[], TRes extends string[] = []> = T extends any[]
+	? T extends [...infer R, infer L]
+		? Test5<R, [...TRes, `${L & string}.*`]>
+		: TRes[number]
+	: never;
+type Test6 = Test5<['a.d.e', 'b.a', 'c']>;
+
 export const AllFields = Symbol('special');
-type DependenciesOnObject<T extends object, S, TCurrentPath extends string> = {
+type DependenciesOnObject<
+	T extends object,
+	S,
+	TCurrentPath extends string,
+	TIncludePaths extends string[],
+> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
-		? S extends null
-			? T[key]
-			: Exclude<S[number], TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`>[]
+		? (
+				| Exclude<S, TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`>
+				| CreateStarPaths2<S>
+		  )[]
 		:
 				| Dependecies<
 						Extract<T[key], object>,
 						S,
-						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`
+						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`,
+						[...TIncludePaths, TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`]
 				  >
 				| Exclude<T[key], object>;
 };
@@ -306,7 +494,8 @@ type Dependecies<
 	T extends object,
 	S,
 	TCurrentPath extends string = '',
-	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
+	TIncludePaths extends string[] = [],
+	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath, TIncludePaths>,
 > = T extends any[]
 	? { [AllFields]: S; values?: TDepsOnObject } | TDepsOnObject
 	: TDepsOnObject & { [AllFields]?: S };
