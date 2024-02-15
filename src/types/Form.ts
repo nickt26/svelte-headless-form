@@ -330,10 +330,10 @@ type ReplaceOn<
 type TestReplaceOn = ReplaceOn<'.*.', '.', ['a.d.e', 'b.a', 'c', `f.${number}`][number]>;
 
 type FormValues = {
-	firstName: string;
-	lastName: string;
-	age: number;
-	allRolesAreUnique: boolean;
+	// firstName: string;
+	// lastName: string;
+	// age: number;
+	// allRolesAreUnique: boolean;
 	extra: {
 		location: {
 			lat: number;
@@ -410,57 +410,164 @@ type ReplaceRightWithStarAndDropLast<
 	? never
 	: `${TRes}.${TString}`;
 
-type ReplaceMiddlePathsWithStarTest = ReplaceMiddlePathsWithStar<'a.g.c'>;
+type RemoveLastPath<
+	TPath extends string,
+	TResult extends string = '',
+> = TPath extends `${infer First}.${infer Rest}`
+	? RemoveLastPath<Rest, `${TResult extends '' ? '' : `${TResult}.`}${First}`>
+	: TResult;
+
+type RemoveLastPathTest = RemoveLastPath<'a.b'>;
+type FinalPath<
+	TPath extends string,
+	TPathWithLastRemoved extends string,
+> = TPath extends `${TPathWithLastRemoved}.${infer Last}` ? Last : never;
+type FinalPathTest = FinalPath<'a.b.c', RemoveLastPath<'a.b.c'>>;
+
+type StarPaths<T extends string, R extends string = ''> = T extends `${infer First}.${infer Rest}`
+	? R extends ''
+		? StarPaths<Rest, First>
+		: StarPaths<Rest, `${R}.${First | '*'}`>
+	: `${R}.${T}`;
+// type StarPaths<
+// 	T extends string,
+// 	Paths extends string[] = [],
+// 	CountTracker extends 1[] = [],
+// 	Result extends string[] = [],
+// 	LastPathIndex extends number = CountTracker['length'],
+// > = T extends `${infer First}.${infer Rest}`
+// 	? StarPaths<
+// 			Rest,
+// 			[
+// 				...Paths,
+// 				IsFirstIteration<Paths> extends true ? `${First}` : `${Paths[LastPathIndex]}.${First}`,
+// 			],
+// 			IsFirstIteration<Paths> extends true ? [] : [...CountTracker, 1],
+// 			[
+// 				...Result,
+// 				IsFirstIteration<Paths> extends true
+// 					? never
+// 					: `${First}` | ReplaceMiddlePathsWithStar<Paths[number]>,
+// 			]
+// 	  >
+// : [...Result, ReplaceMiddlePathsWithStar<Paths[number] | `${Paths[LastPathIndex]}.${T}`>][number];
+//   `${Result[number]}.${T}`;
+
+type StarPathsTest = StarPaths<'a.b.c.d.e'>;
+
+type ReplaceMiddlePathsWithStarTest = ReplaceMiddlePathsWithStar<'a.b.c.d'>;
 type CreateStarPaths3<
 	TForm,
 	TPath extends string,
-	TRes extends string,
+	TRes extends string = '',
 	TPathValue extends ValueOf<TForm, TPath> = ValueOf<TForm, TPath>,
-> = TPathValue extends object
-	? ReplaceRightWithStarAndDropLast<TPath>
-	: ReplaceMiddlePathsWithStar<TPath>;
+	TPathValueUnionIncludesPrimitive extends boolean = Exclude<TPathValue, object> extends never
+		? false
+		: true,
+	TPathWithLastRemoved extends string = RemoveLastPath<TPath>,
+	TFinalPath extends string = FinalPath<TPath, TPathWithLastRemoved>,
+> = TPathValueUnionIncludesPrimitive extends true
+	? TFinalPath extends `${number}`
+		? never
+		: ReplaceMiddlePathsWithStar<TPath>
+	: never;
+type TestCreateStarPaths3 = CreateStarPaths3<FormValues, DotPaths<FormValues>>;
 type TestCreateStarPaths2 = CreateStarPaths2<
 	object,
 	'a.b.c.d' | 'a.b.c' | 'a.b' | 'a' | `a.${number}` | `a.${number}.${number}` | `a.b.${number}`
 >;
-type TestCreateStarPaths22 = CreateStarPaths2<FormValues, DotPaths<FormValues>>;
 
-type Form1 = {
-	extra: {
-		location: {
-			lat: string;
-		};
-	};
-};
-type Form1Tester = CreateStarPaths2<Form1, DotPaths<Form1>>;
-type TesterCreateStartPaths21 = Expect<
-	Equals<CreateStarPaths2<Form1, DotPaths<Form1>>, 'extra.location.lat'>
->;
+type Paths<T extends string, S extends string> = T extends '' ? S : `${T}.${S}`;
 
-type Form2 = {
-	extra: {
-		location: {
-			lat: string;
-			lng: string;
-		};
-	};
-};
-type Form2Tester = CreateStarPaths2<Form2, DotPaths<Form2>>;
-type TesterCreateStartPaths21 = Expect<
-	Equals<CreateStarPaths2<Form2, DotPaths<Form2>>, 'extra.*.lat' | 'extra.*.lng'>
->;
-type TesterCreateStartPaths2 = Expect<
-	Equals<
-		CreateStarPaths2<DotPaths<FormValues>>,
-		| 'extra.*.lat'
-		| 'extra.*.lng'
-		| `extra.*.${number}`
-		| `extra.*.${number}.value`
-		| `extra.*.${number}.label`
-		| `extra.*.*.value`
-		| `extra.*.*.label`
-	>
->;
+// DotPaths replacement
+type CreateStarPaths4<
+	T,
+	Path extends string = '',
+	StrippedObject = T extends object ? { -readonly [K in keyof T]-?: T[K] } : T,
+> = StrippedObject extends BrowserNativeObject
+	? Path
+	: StrippedObject extends Array<infer U>
+	? 0 extends StrippedObject['length']
+		? CreateStarPaths4<U, Paths<Path, `${number}`>>
+		: CreateStarPaths4<U, Path>
+	: StrippedObject extends object
+	? {
+			[K in keyof StrippedObject]: {
+				[dotPathSymbol]: Paths<Path, K & string>;
+				[remainSymbol]: CreateStarPaths4<StrippedObject[K], Paths<Path, K & string>>;
+			};
+	  }
+	: Path;
+// {	[K in keyof StrippedObject]: StrippedObject[K] extends BrowserNativeObject
+// 		? Paths<Path, K & string>
+// 		: StrippedObject[K] extends Array<infer U>
+// 		? StrippedObject[K]['length'] extends 0
+// 			? U extends BrowserNativeObject
+// 				? Paths<Path, `${K & string}.${number}`> | Paths<Path, K & string>
+// 				: U extends object
+// 				? {
+// 						[dotPathSymbol]: Paths<Path, K & string>;
+// 						[remainSymbol]: CreateStarPaths4<U, Paths<Path, `${K & string}.${number}`>>;
+// 				  }
+// 				: Paths<Path, K & string> | Paths<Path, `${K & string}.${number}`>
+// 			: U extends BrowserNativeObject
+// 			? Paths<Path, K & string>
+// 			: U extends object
+// 			? {
+// 					[dotPathSymbol]: Paths<Path, K & string>;
+// 					[remainSymbol]: CreateStarPaths4<U, Paths<Path, K & string>>;
+// 			  }
+// 			: Paths<Path, K & string>
+// 		: StrippedObject[K] extends object
+// 		? {
+// 				[dotPathSymbol]: Paths<Path, K & string>;
+// 				[remainSymbol]: CreateStarPaths4<StrippedObject[K], Paths<Path, K & string>>;
+// 		  }
+// 		: Paths<Path, K & string>;
+// };
+type CreateStarPaths5<
+	T,
+	Path extends string = '',
+	StarPath extends string = '',
+	StrippedObject = T extends object ? { -readonly [K in keyof T]-?: T[K] } : T,
+> = StrippedObject extends BrowserNativeObject
+	? StarPath
+	: StrippedObject extends Array<infer U>
+	? 0 extends StrippedObject['length']
+		? U extends object
+			? {
+					[dotPathSymbol]: Paths<Path, '*'>;
+					a: Paths<StarPath, `${number}`>;
+					[remainSymbol]: CreateStarPaths5<U, Paths<Path, `${number}`>, Paths<Path, '*'>>;
+			  }
+			: CreateStarPaths5<U, Paths<Path, `${number}`>, StarPath>
+		: U extends object
+		? {
+				[dotPathSymbol]: Paths<Path, '*'>;
+				a: Paths<StarPath, `${number}`>;
+				[remainSymbol]: CreateStarPaths5<U, Path, Paths<Path, '*'>>;
+		  }
+		: CreateStarPaths5<U, Path, StarPath>
+	: StrippedObject extends object
+	? {
+			[K in keyof StrippedObject]: StrippedObject[K] extends object
+				? {
+						// [dotPathSymbol]: Paths<Paths<Path, K & string>, '*'>;
+						a: Paths<StarPath, K & string>;
+						[remainSymbol]: CreateStarPaths5<
+							StrippedObject[K],
+							Paths<Path, K & string>,
+							Paths<Paths<Path, K & string>, '*'>
+						>;
+				  }
+				: {
+						[dotPathSymbol]: Paths<Paths<Path, K & string>, '*'>;
+						// [dotPathSymbol]: Paths<Path, K & string>;
+						a: Paths<StarPath, K & string>;
+						[remainSymbol]: CreateStarPaths5<StrippedObject[K], Paths<Path, K & string>, StarPath>;
+				  };
+	  }
+	: StarPath;
 
 type Test5<T extends string[], TRes extends string[] = []> = T extends any[]
 	? T extends [...infer R, infer L]
@@ -470,23 +577,14 @@ type Test5<T extends string[], TRes extends string[] = []> = T extends any[]
 type Test6 = Test5<['a.d.e', 'b.a', 'c']>;
 
 export const AllFields = Symbol('special');
-type DependenciesOnObject<
-	T extends object,
-	S,
-	TCurrentPath extends string,
-	TIncludePaths extends string[],
-> = {
+type DependenciesOnObject<T extends object, S, TCurrentPath extends string> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
-		? (
-				| Exclude<S, TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`>
-				| CreateStarPaths2<S>
-		  )[]
+		? Exclude<S[number], TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`>[][]
 		:
 				| Dependecies<
 						Extract<T[key], object>,
 						S,
-						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`,
-						[...TIncludePaths, TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`]
+						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`
 				  >
 				| Exclude<T[key], object>;
 };
@@ -494,8 +592,7 @@ type Dependecies<
 	T extends object,
 	S,
 	TCurrentPath extends string = '',
-	TIncludePaths extends string[] = [],
-	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath, TIncludePaths>,
+	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
 > = T extends any[]
 	? { [AllFields]: S; values?: TDepsOnObject } | TDepsOnObject
 	: TDepsOnObject & { [AllFields]?: S };
