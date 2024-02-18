@@ -1,27 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
-import { AllFields, DependencyFields, TriggerFields } from '../../../types/Form';
+import { AllFields, DependencyFields, TriggerFields, Triggers } from '../../../types/Form';
 
 describe('createTriggers', () => {
 	it('should convert deps into triggers correctly', () => {
-		// type FormValues = {
-		// 	firstName: string;
-		// 	lastName: string;
-		// 	age: number;
-		// 	allRolesAreUnique: boolean;
-		// 	extra: {
-		// 		location: {
-		// 			lat: number;
-		// 			lng: number;
-		// 		};
-		// 		latlng: {
-		// 			lat: number;
-		// 			lng: number;
-		// 		};
-		// 		roles: { value: string; label: string }[] | string[];
-		// 	};
-		// 	middleNames: string[];
-		// };
+		type FormValues = {
+			firstName: string;
+			lastName: string;
+			age: number;
+			allRolesAreUnique: boolean;
+			extra: {
+				location: {
+					lat: number;
+					lng: number;
+				};
+				latlng: {
+					lat: number;
+					lng: number;
+				};
+				roles: { value: string; label: string }[] | string[][];
+			};
+			middleNames: string[];
+		};
 		const formValues = {
 			firstName: 'John',
 			lastName: 'Smith',
@@ -29,6 +29,10 @@ describe('createTriggers', () => {
 			allRolesAreUnique: true,
 			extra: {
 				location: {
+					lat: 0,
+					lng: 0,
+				},
+				banana: {
 					lat: 0,
 					lng: 0,
 				},
@@ -54,7 +58,7 @@ describe('createTriggers', () => {
 				values: [['middleNames.0']],
 			},
 			extra: {
-				[AllFields]: ['extra.roles.*.value'],
+				[AllFields]: ['extra.roles.*.label'],
 				roles: [{}],
 			},
 		};
@@ -64,7 +68,10 @@ describe('createTriggers', () => {
 			extra: {
 				values: {
 					roles: {
-						triggers: ['allRolesAreUnique'],
+						[Triggers]: ['allRolesAreUnique'],
+						values: {
+							[Triggers]: ['banana'],
+						},
 					},
 				},
 			},
