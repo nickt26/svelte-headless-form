@@ -576,7 +576,8 @@ type Test5<T extends string[], TRes extends string[] = []> = T extends any[]
 	: never;
 type Test6 = Test5<['a.d.e', 'b.a', 'c']>;
 
-export const AllFields = Symbol('special');
+export const allFieldsKey = 'allFields';
+export const AllFields = Symbol(allFieldsKey);
 type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath extends string> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
 		? (
@@ -597,7 +598,7 @@ type Dependecies<
 	TCurrentPath extends string = '',
 	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
 > = T extends any[]
-	? { [AllFields]: (S[number] | StarPaths<S[number]>)[]; values?: TDepsOnObject } | TDepsOnObject
+	? { [AllFields]?: (S[number] | StarPaths<S[number]>)[]; values?: TDepsOnObject } | TDepsOnObject
 	: TDepsOnObject & { [AllFields]?: S | (S[number] | StarPaths<S[number]>)[] };
 
 export type DependencyFields<T extends object = object> = Dependecies<T, DotPaths<T>[]>;
@@ -608,9 +609,12 @@ export type PartialErrorFields<T extends object> = PartialDeep<T, string | false
 export type ValidatorFields<T extends object = object> = Validators<T, T>;
 export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
 
+export const Values = Symbol('values');
+export const Star = Symbol('*');
 export type TriggerObject<T extends object = object> = {
 	[Triggers]?: string[];
-	values?: T;
+	[Values]?: T;
+	[Star]?: TriggerObject<T>;
 };
 export const Triggers = Symbol('triggers');
 export type TriggerFields<T extends object> = {
