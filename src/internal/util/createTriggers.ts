@@ -36,6 +36,7 @@ export const createTriggers = <T extends object>(
 		// 		`Circular dependency detected for field: '${fieldPath}'. It depends on field: '${deps}' which is is also depending on '${fieldPath}'.`,
 		// 	);
 
+		// TODO: update createTriggers to potentially work without depsValue checks in case they are null or undefined at form inception or even a union with primitives and they start as primitive
 		if (isObject(depsValue) || Array.isArray(depsValue)) {
 			const lastKey = fieldPath[fieldPath.length - 1];
 			if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol('*').toString())
