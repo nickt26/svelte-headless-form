@@ -428,6 +428,8 @@ type StarPaths<T extends string, R extends string = ''> = T extends `${infer Fir
 	? R extends ''
 		? StarPaths<Rest, First>
 		: StarPaths<Rest, `${R}.${First | '*'}`>
+	: R extends ''
+	? never
 	: `${R}.${T}`;
 // type StarPaths<
 // 	T extends string,
@@ -598,7 +600,7 @@ type Dependecies<
 	TCurrentPath extends string = '',
 	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
 > = T extends any[]
-	? { [AllFields]?: (S[number] | StarPaths<S[number]>)[]; values?: TDepsOnObject } | TDepsOnObject
+	? { [AllFields]?: (S[number] | StarPaths<S[number]>)[]; [Values]?: TDepsOnObject } | TDepsOnObject
 	: TDepsOnObject & { [AllFields]?: S | (S[number] | StarPaths<S[number]>)[] };
 
 export type DependencyFields<T extends object = object> = Dependecies<T, DotPaths<T>[]>;

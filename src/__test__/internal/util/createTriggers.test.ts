@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
-import { AllFields, DependencyFields, TriggerFields } from '../../../types/Form';
+import { AllFields, DependencyFields, TriggerFields, Values } from '../../../types/Form';
 
 type FormValues = {
 	firstName: string;
@@ -83,7 +83,7 @@ const formValues: FormValues = {
 			}
 		*/
 describe('createTriggers', () => {
-	it('should convert deps into triggers correctly - only 1 dep', () => {
+	it('[non-nested] should convert deps into triggers correctly - only 1 dep', () => {
 		const deps: DependencyFields<FormValues> = {
 			firstName: ['age'],
 		};
@@ -97,7 +97,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('should convert deps into triggers corretly - multiple deps', () => {
+	it('[non-nested] should convert deps into triggers corretly - multiple deps', () => {
 		const deps: DependencyFields<FormValues> = {
 			firstName: ['age'],
 			lastName: ['firstName', 'age'],
@@ -106,14 +106,14 @@ describe('createTriggers', () => {
 		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
 		const expected: TriggerFields<typeof formValues> = {
 			age: ['firstName', 'lastName'],
-			firstName: ['age'],
+			firstName: ['lastName'],
 		};
 
 		expect(result).toBeTruthy();
 		expect(result).toEqual(expected);
 	});
 
-	it('should convert deps into triggers corretly - AllFields symbol', () => {
+	it('[non-nested] should convert deps into triggers corretly - AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
 				[AllFields]: ['firstName', 'lastName'],
@@ -124,6 +124,175 @@ describe('createTriggers', () => {
 		const expected: TriggerFields<typeof formValues> = {
 			firstName: ['middleNames'],
 			lastName: ['middleNames'],
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[non-nested] should convert deps into triggers corretly - multiple deps & AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			middleNames: {
+				[AllFields]: ['firstName', 'lastName'],
+			},
+			age: ['firstName'],
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			firstName: ['middleNames', 'age'],
+			lastName: ['middleNames'],
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested] should convert deps into triggers corretly - only 1 dep', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					city: ['firstName'],
+				},
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			firstName: ['extra.location.city'],
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested] should convert deps into triggers corretly - multiple deps', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					city: ['firstName'],
+				},
+				roles: [
+					{
+						name: ['lastName', 'age'],
+					},
+				],
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			firstName: ['extra.location.city'],
+			lastName: ['extra.roles.0.name'],
+			age: ['extra.roles.0.name'],
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested] should convert deps into triggers corretly - AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					[AllFields]: ['firstName'],
+				},
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			firstName: ['extra.location'],
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested] should convert deps into triggers corretly - multiple deps & AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					[AllFields]: ['firstName'],
+					unitNumber: ['lastName'],
+				},
+				roles: [
+					undefined,
+					{
+						value: ['age'],
+						name: ['firstName'],
+					},
+				],
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			firstName: ['extra.location', 'extra.roles.1.name'],
+			age: ['extra.roles.1.value'],
+			lastName: ['extra.location.unitNumber'],
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[dep-nested] should convert deps into triggers corretly - only 1 dep', () => {
+		const deps: DependencyFields<FormValues> = {
+			firstName: ['extra.location.coords.lat'],
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			extra: {
+				[Values]: {
+					location: {
+						[Values]: {
+							coords: {
+								[Values]: {
+									lat: ['firstName'],
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[dep-nested] should convert deps into triggers corretly - multiple deps', () => {
+		const deps: DependencyFields<FormValues> = {
+			firstName: ['extra.location.coords.lat'],
+			lastName: ['extra.roles.0.name'],
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			extra: {
+				[Values]: {
+					location: {
+						[Values]: {
+							coords: {
+								[Values]: {
+									lat: ['firstName'],
+								},
+							},
+						},
+					},
+					roles: {
+						[Values]: [
+							{
+								[Values]: {
+									name: ['lastName'],
+								},
+							},
+						],
+					},
+				},
+			},
 		};
 
 		expect(result).toBeTruthy();
