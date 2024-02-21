@@ -616,13 +616,24 @@ export const Star = Symbol('*');
 export type TriggerObject<T extends object = object> = {
 	[Triggers]?: string[];
 	[Values]?: T;
-	[Star]?: TriggerObject<T>;
 };
+
+type Ts<T> = T & object;
+
 export const Triggers = Symbol('triggers');
 export type TriggerFields<T extends object> = {
-	[Key in keyof T]?: Extract<T[Key], object> extends never
-		? string[]
-		: TriggerObject<TriggerFields<Extract<T[Key], object>>>;
+	[K in keyof T]?: T[K] extends Array<any>
+		? TriggerObject<TriggerFields<T[K]>> & {
+				[Star]?: TriggerObject<TriggerFields<T[K][number] & object>>;
+		  }
+		: T[K] extends object
+		? TriggerObject<TriggerFields<T[K]>> & {
+				[Star]?: TriggerObject<TriggerFields<T[K][keyof T[K]] & object>>;
+		  }
+		: string[];
+	// Extract<T[K], object> extends never
+	// 	? string[]
+	// 	: TriggerObject<TriggerFields<Extract<T[Key], object>>>;
 };
 
 export type ValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(

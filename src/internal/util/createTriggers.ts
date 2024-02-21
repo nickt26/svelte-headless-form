@@ -1,4 +1,4 @@
-import { TriggerFields, Triggers, allFieldsKey } from './../../types/Form';
+import { TriggerFields, allFieldsKey } from './../../types/Form';
 import { getInternal } from './get';
 import { isObject } from './isObject';
 import { setTriggerImpure } from './set';
@@ -36,16 +36,15 @@ export const createTriggers = <T extends object>(
 		// 		`Circular dependency detected for field: '${fieldPath}'. It depends on field: '${deps}' which is is also depending on '${fieldPath}'.`,
 		// 	);
 
+		const lastKey = fieldPath[fieldPath.length - 1];
 		// TODO: update createTriggers to potentially work without depsValue checks in case they are null or undefined at form inception or even a union with primitives and they start as primitive
 		if (isObject(depsValue) || Array.isArray(depsValue)) {
-			const lastKey = fieldPath[fieldPath.length - 1];
 			if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol('*').toString())
-				return setTriggerImpure(deps, { [Triggers]: fieldPath.slice(0, -1).join('.') }, triggers);
+				return setTriggerImpure(deps, fieldPath.slice(0, -1).join('.'), triggers, true);
 
-			return setTriggerImpure(deps, { [Triggers]: fieldPath.join('.') }, triggers);
+			return setTriggerImpure(deps, fieldPath.join('.'), triggers, true);
 		}
 
-		const lastKey = fieldPath[fieldPath.length - 1];
 		if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol(allFieldsKey).toString())
 			return setTriggerImpure(deps, fieldPath.slice(0, -1).join('.'), triggers);
 

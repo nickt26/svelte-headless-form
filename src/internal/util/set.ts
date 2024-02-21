@@ -23,15 +23,16 @@ export const setImpure = <V, T extends object>(path: string, val: V, obj: T): T 
 	return obj;
 };
 
-export const setTriggerImpure = <T extends object, V extends string | { [Triggers]: string }>(
-	path: string | Array<string | number | symbol>,
-	val: V,
+export const setTriggerImpure = <T extends object>(
+	path: string,
+	val: string,
 	obj: TriggerFields<T>,
+	makeObject: boolean = false,
 ): TriggerFields<T> => {
 	if (isNil(obj) || !isObject(obj)) return obj;
 
 	let current: any = obj;
-	let splitPath = Array.isArray(path) ? path : path.split(/\./g).map((x) => (x === '*' ? Star : x));
+	let splitPath = path.split(/\./g).map((x) => (x === '*' ? Star : x));
 
 	for (let i = 0; i < splitPath.length - 1; i++) {
 		const key = splitPath[i];
@@ -73,9 +74,10 @@ export const setTriggerImpure = <T extends object, V extends string | { [Trigger
 		current = next;
 	}
 	const lastKey = splitPath[splitPath.length - 1];
-	if (Array.isArray(current[lastKey]?.[Triggers]))
-		current[lastKey][Triggers].push((val as any)[Triggers]);
-	else if (Array.isArray(current[lastKey])) current[lastKey].push(val);
+	if (makeObject) {
+		if (Array.isArray(current[lastKey]?.[Triggers])) current[lastKey][Triggers].push(val as any);
+		else current[lastKey] = { [Triggers]: [val] };
+	} else if (Array.isArray(current[lastKey])) current[lastKey].push(val);
 	else current[lastKey] = [val];
 
 	return obj;

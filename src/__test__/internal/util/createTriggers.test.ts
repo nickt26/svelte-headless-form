@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
-import { AllFields, DependencyFields, TriggerFields, Values } from '../../../types/Form';
+import {
+	AllFields,
+	DependencyFields,
+	Star,
+	TriggerFields,
+	Triggers,
+	Values,
+} from '../../../types/Form';
 
 type FormValues = {
 	firstName: string;
@@ -23,6 +30,16 @@ type FormValues = {
 			};
 		};
 		roles: { value: string; name: string }[] | string[][];
+	};
+	financials: {
+		annualGrossIncome: number;
+		annualNetIncome: number;
+		payslips: {
+			month: string;
+			year: number;
+			grossIncome: number;
+			netIncome: number;
+		}[];
 	};
 };
 
@@ -52,6 +69,24 @@ const formValues: FormValues = {
 		],
 	},
 	middleNames: ['Doe', 'Banana'],
+	financials: {
+		annualGrossIncome: 10,
+		annualNetIncome: 5,
+		payslips: [
+			{
+				month: 'January',
+				year: 2021,
+				grossIncome: 1,
+				netIncome: 0.5,
+			},
+			{
+				month: 'February',
+				year: 2021,
+				grossIncome: 2,
+				netIncome: 1,
+			},
+		],
+	},
 };
 
 // support:
@@ -97,7 +132,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[non-nested] should convert deps into triggers corretly - multiple deps', () => {
+	it('[non-nested] should convert deps into triggers correctly - multiple deps', () => {
 		const deps: DependencyFields<FormValues> = {
 			firstName: ['age'],
 			lastName: ['firstName', 'age'],
@@ -113,7 +148,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[non-nested] should convert deps into triggers corretly - AllFields symbol', () => {
+	it('[non-nested] should convert deps into triggers correctly - AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
 				[AllFields]: ['firstName', 'lastName'],
@@ -130,7 +165,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[non-nested] should convert deps into triggers corretly - multiple deps & AllFields symbol', () => {
+	it('[non-nested] should convert deps into triggers correctly - multiple deps & AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
 				[AllFields]: ['firstName', 'lastName'],
@@ -148,7 +183,43 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[prop-nested] should convert deps into triggers corretly - only 1 dep', () => {
+	it('[non-nested] should convert deps into triggers correctly - obj dep', () => {
+		const deps: DependencyFields<FormValues> = {
+			age: ['extra'],
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			extra: {
+				[Triggers]: ['age'],
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[non-nested] should convert deps into triggers correctly - star dep', () => {
+		const deps: DependencyFields<FormValues> = {
+			age: ['extra.*.city'],
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			extra: {
+				[Star]: {
+					[Values]: {
+						city: ['age'],
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested] should convert deps into triggers correctly - only 1 dep', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
@@ -166,7 +237,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[prop-nested] should convert deps into triggers corretly - multiple deps', () => {
+	it('[prop-nested] should convert deps into triggers correctly - multiple deps', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
@@ -191,7 +262,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[prop-nested] should convert deps into triggers corretly - AllFields symbol', () => {
+	it('[prop-nested] should convert deps into triggers correctly - AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
@@ -209,7 +280,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[prop-nested] should convert deps into triggers corretly - multiple deps & AllFields symbol', () => {
+	it('[prop-nested] should convert deps into triggers correctly - multiple deps & AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
@@ -237,7 +308,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[dep-nested] should convert deps into triggers corretly - only 1 dep', () => {
+	it('[dep-nested] should convert deps into triggers correctly - only 1 dep', () => {
 		const deps: DependencyFields<FormValues> = {
 			firstName: ['extra.location.coords.lat'],
 		};
@@ -263,7 +334,7 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('[dep-nested] should convert deps into triggers corretly - multiple deps', () => {
+	it('[dep-nested] should convert deps into triggers correctly - multiple deps', () => {
 		const deps: DependencyFields<FormValues> = {
 			firstName: ['extra.location.coords.lat'],
 			lastName: ['extra.roles.0.name'],
@@ -290,6 +361,216 @@ describe('createTriggers', () => {
 								},
 							},
 						],
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[dep-nested] should convert deps into triggers correctly - AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			middleNames: {
+				[AllFields]: ['extra.location.country'],
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			extra: {
+				[Values]: {
+					location: {
+						[Values]: {
+							country: ['middleNames'],
+						},
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[dep-nested] should convert deps into triggers correctly - multiple deps & AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			middleNames: {
+				[AllFields]: ['extra.location.country'],
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			extra: {
+				[Values]: {
+					location: {
+						[Values]: {
+							country: ['middleNames'],
+						},
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested & dep-nested] should convert deps into triggers correctly - only 1 dep', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					coords: {
+						lat: ['financials.payslips.0.grossIncome'],
+					},
+				},
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			financials: {
+				[Values]: {
+					payslips: {
+						[Values]: [
+							{
+								[Values]: {
+									grossIncome: ['extra.location.coords.lat'],
+								},
+							},
+						],
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested & dep-nested] should convert deps into triggers correctly - multiple deps', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					coords: {
+						lat: ['financials.payslips.0.grossIncome'],
+					},
+				},
+			},
+			financials: {
+				payslips: [
+					{
+						month: ['extra.roles.0.name'],
+					},
+				],
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			financials: {
+				[Values]: {
+					payslips: {
+						[Values]: [
+							{
+								[Values]: {
+									grossIncome: ['extra.location.coords.lat'],
+								},
+							},
+						],
+					},
+				},
+			},
+			extra: {
+				[Values]: {
+					roles: {
+						[Values]: [
+							{
+								[Values]: {
+									name: ['financials.payslips.0.month'],
+								},
+							},
+						],
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested & dep-nested] should convert deps into triggers correctly - AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					[AllFields]: ['financials.payslips.0.grossIncome'],
+				},
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			financials: {
+				[Values]: {
+					payslips: {
+						[Values]: [
+							{
+								[Values]: {
+									grossIncome: ['extra.location'],
+								},
+							},
+						],
+					},
+				},
+			},
+		};
+
+		expect(result).toBeTruthy();
+		expect(result).toEqual(expected);
+	});
+
+	it('[prop-nested & dep-nested] should convert deps into triggers correctly - multiple deps & AllFields symbol', () => {
+		const deps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					[AllFields]: ['financials.payslips.0.grossIncome'],
+				},
+			},
+			financials: {
+				payslips: [
+					{
+						month: ['extra.location.postCode'],
+						year: ['extra.location.postCode', 'extra.location.suburb'],
+					},
+				],
+			},
+		};
+
+		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
+		const expected: TriggerFields<typeof formValues> = {
+			financials: {
+				[Values]: {
+					payslips: {
+						[Values]: [
+							{
+								[Values]: {
+									grossIncome: ['extra.location'],
+								},
+							},
+						],
+					},
+				},
+			},
+			extra: {
+				[Values]: {
+					location: {
+						[Values]: {
+							postCode: ['financials.payslips.0.month', 'financials.payslips.0.year'],
+							suburb: ['financials.payslips.0.year'],
+						},
 					},
 				},
 			},
