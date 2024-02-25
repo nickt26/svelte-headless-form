@@ -39,8 +39,8 @@ export const createTriggers = <T extends object>(
 		const lastKey = fieldPath[fieldPath.length - 1];
 		// TODO: update createTriggers to potentially work without depsValue checks in case they are null or undefined at form inception or even a union with primitives and they start as primitive
 		if (isObject(depsValue) || Array.isArray(depsValue)) {
-			if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol('*').toString())
-				return setTriggerImpure(deps, fieldPath.slice(0, -1).join('.'), triggers, true);
+			// if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol('*').toString())
+			// 	return setTriggerImpure(deps, fieldPath.slice(0, -1).join('.'), triggers, true);
 
 			return setTriggerImpure(deps, fieldPath.join('.'), triggers, true);
 		}

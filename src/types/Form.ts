@@ -624,11 +624,11 @@ export const Triggers = Symbol('triggers');
 export type TriggerFields<T extends object> = {
 	[K in keyof T]?: T[K] extends Array<any>
 		? TriggerObject<TriggerFields<T[K]>> & {
-				[Star]?: TriggerObject<TriggerFields<T[K][number] & object>>;
+				[Star]?: TriggerFields<T[K][number] & object>;
 		  }
 		: T[K] extends object
 		? TriggerObject<TriggerFields<T[K]>> & {
-				[Star]?: TriggerObject<TriggerFields<T[K][keyof T[K]] & object>>;
+				[Star]?: TriggerFields<T[K][keyof T[K]] & object>;
 		  }
 		: string[];
 	// Extract<T[K], object> extends never

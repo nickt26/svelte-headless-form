@@ -201,15 +201,32 @@ describe('createTriggers', () => {
 
 	it('[non-nested] should convert deps into triggers correctly - star dep', () => {
 		const deps: DependencyFields<FormValues> = {
-			age: ['extra.*.city'],
+			age: ['extra.*.city', 'extra.*.country'],
+			extra: {
+				location: {
+					[AllFields]: ['extra.*.coords.lat'],
+					postCode: ['extra.roles.*.name'],
+				},
+			},
 		};
 
 		const result: TriggerFields<typeof formValues> = createTriggers(formValues, deps);
 		const expected: TriggerFields<typeof formValues> = {
 			extra: {
+				[Values]: {
+					roles: {
+						[Star]: {
+							name: ['extra.location.postCode'],
+						},
+					},
+				},
 				[Star]: {
-					[Values]: {
-						city: ['age'],
+					city: ['age'],
+					country: ['age'],
+					coords: {
+						[Values]: {
+							lat: ['extra.location'],
+						},
 					},
 				},
 			},
@@ -578,5 +595,59 @@ describe('createTriggers', () => {
 
 		expect(result).toBeTruthy();
 		expect(result).toEqual(expected);
+	});
+
+	it('banana', () => {
+		const banana = [1, 2, 3];
+		const prox = new Proxy(banana, {
+			get(target, prop, receiver) {
+				const nprop = parseInt(prop as string);
+				if (!isNaN(nprop)) {
+					console.log('proxy 1 get');
+
+					return target[nprop];
+				}
+
+				return Reflect.get(target, prop, receiver);
+			},
+			set(target, prop, value, receiver) {
+				const nprop = parseInt(prop as string);
+				if (!isNaN(nprop)) {
+					console.log('proxy 1 set');
+					target[nprop] = value;
+					return true;
+				}
+
+				return Reflect.set(target, prop, value, receiver);
+			},
+		});
+		const prox2 = new Proxy(prox, {
+			get(target, prop, receiver) {
+				const nprop = parseInt(prop as string);
+				if (!isNaN(nprop)) {
+					console.log('proxy 2 get');
+
+					return target[nprop];
+				}
+
+				return Reflect.get(target, prop, receiver);
+			},
+			set(target, prop, value, receiver) {
+				const nprop = parseInt(prop as string);
+				if (!isNaN(nprop)) {
+					console.log('proxy 2 set');
+					target[nprop] = value;
+					return true;
+				}
+
+				return Reflect.set(target, prop, value, receiver);
+			},
+		});
+
+		const yes = prox2[0];
+		prox2[1] = 5;
+
+		expect(prox2).toBeTruthy();
+		expect(prox2[1]).toEqual(5);
 	});
 });
