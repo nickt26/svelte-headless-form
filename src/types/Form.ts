@@ -611,6 +611,7 @@ export type PartialErrorFields<T extends object> = PartialDeep<T, string | false
 export type ValidatorFields<T extends object = object> = Validators<T, T>;
 export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
 
+export const valuesKey = 'values';
 export const Values = Symbol('values');
 export const Star = Symbol('*');
 export type TriggerObject<T extends object = object> = {
@@ -621,7 +622,7 @@ export type TriggerObject<T extends object = object> = {
 type Ts<T> = T & object;
 
 export const Triggers = Symbol('triggers');
-export type TriggerFields<T extends object> = {
+export type TriggerFields<T extends object = object> = {
 	[K in keyof T]?: T[K] extends Array<any>
 		? TriggerObject<TriggerFields<T[K]>> & {
 				[Star]?: TriggerFields<T[K][number] & object>;

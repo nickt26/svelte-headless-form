@@ -1,4 +1,4 @@
-import { TriggerFields, allFieldsKey } from './../../types/Form';
+import { TriggerFields, allFieldsKey, valuesKey } from './../../types/Form';
 import { getInternal } from './get';
 import { isObject } from './isObject';
 import { setTriggerImpure } from './set';
@@ -14,7 +14,9 @@ export const createTriggers = <T extends object>(
 	if (!isObject(deps) && !Array.isArray(deps)) {
 		const depsValue = getInternal(deps, values);
 		// const fieldPath = currentKey.substring(0, currentKey.length - 2);
-		const fieldPath = currentKey.slice(0, -1);
+		const fieldPath = currentKey
+			.filter((x) => !(typeof x === 'symbol' && x.toString() === Symbol(valuesKey).toString()))
+			.slice(0, -1);
 
 		// TODO: update this to work for [AllFields] check
 		// if (fieldPath === deps) throw new Error(`Can't have a field depend on itself: '${fieldPath}'.`);

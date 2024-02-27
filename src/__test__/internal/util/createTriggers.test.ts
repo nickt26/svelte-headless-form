@@ -597,57 +597,64 @@ describe('createTriggers', () => {
 		expect(result).toEqual(expected);
 	});
 
-	it('banana', () => {
-		const banana = [1, 2, 3];
-		const prox = new Proxy(banana, {
-			get(target, prop, receiver) {
-				const nprop = parseInt(prop as string);
-				if (!isNaN(nprop)) {
-					console.log('proxy 1 get');
-
-					return target[nprop];
-				}
-
-				return Reflect.get(target, prop, receiver);
+	it('should work', () => {
+		const formDeps: DependencyFields<FormValues> = {
+			extra: {
+				location: {
+					[AllFields]: ['extra.roles.*.name'],
+					city: ['extra.*.coords.lat', 'extra.location.*.lng'],
+					unitNumber: ['extra.location.*.lat', 'extra.location.*.lng'],
+					coords: {
+						lat: ['extra.roles.*.name'],
+						lng: ['extra.roles', 'extra.location.postCode'],
+					},
+				},
+				roles: {
+					[AllFields]: ['extra.location.*.lat'],
+					[Values]: [
+						{
+							name: ['extra.*.city'],
+							value: ['extra.location.coords'],
+						},
+					],
+				},
 			},
-			set(target, prop, value, receiver) {
-				const nprop = parseInt(prop as string);
-				if (!isNaN(nprop)) {
-					console.log('proxy 1 set');
-					target[nprop] = value;
-					return true;
-				}
-
-				return Reflect.set(target, prop, value, receiver);
+		};
+		const formTriggers = createTriggers(formValues, formDeps);
+		const expectedTriggers: TriggerFields<FormValues> = {
+			extra: {
+				[Star]: {
+					city: ['extra.roles.0.name'],
+					coords: {
+						[Values]: {
+							lat: ['extra.location.city'],
+						},
+					},
+				},
+				[Values]: {
+					location: {
+						[Star]: {
+							lat: ['extra.location.unitNumber', 'extra.roles'],
+							lng: ['extra.location.city', 'extra.location.unitNumber'],
+						},
+						[Values]: {
+							postCode: ['extra.location.coords.lng'],
+							coords: {
+								[Triggers]: ['extra.roles.0.value'],
+							},
+						},
+					},
+					roles: {
+						[Triggers]: ['extra.location.coords.lng'],
+						[Star]: {
+							name: ['extra.location', 'extra.location.coords.lat'],
+						},
+					},
+				},
 			},
-		});
-		const prox2 = new Proxy(prox, {
-			get(target, prop, receiver) {
-				const nprop = parseInt(prop as string);
-				if (!isNaN(nprop)) {
-					console.log('proxy 2 get');
+		};
 
-					return target[nprop];
-				}
-
-				return Reflect.get(target, prop, receiver);
-			},
-			set(target, prop, value, receiver) {
-				const nprop = parseInt(prop as string);
-				if (!isNaN(nprop)) {
-					console.log('proxy 2 set');
-					target[nprop] = value;
-					return true;
-				}
-
-				return Reflect.set(target, prop, value, receiver);
-			},
-		});
-
-		const yes = prox2[0];
-		prox2[1] = 5;
-
-		expect(prox2).toBeTruthy();
-		expect(prox2[1]).toEqual(5);
+		expect(formTriggers).toBeTruthy();
+		expect(formTriggers).toEqual(expectedTriggers);
 	});
 });
