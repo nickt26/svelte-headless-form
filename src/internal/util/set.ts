@@ -102,7 +102,9 @@ export const setTriggerImpure = <T extends object>(
 	const lastKey = splitPath[splitPath.length - 1];
 	if (makeObject) {
 		if (Array.isArray(current[lastKey]?.[Triggers])) current[lastKey][Triggers].push(val as any);
-		else current[lastKey] = { [Triggers]: [val] };
+		//TODO: Potential bug here, we aren't checking if current[lastKey] is an existing primitive value with triggers, potentially solve this with functional deps though
+		else if (isNil(current[lastKey])) current[lastKey] = { [Triggers]: [val] };
+		else current[lastKey][Triggers] = [val];
 	} else if (Array.isArray(current[lastKey])) current[lastKey].push(val);
 	else current[lastKey] = [val];
 

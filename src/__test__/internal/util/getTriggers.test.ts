@@ -157,7 +157,7 @@ describe('getTriggers', () => {
 				[Values]: {
 					location: {
 						[Star]: {
-							lat: ['extra.roles', 'extra.location.unitNumber'],
+							lat: ['extra.location.unitNumber', 'extra.roles'],
 							lng: ['extra.location.city', 'extra.location.unitNumber'],
 						},
 						[Values]: {
@@ -168,17 +168,44 @@ describe('getTriggers', () => {
 						},
 					},
 					roles: {
-						[Triggers]: ['extra.location.coords.lng'],
 						[Star]: {
-							name: ['extra.location', 'extra.location.coords.lat'],
+							name: ['extra.location.coords.lat', 'extra.location'],
 						},
+						[Triggers]: ['extra.location.coords.lng'],
 					},
 				},
 			},
 		};
 
-		const triggers1 = getTriggers2('extra.roles.0.value', formTriggers);
+		const triggers1 = getTriggers2('extra.location.city', formTriggers);
+		const triggers2 = getTriggers2('extra.location.coords.lat', formTriggers);
+		const triggers3 = getTriggers2('extra.location.coords.lng', formTriggers);
+		const triggers4 = getTriggers2('extra.location.postCode', formTriggers);
+		const triggers5 = getTriggers2('extra.location.coords', formTriggers);
+		const triggers6 = getTriggers2('extra.roles.0.name', formTriggers);
+		const triggers7 = getTriggers2('extra.roles', formTriggers);
+		const triggers8 = getTriggers2('extra.roles.0.value', formTriggers);
 
-		expect(triggers1).toEqual(['extra.location.coords', 'extra.location.coords.lng']);
+		expect(triggers1).toEqual(['extra.roles.0.name']);
+		expect(triggers2).toEqual([
+			'extra.location.city',
+			'extra.location.unitNumber',
+			'extra.roles',
+			'extra.roles.0.value',
+		]);
+		expect(triggers3).toEqual([
+			'extra.location.city',
+			'extra.location.unitNumber',
+			'extra.roles.0.value',
+		]);
+		expect(triggers4).toEqual(['extra.location.coords.lng']);
+		expect(triggers5).toEqual(['extra.roles.0.value']); // TODO: rethink this scenario, we might want parents to include all triggers of their children, don't know how this would affect the check for circular/infinite/invalid deps
+		expect(triggers6).toEqual([
+			'extra.location.coords.lng',
+			'extra.location.coords.lat',
+			'extra.location',
+		]);
+		expect(triggers7).toEqual(['extra.location.coords.lng']);
+		expect(triggers8).toEqual(['extra.location.coords.lng']);
 	});
 });

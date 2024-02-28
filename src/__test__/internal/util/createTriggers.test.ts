@@ -645,10 +645,10 @@ describe('createTriggers', () => {
 						},
 					},
 					roles: {
-						[Triggers]: ['extra.location.coords.lng'],
 						[Star]: {
-							name: ['extra.location', 'extra.location.coords.lat'],
+							name: ['extra.location.coords.lat', 'extra.location'],
 						},
+						[Triggers]: ['extra.location.coords.lng'],
 					},
 				},
 			},
