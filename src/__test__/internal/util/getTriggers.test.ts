@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
-import { getTriggers2 } from '../../../internal/util/get';
+import { getTriggers } from '../../../internal/util/get';
 import {
 	AllFields,
 	DependencyFields,
@@ -97,7 +97,7 @@ describe('getTriggers', () => {
 		};
 		const formTriggers = createTriggers(formValues, formDeps);
 
-		const result = getTriggers2('age', formTriggers);
+		const result = getTriggers('age', formTriggers);
 
 		expect(result).toEqual(['firstName']);
 	});
@@ -115,7 +115,7 @@ describe('getTriggers', () => {
 		};
 		const formTriggers = createTriggers(formValues, formDeps);
 
-		const result = getTriggers2('age', formTriggers);
+		const result = getTriggers('age', formTriggers);
 
 		expect(result).toEqual(['firstName', 'extra.location.coords.lng']);
 	});
@@ -177,14 +177,14 @@ describe('getTriggers', () => {
 			},
 		};
 
-		const triggers1 = getTriggers2('extra.location.city', formTriggers);
-		const triggers2 = getTriggers2('extra.location.coords.lat', formTriggers);
-		const triggers3 = getTriggers2('extra.location.coords.lng', formTriggers);
-		const triggers4 = getTriggers2('extra.location.postCode', formTriggers);
-		const triggers5 = getTriggers2('extra.location.coords', formTriggers);
-		const triggers6 = getTriggers2('extra.roles.0.name', formTriggers);
-		const triggers7 = getTriggers2('extra.roles', formTriggers);
-		const triggers8 = getTriggers2('extra.roles.0.value', formTriggers);
+		const triggers1 = getTriggers('extra.location.city', formTriggers);
+		const triggers2 = getTriggers('extra.location.coords.lat', formTriggers);
+		const triggers3 = getTriggers('extra.location.coords.lng', formTriggers);
+		const triggers4 = getTriggers('extra.location.postCode', formTriggers);
+		const triggers5 = getTriggers('extra.location.coords', formTriggers);
+		const triggers6 = getTriggers('extra.roles.0.name', formTriggers);
+		const triggers7 = getTriggers('extra.roles', formTriggers);
+		const triggers8 = getTriggers('extra.roles.0.value', formTriggers);
 
 		expect(triggers1).toEqual(['extra.roles.0.name']);
 		expect(triggers2).toEqual([

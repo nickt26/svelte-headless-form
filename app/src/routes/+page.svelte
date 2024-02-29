@@ -9,19 +9,6 @@
 			}, 3000),
 		);
 
-	// const banana: TriggerFields<FormValues> = {
-	// 	username: ['username'],
-	// 	password: ['password'],
-	// 	nested: {
-	// 		triggers: ['nested'],
-	// 	},
-	// 	roles: {
-	// 		triggers: ['roles'],
-	// 		values: [['roles.0']],
-	// 	},
-	// 	rolesAreUnique: ['roles'],
-	// };
-
 	const {
 		submitForm,
 		errors,

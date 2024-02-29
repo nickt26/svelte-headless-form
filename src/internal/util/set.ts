@@ -33,45 +33,14 @@ export const setTriggerImpure = <T extends object>(
 
 	let current: any = obj;
 	let splitPath = path.split(/\./g);
-	// .map((x) => (x === '*' ? Star : x));
 
 	for (let i = 0; i < splitPath.length - 1; i++) {
 		const key = splitPath[i];
+		if (key === '*') continue;
+
 		const nextShouldBeArray = canParseToInt(splitPath[i + 1]);
 		const nextIsStar = splitPath[i + 1] === '*';
-		// if (key === '*') {
-		// 	const nextKey = splitPath[i + 1];
-		// 	if (nextKey === '*') {
-		// 		if (
-		// 			(!isObject(current['*']) && !Array.isArray(current['*'])) ||
-		// 			((isObject(current['*']) || Array.isArray(current['*'])) &&
-		// 				isNil(current['*'][Values as any]))
-		// 		)
-		// 			current['*'] = { [Values]: {} };
-		// 		setTriggerImpure(splitPath[i + 1], val, current['*'][Values]);
-		// 	} else {
-		// 		if (
-		// 			(!isObject(current[nextKey]) && !Array.isArray(current[nextKey])) ||
-		// 			((isObject(current[nextKey]) || Array.isArray(current[nextKey])) &&
-		// 				isNil(current[nextKey][Values as any]))
-		// 		)
-		// 			current[nextKey] = { [Values]: nextShouldBeArray ? [] : {} };
-		// 		setTriggerImpure(splitPath[i + 1], val, current[nextKey][Values]);
-		// 	}
 
-		// 	return obj;
-		// }
-		if (key === '*') {
-			// if (
-			// 	(!isObject(current) && !Array.isArray(current)) ||
-			// 	((isObject(current) || Array.isArray(current)) && isNil(current[Star as any]))
-			// ) {
-			// 	current = { [Star]: nextShouldBeArray ? [] : {} };
-			// } else {
-			// 	current = current[Star as any];
-			// }
-			continue;
-		}
 		let next = current[key];
 
 		if (nextIsStar) {
