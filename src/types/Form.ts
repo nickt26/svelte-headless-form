@@ -128,17 +128,49 @@ type ValueDeep<T> = T extends any[]
 	  }[keyof T]
 	: T;
 
-export type DotPaths<T> = ValueDeep<DotPathObject<T>>;
+export type DotPaths<T> = ValueDeep<CreateStarPaths4<T>>;
+
+type Test = string extends never ? true : false;
+type Test1 = boolean extends never ? true : false;
 
 export type Validators<O extends object, T extends object> = {
 	[key in keyof T]: Extract<T[key], object> extends never
 		? ValidatorFn<O, T[key]> | undefined
-		: Validators<O, Extract<T[key], object>> | ValidatorFn<O, Exclude<T[key], object>>;
+		: Extract<T[key], Array<any>> extends never
+		?
+				| (Validators<O, Extract<T[key], object>> & {
+						[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
+				  })
+				| ValidatorFn<O, Exclude<T[key], object>>
+		:
+				| Validators<O, Extract<T[key], object>>
+				| {
+						[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+						[AllFields]?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+						[Values]?: Validators<O, Extract<T[key], Array<any>>>;
+				  }
+				| ValidatorFn<O, Exclude<T[key], object>>;
 };
+
+export const CurrentObject = Symbol('CurrentObject');
+
 export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
-		? ValidatorFn<O, T[key]>
-		: PartialValidators<O, Extract<T[key], object>> | ValidatorFn<O, Exclude<T[key], object>>;
+		? ValidatorFn<O, T[key]> | undefined
+		: Extract<T[key], Array<any>> extends never
+		?
+				| (Validators<O, Extract<T[key], object>> & {
+						[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
+				  })
+				| ValidatorFn<O, Exclude<T[key], object>>
+		:
+				| Validators<O, Extract<T[key], object>>
+				| {
+						[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+						[AllFields]: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+						[Values]?: Validators<O, Extract<T[key], Array<any>>>;
+				  }
+				| ValidatorFn<O, Exclude<T[key], object>>;
 };
 
 type StarPaths<T extends string, R extends string = ''> = T extends `${infer First}.${infer Rest}`
@@ -180,23 +212,23 @@ type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath e
 				| StarPaths<S[number]>
 		  )[]
 		:
-				| Dependecies<
+				| Dependencies<
 						Extract<T[key], object>,
 						S,
 						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`
 				  >
 				| Exclude<T[key], object>;
 };
-type Dependecies<
+type Dependencies<
 	T extends object,
 	S extends Array<any>,
 	TCurrentPath extends string = '',
 	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
 > = T extends any[]
-	? { [AllFields]?: (S[number] | StarPaths<S[number]>)[]; [Values]?: TDepsOnObject } | TDepsOnObject
+	? { [AllFields]: (S[number] | StarPaths<S[number]>)[]; [Values]?: TDepsOnObject } | TDepsOnObject
 	: TDepsOnObject & { [AllFields]?: S | (S[number] | StarPaths<S[number]>)[] };
 
-export type DependencyFields<T extends object = object> = Dependecies<T, DotPaths<T>[]>;
+export type DependencyFields<T extends object = object> = Dependencies<T, DotPaths<T>[]>;
 export type DependencyFieldsInternal<T extends object = object> = PartialDeep<T, string[]>;
 export type BooleanFields<T extends object = object> = ObjectDeep<T, boolean>;
 export type ErrorFields<T extends object = object> = ObjectDeep<T, string | false>;
@@ -235,7 +267,7 @@ export type ValidatorFn<T extends object = object, V = unknown> = <Value extends
 export type GlobalFormOptions<T extends object> = {
 	initialValues: T;
 	validateMode?: ValidateMode;
-	initialDeps?: PartialDeep<T, DotPaths<T>[]>;
+	initialDeps?: Dependencies<T, DotPaths<T>[]>;
 	// revalidateMode: ValidateMode;
 };
 export type FormOptionsSchemaless<T extends object> = GlobalFormOptions<T> & {
@@ -331,7 +363,7 @@ export type ResetFieldFn<T extends object> = <TObject extends T, Path extends Do
 export type ResetFormOptions<T extends object> = {
 	values: T;
 	validators?: ValidatorFields<T>;
-	deps?: PartialDeep<T, DotPaths<T>[]>;
+	deps?: Dependencies<T, DotPaths<T>[]>;
 };
 
 export type ResetFormFn<T extends object> = <TValues extends T>(
@@ -398,6 +430,7 @@ export type ValidatorFormState<T extends object> = {
 	dirty: BooleanFields<T>;
 	errors: ErrorFields<T>;
 	touched: BooleanFields<T>;
+	path: string;
 };
 
 export type FormControl<T extends object = object> = Omit<Form<T>, 'control'>;

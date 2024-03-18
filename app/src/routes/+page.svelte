@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createForm } from '../../../src/core/createForm';
+	import { AllFields, CurrentObject, Values } from '../../../src/types/Form';
 	import { roles, type FormValues } from '../types/FormValues';
+	import * as yup from 'yup';
 
 	const delay = <T>(fn: () => T): Promise<T> =>
 		new Promise((resolve) =>
@@ -29,7 +31,7 @@
 		validate,
 		updateValue,
 		deps,
-		useFieldArray
+		useFieldArray,
 	} = createForm<FormValues>({
 		initialValues: {
 			username: 'Banana',
@@ -46,10 +48,15 @@
 			username: (value) => (value.length > 0 ? false : 'Username is required'),
 			password: (value) => (value.length > 0 ? false : 'Password is required'),
 			nested: {
+				[CurrentObject]: (val) => (val === null ? 'Nested is required' : false),
 				age: (val) => (val === null ? 'Age is required' : val <= 0 ? 'Age must be greater than 0' : false),
 				gender: (val) => (val === false ? 'Gender must be true' : false),
 			},
-			roles: initialValues.roles.map((_) => (val) => !roles.includes(val) ? 'Role is invalid' : false),
+			roles: {
+				[CurrentObject]: (val) => (val.length > 0 ? false : 'Roles are required'),
+				[AllFields]: (val) => !roles.includes(val) ? 'Role is invalid' : false,
+				[Values]: initialValues.roles.map((_) => (val) => !roles.includes(val) ? 'Role is invalid' : false),
+			},
 			rolesAreUnique: (_, { values, errors }) => {
 				const allRolesAreNotUnique = values.roles.some((role, i) =>
 					values.roles.some((_role, j) => _role === role && i !== j),
@@ -60,6 +67,10 @@
 		}),
 		initialDeps: {
 			rolesAreUnique: ['roles'],
+			roles: {
+				[AllFields]: ['username'],
+				[Values]: [['username']],
+			},
 		},
 		// validationResolver: (values) => {
 		// 	const errors = {} as PartialDeep<ObjectDeep<FormValues, string | false>>;
