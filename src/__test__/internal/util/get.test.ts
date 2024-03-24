@@ -6,9 +6,9 @@ describe('getInternal', () => {
 		const obj = {
 			arr: [
 				{
-					banana: 'lemon'
-				}
-			]
+					banana: 'lemon',
+				},
+			],
 		};
 
 		const tester = getInternal('arr.0.banana', obj);
@@ -20,9 +20,9 @@ describe('getInternal', () => {
 		const obj = {
 			arr: [
 				{
-					banana: 'lemon'
-				}
-			]
+					banana: 'lemon',
+				},
+			],
 		};
 
 		const tester = getInternal('arr.0.banana.1', obj);
@@ -32,7 +32,7 @@ describe('getInternal', () => {
 
 	it('should return undefined when property in path is nil', () => {
 		const obj = {
-			arr: null
+			arr: null,
 		};
 
 		const tester = getInternal('arr.0.banana.1', obj);

@@ -1,6 +1,6 @@
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
-import { clone } from '../../internal/util/clone';
+import { clone, cloneWithStoreReactivity } from '../../internal/util/clone';
 import { createTriggers } from '../../internal/util/createTriggers';
 import {
 	BooleanFields,
@@ -23,10 +23,10 @@ type Stores<T extends object> = {
 	triggers_store: Readable<TriggerFields<T>>;
 	state_store: Writable<FormState>;
 	validate_mode_store: Writable<ValidateMode>;
-	latest_field_event_store: Writable<LatestFieldEvent>;
+	latest_field_event_store: Writable<LatestFieldEvent | null>;
 	internal_counter_store: Writable<InternalFormStateCounter>;
 	internal_state_store: Readable<InternalFormState<T>>;
-	value_change_store: Writable<[string, any] | null>;
+	value_change_store: Writable<[Array<string | number | symbol>, any] | null>;
 };
 
 export function createStores<T extends object>(
@@ -39,11 +39,11 @@ export function createStores<T extends object>(
 	initialState: FormState,
 	validateMode: ValidateMode,
 ): Stores<T> {
-	const value_change_store = writable<[string, unknown] | null>(null);
+	const value_change_store = writable<[Array<string | number | symbol>, unknown] | null>(null);
 
 	const touched_store = writable(clone(initialTouched));
 	const dirty_store = writable(clone(initialDirty));
-	const values_store = writable(clone(initialValues, value_change_store));
+	const values_store = writable(cloneWithStoreReactivity(initialValues, value_change_store));
 	const validators_store = writable(clone(initialValidators));
 	const errors_store = writable(clone(initialErrors));
 	const deps_store = writable(clone(initialDeps));
@@ -51,12 +51,12 @@ export function createStores<T extends object>(
 
 	const state_store = writable(clone(initialState));
 	const validate_mode_store = writable(validateMode);
-	const latest_field_event_store = writable({ field: '', event: '' as string } as LatestFieldEvent);
+	const latest_field_event_store = writable<LatestFieldEvent | null>(null);
 
-	const internal_counter_store = writable({
+	const internal_counter_store = writable<InternalFormStateCounter>({
 		validations: 0,
 		submits: 0,
-	} as InternalFormStateCounter);
+	});
 
 	const internal_state_store = derived(
 		[

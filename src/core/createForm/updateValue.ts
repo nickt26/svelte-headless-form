@@ -1,6 +1,6 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
-import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
+import { setImpure } from '../../internal/util/set';
 import {
 	BooleanFields,
 	DependencyFieldsInternal,
@@ -9,12 +9,10 @@ import {
 	LatestFieldEvent,
 	ValidatorFields,
 } from '../../types/Form';
-import { setImpure } from '../../internal/util/set';
-import { getInternal } from '../../internal/util/get';
 
 export function createUpdateValue<T extends object>(
 	internalState: [InternalFormState<T>],
-	latest_field_event_store: Writable<LatestFieldEvent>,
+	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	values_store: Writable<T>,
 	dirty_store: Writable<BooleanFields<T>>,
 	touched_store: Writable<BooleanFields<T>>,

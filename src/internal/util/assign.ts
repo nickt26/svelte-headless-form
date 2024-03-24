@@ -54,12 +54,14 @@ export const assign = <T, S extends object = object>(
 					// if (typeof prop === 'string' && !Number.isNaN(parseInt(prop))) {
 					// 	// console.log('getting', prop, target[prop]);
 					// }
+					// @ts-ignore
 					return Reflect.get(...arguments);
 				},
 				set(target, prop, val) {
 					// if (typeof prop === 'string' && !Number.isNaN(parseInt(prop))) {
 					// 	console.log('setting', prop);
 					// }
+					// @ts-ignore
 					return Reflect.set(...arguments);
 				},
 			});

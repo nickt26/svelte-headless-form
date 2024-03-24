@@ -2,7 +2,6 @@ import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
 import { assign } from '../../internal/util/assign';
 import { clone } from '../../internal/util/clone';
-// import { findTriggers } from '../../internal/util/findTriggers';
 import { getInternal, getTriggers } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
@@ -14,7 +13,6 @@ import {
 	LatestFieldEvent,
 	PartialDeep,
 	ResetFieldFn,
-	TriggerObject,
 	ValidatorFields,
 } from '../../types/Form';
 
@@ -25,7 +23,7 @@ export const createResetField = <T extends object>(
 	initialErrors: ErrorFields<T>,
 	initialValidators: ValidatorFields<T>,
 	initialDeps: DependencyFieldsInternal<T>,
-	latest_field_event_store: Writable<LatestFieldEvent>,
+	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	internalState: [InternalFormState<T>],
 	values_store: Writable<T>,
 	touched_store: Writable<BooleanFields<T>>,
@@ -99,15 +97,10 @@ export const createResetField = <T extends object>(
 				deps_store.update((x) => setImpure(name, newDeps, x));
 			}
 			if (!options?.keepDependentErrors) {
-				// const triggers = findTriggers(name, get(deps_store));
-				const triggers = getTriggers(name, formStateInternal.triggers);
+				const triggers = getTriggers(name, formStateInternal.triggers) ?? [];
 				const errors = {} as PartialDeep<T, string | false>;
 
-				if (triggers)
-					for (const trigger of (triggers as TriggerObject)?.triggers ??
-						(triggers as string[]) ??
-						[])
-						setImpure(trigger, false, errors);
+				if (triggers) for (const trigger of triggers) setImpure(trigger, false, errors);
 				errors_store.update((x) => mergeRightDeepImpure(x, errors));
 			}
 			checkFormForStateReset();
@@ -134,12 +127,10 @@ export const createResetField = <T extends object>(
 			deps_store.update((x) => setImpure(name, newDeps, x));
 		}
 		if (!options?.keepDependentErrors) {
-			const triggers = getTriggers(name, formStateInternal.triggers);
+			const triggers = getTriggers(name, formStateInternal.triggers) ?? [];
 			const errors = {} as PartialDeep<T, string | false>;
 
-			if (triggers)
-				for (const trigger of (triggers as TriggerObject)?.triggers ?? (triggers as string[]) ?? [])
-					setImpure(trigger, false, errors);
+			if (triggers) for (const trigger of triggers) setImpure(trigger, false, errors);
 			errors_store.update((x) => mergeRightDeepImpure(x, errors));
 		}
 		latest_field_event_store.set({ field: name, event: 'afterReset' });

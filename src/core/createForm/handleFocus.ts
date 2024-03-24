@@ -4,7 +4,7 @@ import { getInternal } from '../../internal/util/get';
 import { LatestFieldEvent } from '../../types/Form';
 
 export function createHandleFocus<T extends object>(
-	latest_field_event_store: Writable<LatestFieldEvent>,
+	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	internalState: [InternalFormState<T>],
 	runValidation: (name: string, formState: [InternalFormState<T>]) => Promise<void>,
 ): (name: string) => Promise<void> {

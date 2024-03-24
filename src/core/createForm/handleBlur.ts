@@ -9,7 +9,7 @@ import { BooleanFields, FormState, LatestFieldEvent } from '../../types/Form';
 
 export function createHandleBlur<T extends object>(
 	internalState: [InternalFormState<T>],
-	latest_field_event_store: Writable<LatestFieldEvent>,
+	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	touched_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
 	runValidation: (name: string, formState: [InternalFormState<T>]) => Promise<void>,

@@ -244,8 +244,6 @@ export type TriggerObject<T extends object = object> = {
 	[Values]?: T;
 };
 
-type Ts<T> = T & object;
-
 export const Triggers = Symbol('triggers');
 export type TriggerFields<T extends object = object> = {
 	[K in keyof T]?: T[K] extends Array<any>
@@ -410,18 +408,15 @@ export type Form<T extends object = object> = {
 	resetField: ResetFieldFn<T>;
 	useFieldArray: UseFieldArrayFn<T>;
 	validateMode: Writable<ValidateMode>;
-	// field: Field<T>;
-	handleChange: HandleChangeFn;
 	updateValue: UpdateValueFn<T>;
 	handleBlur: HandlerFn<T>;
 	handleFocus: HandlerFn<T>;
-	register: RegisterFn<T>;
 	control: FormControl<T>;
 	initialValues: T;
 	initialValidators: ValidatorFields<T>;
 	initialDeps: DependencyFields<T>;
 	validate: ValidateFn<T>;
-	latestFieldEvent: Readable<LatestFieldEvent>;
+	latestFieldEvent: Readable<LatestFieldEvent | null>;
 	validators: Writable<ValidatorFields<T>>;
 };
 

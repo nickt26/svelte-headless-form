@@ -19,9 +19,7 @@
 		resetForm,
 		resetField,
 		control,
-		register,
 		touched,
-		handleChange,
 		handleBlur,
 		initialValues,
 		initialDeps,
@@ -109,7 +107,7 @@
 	)}
 >
 	{jsonstring}
-	<input type="file" use:register={{ name: 'files' }} />
+	<input type="file" bind:value={$values.files} />
 	{#if $values.files}
 		{#each $values.files as file}
 			<div>

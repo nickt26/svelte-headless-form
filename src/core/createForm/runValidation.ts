@@ -11,14 +11,13 @@ import {
 	ErrorFields,
 	FormState,
 	LatestFieldEvent,
-	TriggerObject,
+	PartialErrorFields,
 	ValidationResolver,
-	ValidatorFields,
 	ValidatorFn,
 } from '../../types/Form';
 
 export function createRunValidation<T extends object>(
-	latest_field_event_store: Writable<LatestFieldEvent>,
+	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	internal_counter_store: Writable<InternalFormStateCounter>,
 	errors_store: Writable<ErrorFields<T>>,
 	state_store: Writable<FormState>,
@@ -29,57 +28,64 @@ export function createRunValidation<T extends object>(
 	return async (name, internalState) => {
 		latest_field_event_store.set({ field: name, event: 'beforeValidate' });
 		internal_counter_store.update((x) => setImpure('validations', x.validations + 1, x));
+
 		const formState = internalState[0];
 		try {
 			const fieldValue = getInternal<T[keyof T] | object | null>(name, formState.values);
 			if (isSchemaless) {
-				const fieldValidator = getInternal<ValidatorFn<T> | ValidatorFields<T[keyof T] & object>>(
-					name,
-					formState.validators,
-				);
+				const fieldValidator = getInternal<ValidatorFn<T>>(name, formState.validators);
 				if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-					if (!(isObject(fieldValidator) || !Array.isArray(fieldValidator)))
+					if (!(isObject(fieldValidator) || Array.isArray(fieldValidator)))
 						throw new Error(
-							'Validator must be an object or array when value is an object or array',
+							`Validator must be an object or array when value is an object or array for field: ${name}`,
 						);
 
+					const fieldDeps = getInternal(name, formState.deps);
 					const [_, errors] = await isFormValidSchemaless(
-						fieldValue as object,
-						fieldValidator as ValidatorFields,
-						formState,
-						getInternal(name, formState.deps),
-						getTriggers<TriggerObject>(name, formState.triggers),
+						fieldValue,
+						fieldValidator,
+						fieldDeps,
+						getTriggers(name, formState.triggers),
+						getInternal(name, formState.touched),
+						getInternal(name, formState.dirty),
+						fieldValidator,
+						fieldValidator,
+						fieldDeps,
 					);
-					errors_store.update((x) => mergeRightDeepImpure(x, errors));
+					errors_store.update((x) => mergeRightDeepImpure(x, errors as PartialErrorFields<T>));
 
 					if (Object.keys(errors).length > 0 && !formState.state.hasErrors)
 						state_store.update((x) => setImpure('hasErrors', true, x));
-				} else {
-					if (fieldValidator) {
-						if (isObject(fieldValidator) || Array.isArray(fieldValidator))
-							throw new Error('Validator must be a function when value is a primitive or nullish');
+				} else if (fieldValidator) {
+					if (isObject(fieldValidator) || Array.isArray(fieldValidator))
+						throw new Error(
+							`Validator must be a function when value is a primitive or nullish for field: ${name}`,
+						);
 
-						const validatorResult = await fieldValidator(fieldValue, formState);
-						if (getInternal(name, formState.errors) !== validatorResult) {
-							errors_store.update((x) => setImpure(name, validatorResult, x));
-							if (!formState.state.hasErrors)
-								state_store.update((x) => setImpure('hasErrors', true, x));
-						}
+					const validatorResult = await fieldValidator(fieldValue, {
+						...formState,
+						path: name,
+					});
+					if (getInternal(name, formState.errors) !== validatorResult) {
+						errors_store.update((x) => setImpure(name, validatorResult, x));
+						if (!formState.state.hasErrors)
+							state_store.update((x) => setImpure('hasErrors', true, x));
 					}
 				}
 
 				const triggers = getTriggers(name, formState.triggers);
-				for (const trigger of (triggers as TriggerObject)?.triggers ??
-					(triggers as string[]) ??
-					[]) {
+				for (const trigger of triggers) {
 					const triggerValue = getInternal(trigger, formState.values);
 					const triggerValidator = getInternal<ValidatorFn<T>>(trigger, formState.validators);
 
-					if (isObject(triggerValidator) || Array.isArray(triggerValidator))
-						throw new Error('Trigger validator cannot be an object or array');
+					// if (isObject(triggerValidator) || Array.isArray(triggerValidator))
+					// 	throw new Error('Trigger validator cannot be an object or array');
 
 					if (triggerValidator) {
-						const triggerValidatorResult = await triggerValidator(triggerValue, formState);
+						const triggerValidatorResult = await triggerValidator(triggerValue, {
+							...formState,
+							path: name,
+						});
 						if (getInternal(trigger, formState.errors) !== triggerValidatorResult) {
 							errors_store.update((x) => setImpure(trigger, triggerValidatorResult, x));
 							if (!formState.state.hasErrors)
@@ -102,7 +108,7 @@ export function createRunValidation<T extends object>(
 				else errors_store.update((x) => setImpure(name, fieldError, x));
 
 				const triggers = getTriggers(name, formState.triggers);
-				for (const trigger of (triggers as TriggerObject)?.triggers ?? (triggers as string[]) ?? [])
+				for (const trigger of triggers)
 					errors_store.update((x) =>
 						setImpure(trigger, getInternal<string | false>(trigger, formErrors) ?? false, x),
 					);

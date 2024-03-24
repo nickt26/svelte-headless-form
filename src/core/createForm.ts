@@ -8,7 +8,6 @@ import {
 	Form,
 	FormControl,
 	FormOptions,
-	HandleChangeFn,
 	HandlerFn,
 	UpdateValueFn,
 	UseFieldArrayFn,
@@ -18,11 +17,9 @@ import { createCheckFormForStateReset } from './createForm/checkFormForStateRese
 import { createStores } from './createForm/createStores';
 import { createUseFieldArray } from './createForm/createUseFieldArray';
 import { createHandleBlur } from './createForm/handleBlur';
-import { createHandleChange } from './createForm/handleChange';
 import { createHandleFocus } from './createForm/handleFocus';
 import { handleSubscriptions } from './createForm/handleSubscriptions';
 import { createInitialValues } from './createForm/initialValues';
-import { createRegister } from './createForm/register';
 import { createResetField } from './createForm/resetField';
 import { createResetForm } from './createForm/resetForm';
 import { createRunValidation } from './createForm/runValidation';
@@ -172,8 +169,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		runValidation,
 	);
 
-	const handleChange = createHandleChange(latest_field_event_store, updateValue);
-
 	const handleBlur = createHandleBlur(
 		internalState,
 		latest_field_event_store,
@@ -185,8 +180,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 	const handleFocus = createHandleFocus(latest_field_event_store, internalState, runValidation);
 
 	const validate = (name: string) => runValidation(name, internalState);
-
-	const register = createRegister(handleChange, handleBlur as HandlerFn, handleFocus as HandlerFn);
 
 	const control: FormControl<T> = {
 		touched: {
@@ -209,7 +202,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 			subscribe: state_store.subscribe,
 		},
 		validateMode: validate_mode_store,
-		handleChange: handleChange as HandleChangeFn,
 		handleBlur: handleBlur as HandlerFn<T>,
 		handleFocus: handleFocus as HandlerFn<T>,
 		updateValue: updateValue as UpdateValueFn<T>,
@@ -217,7 +209,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		submitForm,
 		resetForm,
 		resetField,
-		register,
 		initialValues: clone(initialValues),
 		initialValidators: clone(initialValidators),
 		initialDeps: clone(initialDeps) as DependencyFields<T>,

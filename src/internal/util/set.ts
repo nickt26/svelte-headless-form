@@ -3,11 +3,20 @@ import { canParseToInt } from './canParseToInt';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
-export const setImpure = <V, T extends object>(path: string, val: V, obj: T): T => {
-	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj)) || typeof path !== 'string') return obj;
+export const setImpure = <V, T extends object>(
+	path: string | Array<string | number | symbol>,
+	val: V,
+	obj: T,
+): T => {
+	if (
+		isNil(obj) ||
+		(!isObject(obj) && !Array.isArray(obj)) ||
+		!(typeof path === 'string' || Array.isArray(path))
+	)
+		return obj;
 
 	let current: any = obj;
-	const splitPath = path.split(/\./g);
+	const splitPath = Array.isArray(path) ? path : path.split(/\./g);
 
 	for (let i = 0; i < splitPath.length - 1; i++) {
 		const key = splitPath[i];

@@ -6,9 +6,9 @@ describe('assignImpure', () => {
 		const obj = {
 			isCorrect: true,
 			nested: {
-				isCorrect: true
+				isCorrect: true,
 			},
-			arr: [1, 2, 3]
+			arr: [1, 2, 3],
 		};
 
 		const tester = {};
@@ -17,9 +17,9 @@ describe('assignImpure', () => {
 		expect(tester).toEqual({
 			isCorrect: '',
 			nested: {
-				isCorrect: ''
+				isCorrect: '',
 			},
-			arr: ['', '', '']
+			arr: ['', '', ''],
 		});
 	});
 
@@ -30,7 +30,7 @@ describe('assignImpure', () => {
 		};
 		const obj: Obj = {
 			isCorrect: true,
-			isInCorrect: false
+			isInCorrect: false,
 		};
 
 		type Tester = {
@@ -38,10 +38,10 @@ describe('assignImpure', () => {
 			isIncorrect: {};
 		};
 		const test = {};
-		const tester = assignImpure({}, obj, test);
+		const tester = assignImpure({}, obj, test as Tester);
 
-		expect(tester === test).toBeTruthy();
-		expect((tester as Tester).isCorrect === (tester as Tester).isIncorrect).toBeFalsy();
+		expect(test).to.equal(tester);
+		expect(tester.isCorrect).not.to.equal(tester.isIncorrect);
 	});
 });
 
@@ -50,9 +50,9 @@ describe('assign', () => {
 		const obj = {
 			isCorrect: true,
 			nested: {
-				isCorrect: true
+				isCorrect: true,
 			},
-			arr: [1, 2, 3]
+			arr: [1, 2, 3],
 		};
 
 		const tester = assign('', obj);
@@ -61,9 +61,9 @@ describe('assign', () => {
 		expect(tester).toEqual({
 			isCorrect: '',
 			nested: {
-				isCorrect: ''
+				isCorrect: '',
 			},
-			arr: ['', '', '']
+			arr: ['', '', ''],
 		});
 	});
 });

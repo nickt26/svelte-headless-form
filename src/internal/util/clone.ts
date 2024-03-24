@@ -3,11 +3,7 @@ import { empty } from './empty';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
-export const clone = <T>(
-	obj: T,
-	store: Writable<[string, unknown] | null> | null = null,
-	path?: string,
-): T => {
+export const clone = <T>(obj: T): T => {
 	if (isNil(obj)) return obj;
 	if (obj instanceof Date) {
 		const date = new Date();
@@ -15,6 +11,28 @@ export const clone = <T>(
 		return date as T;
 	}
 	if (!isObject(obj) && !Array.isArray(obj)) return obj;
+
+	if (Array.isArray(obj)) return obj.map(clone) as T;
+
+	const toReturn: Record<string | number | symbol, unknown> = {};
+	for (const key in Object.getOwnPropertySymbols(obj)) toReturn[key] = clone(obj[key]);
+	for (const key in Object.keys(obj)) toReturn[key] = clone(obj[key]);
+
+	return toReturn as T;
+};
+
+export const cloneWithStoreReactivity = <T>(
+	obj: T,
+	store: Writable<[Array<string | number | symbol>, unknown] | null> | null = null,
+	path?: Array<string | number | symbol>,
+): T => {
+	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj))) return obj;
+
+	if (obj instanceof Date) {
+		const date = new Date();
+		date.setTime(obj.getTime());
+		return date as T;
+	}
 
 	let toReturn = empty(obj);
 	if (Array.isArray(toReturn)) {
@@ -27,10 +45,12 @@ export const clone = <T>(
 			// },
 			set(target, prop, val) {
 				if (typeof prop === 'string' && !isNaN(parseInt(prop))) {
-					const fullPath = path ? `${path}.${prop}` : `${prop}`;
+					// if (path) path.push(prop);
+					// else path = [prop];
+					const fullPath = path ? [...path, prop] : [prop];
 					console.log('setting', fullPath, val);
 
-					target[parseInt(prop)] = clone(val, store, fullPath);
+					target[parseInt(prop)] = cloneWithStoreReactivity(val, store, fullPath);
 					if (store) store.set([fullPath, val]);
 					return true;
 				}
@@ -40,12 +60,9 @@ export const clone = <T>(
 		});
 	}
 
-	for (const key in obj) {
-		// Object.assign(toReturn, {
-		// 	[key]: clone(obj[key]),
-		// });
-		const fullPath = path ? `${path}.${key}` : `${key}`;
-		let newObj = clone(obj[key], store, fullPath);
+	for (const key of Object.keys(obj)) {
+		const fullPath = path ? [...path, key] : [key];
+		let newObj = cloneWithStoreReactivity(obj[key as keyof typeof obj], store, fullPath);
 
 		if (isObject(toReturn)) {
 			Object.defineProperty(toReturn, key, {
@@ -55,7 +72,7 @@ export const clone = <T>(
 				},
 				set(newVal) {
 					console.log('setting key', key, newVal);
-					newObj = clone(newVal, store, fullPath);
+					newObj = cloneWithStoreReactivity(newVal, store, fullPath);
 					if (store) store.set([fullPath, newVal]);
 				},
 				enumerable: true,
