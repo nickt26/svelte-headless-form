@@ -107,7 +107,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 	const valueChangeUnsub = value_change_store.subscribe((val) => {
 		console.log('value change detected', val);
 
-		if (val) updateValue(val[0], val[1]);
+		// if (val) updateValue(val[0], val[1]);
 	});
 
 	onDestroy(() => {

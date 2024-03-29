@@ -1,4 +1,4 @@
-import { PartialErrorFields } from '../../types/Form';
+import { PartialErrorFields, ValidationResolver } from '../../types/Form';
 import { getInternal, getTriggers } from './get';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
@@ -95,4 +95,12 @@ export const isFormValidSchemaless = async (
 	}
 
 	return [isFormValid[0], errors];
+};
+export const isFormValidSchema = async <T extends object>(
+	values: T,
+	validationResolver: ValidationResolver<T>,
+): Promise<[boolean, PartialErrorFields<T>]> => {
+	const errors = await validationResolver(values);
+	const formValidity = Object.keys(errors).length === 0;
+	return [formValidity, errors];
 };

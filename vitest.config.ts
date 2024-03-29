@@ -7,6 +7,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		coverage: {
+			provider: 'c8',
 			all: true,
 			include: ['src/internal/util/*.ts', 'src/core/*.ts'],
 		},

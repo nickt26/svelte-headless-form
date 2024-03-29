@@ -603,6 +603,7 @@ describe('createTriggers', () => {
 				location: {
 					[AllFields]: ['extra.roles.*.name'],
 					city: ['extra.*.coords.lat', 'extra.location.*.lng'],
+					postCode: ['extra.*.*.lat', 'extra.*.*.name', 'extra.*.*.0'],
 					unitNumber: ['extra.location.*.lat', 'extra.location.*.lng'],
 					coords: {
 						lat: ['extra.roles.*.name'],
@@ -629,6 +630,12 @@ describe('createTriggers', () => {
 						[Values]: {
 							lat: ['extra.location.city'],
 						},
+					},
+					[Star]: {
+						lat: ['extra.location.postCode'],
+						name: ['extra.location.postCode'],
+						0: ['extra.location.postCode'],
+						// coords: ['banana'],
 					},
 				},
 				[Values]: {

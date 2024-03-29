@@ -199,7 +199,7 @@ describe('getTriggers', () => {
 			'extra.roles.0.value',
 		]);
 		expect(triggers4).toEqual(['extra.location.coords.lng']);
-		expect(triggers5).toEqual(['extra.roles.0.value']); // TODO: rethink this scenario, we might want parents to include all triggers of their children, don't know how this would affect the check for circular/infinite/invalid deps
+		expect(triggers5).toEqual(['extra.location.city', 'extra.roles.0.value']); // TODO: rethink this scenario, we might want parents to include all triggers of their children, don't know how this would affect the check for circular/infinite/invalid deps
 		expect(triggers6).toEqual([
 			'extra.location.coords.lng',
 			'extra.location.coords.lat',

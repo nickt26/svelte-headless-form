@@ -1,0 +1,9 @@
+{
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"outDir": "./dist",
+		"removeComments": true
+	},
+	"extends": "./tsconfig.json",
+	"exclude": ["node_modules", "coverage", "**/__test__/**/*", "dist", "app"]
+}

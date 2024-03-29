@@ -6,7 +6,10 @@ export const useFieldArray = <S, T extends object = object>({
 	name,
 	control,
 }: UseFieldArrayOptions<T>): UseFieldArray<S, T> => {
-	const fields_store = derived(control.values, ($values) => getInternal<S[]>(name as string, $values) as S[]);
+	const fields_store = derived(
+		control.values,
+		($values) => getInternal<S[]>(name as string, $values) as S[],
+	);
 
 	const functions = control.useFieldArray(name as any);
 
@@ -19,5 +22,5 @@ export const useFieldArray = <S, T extends object = object>({
 		},
 		...functions,
 		form: control,
-	};
+	} as UseFieldArray<S, T>;
 };

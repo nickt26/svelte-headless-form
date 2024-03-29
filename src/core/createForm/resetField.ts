@@ -38,10 +38,10 @@ export const createResetField = <T extends object>(
 		latest_field_event_store.set({ field: name, event: 'beforeReset' });
 
 		const formStateInternal = internalState[0];
-		const fieldValue = getInternal<T[keyof T]>(name, formStateInternal.values);
+		const fieldValue = getInternal(name, formStateInternal.values);
 
 		if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-			const initialValue = getInternal<T[keyof T]>(name, initialValues);
+			const initialValue = getInternal<object>(name, initialValues);
 			const optionValueExists = options?.value !== undefined;
 
 			if (
@@ -52,8 +52,8 @@ export const createResetField = <T extends object>(
 				throw new Error(
 					`There is no initial value for the field: ${name}. To fix this error you must provide a value in the options object.`,
 				);
-			const newValue =
-				options?.value === undefined ? clone(initialValue!) : clone((options.value as object)!);
+
+			const newValue = !options?.value ? clone(initialValue) : (clone(options.value) as object);
 
 			if (!options?.keepValue) values_store.update((x) => setImpure(name, newValue, x));
 			if (!options?.keepTouched) {

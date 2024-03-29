@@ -130,9 +130,6 @@ type ValueDeep<T> = T extends any[]
 
 export type DotPaths<T> = ValueDeep<CreateStarPaths4<T>>;
 
-type Test = string extends never ? true : false;
-type Test1 = boolean extends never ? true : false;
-
 export type Validators<O extends object, T extends object> = {
 	[key in keyof T]: Extract<T[key], object> extends never
 		? ValidatorFn<O, T[key]> | undefined
@@ -242,6 +239,7 @@ export const Star = Symbol('*');
 export type TriggerObject<T extends object = object> = {
 	[Triggers]?: string[];
 	[Values]?: T;
+	// [Star]?: TriggerFields<T[keyof T]>;
 };
 
 export const Triggers = Symbol('triggers');
@@ -255,6 +253,10 @@ export type TriggerFields<T extends object = object> = {
 				[Star]?: TriggerFields<T[K][keyof T[K]] & object>;
 		  }
 		: string[];
+} & {
+	[Star]?: T extends Array<any>
+		? TriggerFields<T[number] & object>
+		: TriggerFields<T[keyof T] & object>;
 };
 
 export type ValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(
@@ -304,7 +306,7 @@ type ResetFieldValues<T extends object, Val> = {
 	deps?: DotPaths<T>[];
 	validator?: ValidatorFn<T, Val>;
 };
-type ResetFieldRetains = {
+type ResetFieldKeep = {
 	keepTouched?: boolean;
 	keepValidator?: boolean;
 	keepValue?: boolean;
@@ -313,7 +315,7 @@ type ResetFieldRetains = {
 	keepDirty?: boolean;
 	keepDependentErrors?: boolean;
 };
-export type ResetFieldOptions<T extends object, Val> = ResetFieldRetains & ResetFieldValues<T, Val>;
+export type ResetFieldOptions<T extends object, Val> = ResetFieldKeep & ResetFieldValues<T, Val>;
 
 export type FormUseFieldArray<T extends object, S = unknown> = {
 	remove: (index: number) => void;

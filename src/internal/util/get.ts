@@ -1,19 +1,11 @@
-import {
-	AllFields,
-	CurrentObject,
-	Equals,
-	Star,
-	TriggerFields,
-	Triggers,
-	Values,
-} from '../../types/Form';
+import { AllFields, CurrentObject, Star, TriggerFields, Triggers, Values } from '../../types/Form';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
 export const getInternal = function <V = unknown, T extends object = object>(
 	path: string | Array<string | number | symbol>,
 	obj: T,
-): Equals<V, unknown> extends true ? {} | null | undefined : V | undefined {
+): V | undefined {
 	if (
 		isNil(obj) ||
 		(!isObject(obj) && !Array.isArray(obj)) ||
@@ -37,9 +29,29 @@ export const getInternal = function <V = unknown, T extends object = object>(
 export const getTriggers = <T extends object>(
 	path: string | Array<string>,
 	obj: TriggerFields<T>,
+	values: T,
+	fullPath: string,
 	triggers: Set<string> = new Set(),
+	fromStar: boolean = false,
 ): Array<string> => {
-	if (path.length === 0) return Array.from(triggers);
+	if (path.length === 0) {
+		const current = obj as any;
+		if (isObject(current)) {
+			const fieldValue = getInternal(fullPath, values);
+			if (isObject(current[Star]) && isObject(fieldValue))
+				for (const key of Object.keys(fieldValue))
+					if (key in current[Star])
+						getTriggers(key, current[Star] as TriggerFields, values, fullPath, triggers);
+					else if (Array.isArray(current[Star]))
+						for (let i = 0; i < current[Star].length; i++)
+							getTriggers(`${i}`, current[Star] as TriggerFields, values, fullPath, triggers);
+
+			for (const key of Object.keys(fieldValue)) getTriggers(key, obj, values, fullPath, triggers);
+		} else if (Array.isArray(obj))
+			for (let i = 0; i < (obj as Array<any>).length; i++)
+				getTriggers(`${i}`, obj as TriggerFields, values, fullPath, triggers);
+		else return Array.from(triggers);
+	}
 	const splitPath = Array.isArray(path) ? path : path.split(/\./g).reverse();
 
 	const key = splitPath.pop()!;
@@ -47,30 +59,21 @@ export const getTriggers = <T extends object>(
 	if (!(key in obj)) return [];
 	const current = (obj as any)[key];
 
-	// if (splitPath.length === 0) {
-	// const current = (obj as any)[key];
-	// if (Array.isArray(current?.[Triggers]))
-	// 	for (const trigger of current[Triggers]) triggers.add(trigger);
-	// 	if (Array.isArray(current)) for (const trigger of current) triggers.add(trigger);
-	// }
-
 	if (Array.isArray(current?.[Triggers]))
 		for (const trigger of current[Triggers]) triggers.add(trigger);
 
-	if (isObject(current) && !(Values in current) && !(Star in current)) {
-		getTriggers(splitPath, current as TriggerFields, triggers);
-	} else if (Array.isArray(current)) {
+	if (isObject(current) && !(Values in current) && !(Star in current))
+		getTriggers(splitPath, current as TriggerFields, values, fullPath, triggers);
+	else if (Array.isArray(current)) {
 		if (splitPath.length === 0) for (const trigger of current) triggers.add(trigger);
-		getTriggers(splitPath, current as TriggerFields, triggers);
+		getTriggers(splitPath, current as TriggerFields, values, fullPath, triggers);
 	}
 
-	if (isObject(current?.[Star]) || Array.isArray(current?.[Star])) {
-		getTriggers(splitPath.slice(0, -1), current[Star] as TriggerFields, triggers);
-	}
+	if (isObject(current?.[Star]) || Array.isArray(current?.[Star]))
+		getTriggers(splitPath.slice(0, -1), current[Star] as TriggerFields, values, fullPath, triggers);
 
-	if (isObject(current?.[Values]) || Array.isArray(current?.[Values])) {
-		getTriggers(splitPath, current[Values] as TriggerFields, triggers);
-	}
+	if (isObject(current?.[Values]) || Array.isArray(current?.[Values]))
+		getTriggers(splitPath, current[Values] as TriggerFields, values, fullPath, triggers);
 
 	return Array.from(triggers);
 };

@@ -7,12 +7,10 @@
 	"module": "dist/svelte-headless-form.js",
 	"umd:main": "dist/svelte-headless-form.umd.js",
 	"scripts": {
+		"build": "npm run clean && tsc -p ./tsconfig.build.json && vite build --config ./vite.config.ts && tsc -p ./tsconfig.build-types.json",
 		"test": "vitest run --config ./vitest.config.ts",
 		"test:coverage": "vitest run --config ./vitest.config.ts --coverage",
-		"build": "tsc -p tsconfig.dist.json",
-		"build:prod": "npm run clean && npm run build && npm run package && npm run build && rm -f dist/index.js && rm -r dist/index.js.map",
-		"clean": "rm -rf dist",
-		"package": "npx vite build ."
+		"clean": "rm -rf dist"
 	},
 	"author": "Nicholas Trummer (nickt26)",
 	"license": "MIT",

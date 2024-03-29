@@ -1,4 +1,4 @@
-import { Readable, Writable, get } from 'svelte/store';
+import { Writable } from 'svelte/store';
 import type { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
 import { assignImpure } from '../../internal/util/assign';
 import { isFormValidSchema, isFormValidSchemaless } from '../../internal/util/isFormValid';
@@ -20,13 +20,17 @@ const isFormValid = async <T extends object>(
 ): Promise<[boolean, PartialErrorFields<T>]> => {
 	try {
 		if (isSchemaless)
-			return await isFormValidSchemaless(
+			return (await isFormValidSchemaless(
 				formState.values,
 				formState.validators,
-				formState,
 				formState.deps,
 				formState.triggers,
-			);
+				formState.touched,
+				formState.dirty,
+				formState.values,
+				formState.validators,
+				formState.deps,
+			)) as [boolean, PartialErrorFields<T>];
 		if (isSchema) return await isFormValidSchema(formState.values, validationResolver!);
 		return [true, {}];
 	} catch (_) {

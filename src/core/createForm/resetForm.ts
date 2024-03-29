@@ -2,21 +2,31 @@ import { Writable } from 'svelte/store';
 import { assign } from '../../internal/util/assign';
 import { clone } from '../../internal/util/clone';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
-import { DependencyFields, ErrorFields, FormState, ResetFormFn, ValidatorFields } from '../../types/Form';
+import {
+	DependencyFieldsInternal,
+	ErrorFields,
+	FormState,
+	ResetFormFn,
+	ValidatorFields,
+} from '../../types/Form';
 
 export const createResetForm = <T extends object>(
 	initialValues: T,
 	initialValidators: ValidatorFields<T>,
-	initialDeps: DependencyFields,
+	initialDeps: DependencyFieldsInternal<T>,
 	values_store: Writable<T>,
 	validators_store: Writable<ValidatorFields<T>>,
 	errors_store: Writable<ErrorFields<T>>,
-	deps_store: Writable<DependencyFields>,
+	deps_store: Writable<DependencyFieldsInternal<T>>,
 	state_store: Writable<FormState>,
 ): ResetFormFn<object> => {
 	return (options): void => {
-		const newValues = options?.values === undefined ? clone(initialValues) : clone(options.values);
-		const newValidators = options?.validators === undefined ? clone(initialValidators) : clone(options.validators);
+		const newValues =
+			options?.values === undefined
+				? clone(initialValues)
+				: (clone(options.values) as unknown as T);
+		const newValidators =
+			options?.validators === undefined ? clone(initialValidators) : clone(options.validators);
 		const newDeps =
 			options?.deps === undefined
 				? clone(initialDeps)
