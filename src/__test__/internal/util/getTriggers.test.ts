@@ -97,7 +97,7 @@ describe('getTriggers', () => {
 		};
 		const formTriggers = createTriggers(formValues, formDeps);
 
-		const result = getTriggers('age', formTriggers);
+		const result = getTriggers('age', formTriggers, formValues);
 
 		expect(result).toEqual(['firstName']);
 	});
@@ -115,7 +115,7 @@ describe('getTriggers', () => {
 		};
 		const formTriggers = createTriggers(formValues, formDeps);
 
-		const result = getTriggers('age', formTriggers);
+		const result = getTriggers('age', formTriggers, formValues);
 
 		expect(result).toEqual(['firstName', 'extra.location.coords.lng']);
 	});

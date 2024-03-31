@@ -29,51 +29,30 @@ export const getInternal = function <V = unknown, T extends object = object>(
 const getTriggersInResultObject = (
 	obj: any,
 	formValues: any,
-	fullPath: string,
+	fullPath: string | Array<string | number | symbol>,
 	triggers: Set<string>,
-	// fromStar: boolean = false,
 ) => {
 	if (!isObject(obj) && !Array.isArray(obj)) return;
 
 	const val = getInternal(fullPath, formValues);
 	if (!isObject(val) && !Array.isArray(val)) return;
 
-	// if (fromStar) {
 	if (isObject(val))
 		for (const key of Object.keys(val)) {
 			if (key in obj) {
 				const value = obj[key];
-				if (Array.isArray(value[Triggers])) {
-					for (const trigger of value[Triggers]) triggers.add(trigger);
-				}
-
-				if (Array.isArray(value)) {
+				for (const trigger of value[Triggers] ?? []) triggers.add(trigger);
+				if (Array.isArray(value))
 					for (let i = 0; i < value.length; i++) {
 						const trigger = value[i];
-						if (typeof trigger === 'string') {
-							triggers.add(trigger);
-							continue;
-						}
-
-						if (isObject(trigger) || Array.isArray(trigger)) {
-							getTriggersInResultObject(trigger, formValues, `${fullPath}.${i}`, triggers);
-						}
+						if (typeof trigger === 'string') triggers.add(trigger);
+						getTriggersInResultObject(trigger, formValues, `${fullPath}.${i}`, triggers);
 					}
-				}
 
-				if (isObject(value) && !(Values in value) && !(Star in value)) {
-					getTriggersInResultObject(value, formValues, `${fullPath}.${key}`, triggers);
-					continue;
-				}
-
-				if (isObject(value?.[Star]) || Array.isArray(value?.[Star])) {
-					getTriggersInResultObject(value[Star], formValues, `${fullPath}.${key}`, triggers);
-					// TODO: look at
-				}
-
-				if (isObject(value?.[Values]) || Array.isArray(value?.[Values])) {
-					getTriggersInResultObject(value[Values], formValues, `${fullPath}.${key}`, triggers);
-				}
+				const newPath = Array.isArray(fullPath) ? [...fullPath, key] : `${fullPath}.${key}`;
+				getTriggersInResultObject(value, formValues, newPath, triggers);
+				getTriggersInResultObject(value[Star], formValues, newPath, triggers);
+				getTriggersInResultObject(value[Values], formValues, newPath, triggers);
 			}
 		}
 	else if (Array.isArray(val))
@@ -88,35 +67,21 @@ const getTriggersInResultObject = (
 						getTriggersInResultObject(trigger, formValues, `${fullPath}.${i}`, triggers);
 					}
 
-				const newPath = `${fullPath}.${i}`;
+				const newPath = Array.isArray(fullPath) ? [...fullPath, i] : `${fullPath}.${i}`;
 				getTriggersInResultObject(value, formValues, newPath, triggers);
 				getTriggersInResultObject(value[Star], formValues, newPath, triggers);
 				getTriggersInResultObject(value[Values], formValues, newPath, triggers);
 			}
 		}
-	// return;
-	// }
-
-	// if (Array.isArray(val?.[Triggers])) {
-	// 	for (const trigger of val[Triggers]) triggers.add(trigger);
-	// }
-
-	// if (isObject(val?.[Values] || Array.isArray(val?.[Values]))) {
 	getTriggersInResultObject(val[Values], formValues, fullPath, triggers);
-	// }
-
-	// for (const key of Object.keys(val)) {
-	// 	const value = val[key];
-	// }
 };
 
 export const getTriggers = <T extends object>(
-	path: string | Array<string>,
+	path: string | Array<string | number | symbol>,
 	obj: TriggerFields<T>,
 	values: T,
-	fullPath: string,
+	fullPath: string | Array<string | number | symbol> = path,
 	triggers: Set<string> = new Set(),
-	fromStar: boolean = false,
 ): Array<string> => {
 	if (path.length === 0) {
 		getTriggersInResultObject(obj, values, fullPath, triggers);
