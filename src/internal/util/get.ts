@@ -42,7 +42,7 @@ const getTriggersInResultObject = (
 	if (isObject(val))
 		for (const key of Object.keys(val)) {
 			if (key in obj) {
-				const value = val[key];
+				const value = obj[key];
 				if (Array.isArray(value[Triggers])) {
 					for (const trigger of value[Triggers]) triggers.add(trigger);
 				}
@@ -78,19 +78,21 @@ const getTriggersInResultObject = (
 		}
 	else if (Array.isArray(val))
 		for (let i = 0; i < val.length; i++) {
-			const value = val[i];
-			for (const trigger of value[Triggers] ?? []) triggers.add(trigger);
-			if (Array.isArray(value))
-				for (let j = 0; j < value.length; j++) {
-					const trigger = value[j];
-					if (typeof trigger === 'string') triggers.add(trigger);
-					getTriggersInResultObject(trigger, formValues, `${fullPath}.${i}`, triggers);
-				}
+			if (i in obj) {
+				const value = obj[i];
+				for (const trigger of value[Triggers] ?? []) triggers.add(trigger);
+				if (Array.isArray(value))
+					for (let j = 0; j < value.length; j++) {
+						const trigger = value[j];
+						if (typeof trigger === 'string') triggers.add(trigger);
+						getTriggersInResultObject(trigger, formValues, `${fullPath}.${i}`, triggers);
+					}
 
-			const newPath = `${fullPath}.${i}`;
-			getTriggersInResultObject(value, formValues, newPath, triggers);
-			getTriggersInResultObject(value[Star], formValues, newPath, triggers);
-			getTriggersInResultObject(value[Values], formValues, newPath, triggers);
+				const newPath = `${fullPath}.${i}`;
+				getTriggersInResultObject(value, formValues, newPath, triggers);
+				getTriggersInResultObject(value[Star], formValues, newPath, triggers);
+				getTriggersInResultObject(value[Values], formValues, newPath, triggers);
+			}
 		}
 	// return;
 	// }

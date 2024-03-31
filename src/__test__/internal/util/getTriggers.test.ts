@@ -177,14 +177,49 @@ describe('getTriggers', () => {
 			},
 		};
 
-		const triggers1 = getTriggers('extra.location.city', formTriggers);
-		const triggers2 = getTriggers('extra.location.coords.lat', formTriggers);
-		const triggers3 = getTriggers('extra.location.coords.lng', formTriggers);
-		const triggers4 = getTriggers('extra.location.postCode', formTriggers);
-		const triggers5 = getTriggers('extra.location.coords', formTriggers);
-		const triggers6 = getTriggers('extra.roles.0.name', formTriggers);
-		const triggers7 = getTriggers('extra.roles', formTriggers);
-		const triggers8 = getTriggers('extra.roles.0.value', formTriggers);
+		const triggers1 = getTriggers(
+			'extra.location.city',
+			formTriggers,
+			formValues,
+			'extra.location.city',
+		);
+		const triggers2 = getTriggers(
+			'extra.location.coords.lat',
+			formTriggers,
+			formValues,
+			'extra.location.coords.lat',
+		);
+		const triggers3 = getTriggers(
+			'extra.location.coords.lng',
+			formTriggers,
+			formValues,
+			'extra.location.coords.lng',
+		);
+		const triggers4 = getTriggers(
+			'extra.location.postCode',
+			formTriggers,
+			formValues,
+			'extra.location.postCode',
+		);
+		const triggers5 = getTriggers(
+			'extra.location.coords',
+			formTriggers,
+			formValues,
+			'extra.location.coords',
+		);
+		const triggers6 = getTriggers(
+			'extra.roles.0.name',
+			formTriggers,
+			formValues,
+			'extra.roles.0.name',
+		);
+		const triggers7 = getTriggers('extra.roles', formTriggers, formValues, 'extra.roles');
+		const triggers8 = getTriggers(
+			'extra.roles.0.value',
+			formTriggers,
+			formValues,
+			'extra.roles.0.value',
+		);
 
 		expect(triggers1).toEqual(['extra.roles.0.name']);
 		expect(triggers2).toEqual([
@@ -199,7 +234,12 @@ describe('getTriggers', () => {
 			'extra.roles.0.value',
 		]);
 		expect(triggers4).toEqual(['extra.location.coords.lng']);
-		expect(triggers5).toEqual(['extra.location.city', 'extra.roles.0.value']); // TODO: rethink this scenario, we might want parents to include all triggers of their children, don't know how this would affect the check for circular/infinite/invalid deps
+		expect(triggers5).toEqual([
+			'extra.location.city',
+			'extra.location.unitNumber',
+			'extra.roles',
+			'extra.roles.0.value',
+		]); // TODO: rethink this scenario, we might want parents to include all triggers of their children, don't know how this would affect the check for circular/infinite/invalid deps
 		expect(triggers6).toEqual([
 			'extra.location.coords.lng',
 			'extra.location.coords.lat',
