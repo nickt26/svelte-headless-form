@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
-import { getTriggers } from '../../../internal/util/get';
+import { getTriggers } from '../../../internal/util/getTriggers';
 import {
 	AllFields,
 	DependencyFields,
@@ -177,49 +177,20 @@ describe('getTriggers', () => {
 			},
 		};
 
-		const triggers1 = getTriggers(
-			'extra.location.city',
-			formTriggers,
-			formValues,
-			'extra.location.city',
-		);
-		const triggers2 = getTriggers(
-			'extra.location.coords.lat',
-			formTriggers,
-			formValues,
-			'extra.location.coords.lat',
-		);
-		const triggers3 = getTriggers(
-			'extra.location.coords.lng',
-			formTriggers,
-			formValues,
-			'extra.location.coords.lng',
-		);
-		const triggers4 = getTriggers(
-			'extra.location.postCode',
-			formTriggers,
-			formValues,
-			'extra.location.postCode',
-		);
-		const triggers5 = getTriggers(
+		const triggers1 = getTriggers('extra.location.city', formTriggers, formValues);
+		const triggers2 = getTriggers('extra.location.coords.lat', formTriggers, formValues);
+		const triggers3 = getTriggers('extra.location.coords.lng', formTriggers, formValues);
+		const triggers4 = getTriggers('extra.location.postCode', formTriggers, formValues);
+		const triggers5 = getTriggers('extra.location.coords', formTriggers, formValues);
+		const triggers5NoChildren = getTriggers(
 			'extra.location.coords',
 			formTriggers,
 			formValues,
-			'extra.location.coords',
+			false,
 		);
-		const triggers6 = getTriggers(
-			'extra.roles.0.name',
-			formTriggers,
-			formValues,
-			'extra.roles.0.name',
-		);
-		const triggers7 = getTriggers('extra.roles', formTriggers, formValues, 'extra.roles');
-		const triggers8 = getTriggers(
-			'extra.roles.0.value',
-			formTriggers,
-			formValues,
-			'extra.roles.0.value',
-		);
+		const triggers6 = getTriggers('extra.roles.0.name', formTriggers, formValues);
+		const triggers7 = getTriggers('extra.roles', formTriggers, formValues);
+		const triggers8 = getTriggers('extra.roles.0.value', formTriggers, formValues);
 
 		expect(triggers1).toEqual(['extra.roles.0.name']);
 		expect(triggers2).toEqual([
@@ -239,7 +210,8 @@ describe('getTriggers', () => {
 			'extra.location.unitNumber',
 			'extra.roles',
 			'extra.roles.0.value',
-		]); // TODO: rethink this scenario, we might want parents to include all triggers of their children, don't know how this would affect the check for circular/infinite/invalid deps
+		]);
+		expect(triggers5NoChildren).toEqual(['extra.roles.0.value']);
 		expect(triggers6).toEqual([
 			'extra.location.coords.lng',
 			'extra.location.coords.lat',

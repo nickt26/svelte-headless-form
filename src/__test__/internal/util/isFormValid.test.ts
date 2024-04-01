@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { assign } from '../../../internal/util/assign';
 import { createTriggers } from '../../../internal/util/createTriggers';
 import { isFormValidSchemaless } from '../../../internal/util/isFormValid';
-import { DependencyFields, ValidatorFields } from '../../../types/Form';
+import { DependencyFields, DependencyFieldsInternal, ValidatorFields } from '../../../types/Form';
 
 const allowedRoles = ['admin', 'developer'];
 
@@ -42,14 +42,14 @@ describe('isFormValidSchemaless', () => {
 		const [isValid, errors] = await isFormValidSchemaless(
 			formValues,
 			formValidators,
-			depFields,
+			depFields as DependencyFieldsInternal<typeof formValues>,
 			triggerFields,
 			touchedFields,
 			dirtyFields,
 			formValues,
 			formValidators,
-			triggerFields,
 			depFields,
+			// triggerFields,
 		);
 
 		expect(isValid).toBe(false);

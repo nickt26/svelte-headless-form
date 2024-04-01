@@ -261,7 +261,7 @@ export type TriggerFields<T extends object = object> = {
 
 export type ValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(
 	val: Value,
-	formState: ValidatorFormState<T>,
+	formState: ValidatorState<T>,
 ) => string | false | Promise<string | false>;
 
 export type GlobalFormOptions<T extends object> = {
@@ -422,7 +422,7 @@ export type Form<T extends object = object> = {
 	validators: Writable<ValidatorFields<T>>;
 };
 
-export type ValidatorFormState<T extends object> = {
+export type ValidatorState<T extends object> = {
 	values: T;
 	dirty: BooleanFields<T>;
 	errors: ErrorFields<T>;

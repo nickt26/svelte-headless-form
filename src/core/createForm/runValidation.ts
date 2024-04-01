@@ -1,6 +1,9 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
-import { getInternal, getTriggers } from '../../internal/util/get';
+import { getInternal } from '../../internal/util/get';
+import { getTriggerField } from '../../internal/util/getTriggerField';
+import { getTriggers } from '../../internal/util/getTriggers';
+import { getValidators } from '../../internal/util/getValidators';
 import { isFormValidSchemaless } from '../../internal/util/isFormValid';
 import { isNil } from '../../internal/util/isNil';
 import { isObject } from '../../internal/util/isObject';
@@ -31,11 +34,11 @@ export function createRunValidation<T extends object>(
 
 		const formState = internalState[0];
 		try {
-			const fieldValue = getInternal<T[keyof T] | object | null>(name, formState.values);
+			const fieldValue = getInternal(name, formState.values);
 			if (isSchemaless) {
 				const fieldValidator = getInternal<ValidatorFn<T>>(name, formState.validators);
 				if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-					if (!(isObject(fieldValidator) || Array.isArray(fieldValidator)))
+					if (!isObject(fieldValidator) && !Array.isArray(fieldValidator))
 						throw new Error(
 							`Validator must be an object or array when value is an object or array for field: ${name}`,
 						);
@@ -43,12 +46,12 @@ export function createRunValidation<T extends object>(
 					const fieldDeps = getInternal(name, formState.deps);
 					const [_, errors] = await isFormValidSchemaless(
 						fieldValue,
-						fieldValidator,
-						fieldDeps,
-						getTriggers(name, formState.triggers),
+						fieldValidator as any,
+						fieldDeps as any,
+						getTriggerField(name, formState.triggers) as any,
 						getInternal(name, formState.touched),
 						getInternal(name, formState.dirty),
-						fieldValidator,
+						fieldValue,
 						fieldValidator,
 						fieldDeps,
 					);
@@ -73,21 +76,24 @@ export function createRunValidation<T extends object>(
 					}
 				}
 
-				const triggers = getTriggers(name, formState.triggers);
-				for (const trigger of triggers) {
-					const triggerValue = getInternal(trigger, formState.values);
-					const triggerValidator = getInternal<ValidatorFn<T>>(trigger, formState.validators);
+				const triggers = getTriggers(name, formState.triggers, formState.values);
+				for (const triggerName of triggers) {
+					const triggerValue = getInternal(triggerName, formState.values);
+					const triggerValidators = getValidators(triggerName, formState.validators);
 
 					// if (isObject(triggerValidator) || Array.isArray(triggerValidator))
 					// 	throw new Error('Trigger validator cannot be an object or array');
 
-					if (triggerValidator) {
-						const triggerValidatorResult = await triggerValidator(triggerValue, {
+					for (const triggerValidator of triggerValidators) {
+						const path = triggerValidator[0];
+						const validator = triggerValidator[1];
+						// TODO: associate the validator result here with correct path, CurrentObject and AllFields symbols should not leak to the user
+						const triggerValidatorResult = await validator(triggerValue, {
 							...formState,
 							path: name,
 						});
-						if (getInternal(trigger, formState.errors) !== triggerValidatorResult) {
-							errors_store.update((x) => setImpure(trigger, triggerValidatorResult, x));
+						if (getInternal(triggerName, formState.errors) !== triggerValidatorResult) {
+							errors_store.update((x) => setImpure(triggerName, triggerValidatorResult, x));
 							if (!formState.state.hasErrors)
 								state_store.update((x) => setImpure('hasErrors', true, x));
 						}
@@ -107,7 +113,7 @@ export function createRunValidation<T extends object>(
 					errors_store.update((x) => mergeRightDeepImpure(x, fieldError));
 				else errors_store.update((x) => setImpure(name, fieldError, x));
 
-				const triggers = getTriggers(name, formState.triggers);
+				const triggers = getTriggers(name, formState.triggers, formState.values);
 				for (const trigger of triggers)
 					errors_store.update((x) =>
 						setImpure(trigger, getInternal<string | false>(trigger, formErrors) ?? false, x),
