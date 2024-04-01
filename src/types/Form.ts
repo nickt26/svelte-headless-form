@@ -128,7 +128,7 @@ type ValueDeep<T> = T extends any[]
 	  }[keyof T]
 	: T;
 
-export type DotPaths<T> = ValueDeep<CreateStarPaths4<T>>;
+export type DotPaths<T> = Equals<T, object> extends true ? string : ValueDeep<CreateStarPaths4<T>>;
 
 export type Validators<O extends object, T extends object> = {
 	[key in keyof T]: Extract<T[key], object> extends never
@@ -149,7 +149,8 @@ export type Validators<O extends object, T extends object> = {
 				| ValidatorFn<O, Exclude<T[key], object>>;
 };
 
-export const CurrentObject = Symbol('CurrentObject');
+export const currentObjectKey = 'CurrentObject';
+export const CurrentObject = Symbol(currentObjectKey);
 
 export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
@@ -392,7 +393,7 @@ type FieldEvent = 'change' | 'blur' | 'focus' | 'reset' | 'validate';
 export type FieldEventHook = `${BeforeOrAfter}${Capitalize<FieldEvent>}`;
 
 export type LatestFieldEvent = {
-	field: string;
+	field: string | Array<string | number | symbol>;
 	event: FieldEventHook;
 };
 

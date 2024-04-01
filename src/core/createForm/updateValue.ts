@@ -1,5 +1,6 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
+import { getInternal } from '../../internal/util/get';
 import { setImpure } from '../../internal/util/set';
 import {
 	BooleanFields,
@@ -22,8 +23,11 @@ export function createUpdateValue<T extends object>(
 	state_store: Writable<FormState>,
 	initialValidators: ValidatorFields<T>,
 	initialDeps: DependencyFieldsInternal<T>,
-	runValidation: (name: string, formState: [InternalFormState<T>]) => Promise<void>,
-): (name: string, value: unknown) => Promise<void> {
+	runValidation: (
+		name: string | Array<string | number | symbol>,
+		formState: [InternalFormState<T>],
+	) => Promise<void>,
+): (name: string | Array<string | number | symbol>, value: unknown) => Promise<void> {
 	return async (name, incomingValue) => {
 		const formState = internalState[0];
 
@@ -161,8 +165,8 @@ export function createUpdateValue<T extends object>(
 		// 	} else {
 		// values_store.update((x) => setImpure(name, incomingValue, x));
 
-		// const fieldIsDirty = getInternal<boolean | BooleanFields>(name, formState.dirty);
-		// if (fieldIsDirty === false) dirty_store.update((x) => setImpure(name, true, x));
+		const fieldIsDirty = getInternal<boolean | BooleanFields>(name, formState.dirty);
+		if (!fieldIsDirty) dirty_store.update((x) => setImpure(name, true, x));
 		// 	}
 		// }
 

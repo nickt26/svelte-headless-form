@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createForm } from '../../../src/core/createForm';
 	import { AllFields, CurrentObject, Values } from '../../../src/types/Form';
+	import FieldArray from '../components/FieldArray.svelte';
+	import Input from '../components/Input.svelte';
 	import { roles, type FormValues } from '../types/FormValues';
 	import * as yup from 'yup';
 
@@ -122,9 +124,12 @@
 			>Reset Username</button
 		>
 	{/if}
-	<!-- <Input {control} name="password" type="password" />
-	<Input {control} name="nested.age" type="number" /> -->
-	<input type="number" bind:value={$values.nested.age} on:blur={() => handleBlur('nested.age')} />
+	 <!-- <Input {control} name="password" type="password" /> -->
+	<Input {control} name="nested.age" type="number" />
+	<!-- <input type="number" bind:value={$values.nested.age} on:blur={() => handleBlur('nested.age')} />
+	{#if $errors?.nested?.age}
+		<div style="color:red;">{$errors.nested.age}</div>
+	{/if} -->
 
 	<input type="checkbox" bind:checked={$values.nested.gender} />
 	<button
@@ -143,15 +148,15 @@
 		</div>
 	{/if}
 
-	<!-- <FieldArray name="roles" {control} /> -->
-	{#each $values.roles as role, i}
+	<FieldArray name="roles" {control} />
+	<!-- {#each $values.roles as role, i}
 		<input type="text" bind:value={role} />
 		{#if $errors?.roles?.[i]}
 			<div style="color:red">
 				{$errors.roles[i]}
 			</div>
 		{/if}
-	{/each}
+	{/each} -->
 	<button type="button" on:click={() => resetField('roles')}>Reset Roles</button>
 	{#if $errors.rolesAreUnique}
 		<div style="color:red;">{$errors.rolesAreUnique}</div>

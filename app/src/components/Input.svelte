@@ -7,13 +7,12 @@
 	export let type = 'text';
 
 	const {
-		field: { value },
+		field: { value, handleBlur },
 		fieldState: { error, isTouched },
-		form: { register },
 	} = useField<string | number | null>({ name, control });
 </script>
 
-<input {type} value={$value} use:register={{name}} />
-{#if $error && $isTouched}
+<input {type} on:input={e => $value = e.currentTarget.value} value={$value} on:blur={handleBlur}  />
+{#if ($error && $isTouched)}
 	<span style="color:red;">{$error}</span>
 {/if}

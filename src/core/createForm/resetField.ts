@@ -2,7 +2,8 @@ import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
 import { assign } from '../../internal/util/assign';
 import { clone } from '../../internal/util/clone';
-import { getInternal, getTriggers } from '../../internal/util/get';
+import { getInternal } from '../../internal/util/get';
+import { getTriggers } from '../../internal/util/getTriggers';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
 import { setImpure } from '../../internal/util/set';
@@ -97,10 +98,10 @@ export const createResetField = <T extends object>(
 				deps_store.update((x) => setImpure(name, newDeps, x));
 			}
 			if (!options?.keepDependentErrors) {
-				const triggers = getTriggers(name, formStateInternal.triggers) ?? [];
+				const triggers = getTriggers(name, formStateInternal.triggers, formStateInternal.values);
 				const errors = {} as PartialDeep<T, string | false>;
 
-				if (triggers) for (const trigger of triggers) setImpure(trigger, false, errors);
+				for (const trigger of triggers) setImpure(trigger, false, errors);
 				errors_store.update((x) => mergeRightDeepImpure(x, errors));
 			}
 			checkFormForStateReset();
@@ -127,10 +128,10 @@ export const createResetField = <T extends object>(
 			deps_store.update((x) => setImpure(name, newDeps, x));
 		}
 		if (!options?.keepDependentErrors) {
-			const triggers = getTriggers(name, formStateInternal.triggers) ?? [];
+			const triggers = getTriggers(name, formStateInternal.triggers, formStateInternal.values);
 			const errors = {} as PartialDeep<T, string | false>;
 
-			if (triggers) for (const trigger of triggers) setImpure(trigger, false, errors);
+			for (const trigger of triggers) setImpure(trigger, false, errors);
 			errors_store.update((x) => mergeRightDeepImpure(x, errors));
 		}
 		latest_field_event_store.set({ field: name, event: 'afterReset' });

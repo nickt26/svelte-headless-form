@@ -15,12 +15,11 @@ export const getValidators = (
 		if (isNil(current[key]) || (!isObject(current[key]) && !Array.isArray(current[key]))) return [];
 
 		if (isObject(current[key])) {
-			const currentPath = splitPath.slice(0, i + 1);
 			if (isFunction(current[key][CurrentObject]))
-				validators.push([[...currentPath, CurrentObject], current[key][CurrentObject]]);
+				validators.push([splitPath.slice(0, i + 1), current[key][CurrentObject]]);
 
 			if (isFunction(current[key][AllFields]))
-				validators.push([[...currentPath, AllFields], current[key][AllFields]]);
+				validators.push([splitPath.slice(0, i + 2), current[key][AllFields]]);
 
 			if (current[key][Values]) {
 				current[key] = current[key][Values];
@@ -34,11 +33,11 @@ export const getValidators = (
 	const last = current[lastKey];
 	const currentPath = splitPath.slice(0, splitPath.length - 1);
 	if (isObject(last)) {
-		if (isFunction(last[CurrentObject]))
-			validators.push([[...currentPath, CurrentObject], last[CurrentObject]]);
+		if (isFunction(last[CurrentObject])) validators.push([currentPath, last[CurrentObject]]);
 
-		if (isFunction(last[AllFields]))
-			validators.push([[...currentPath, AllFields], last[AllFields]]);
+		// TODO: Double check if we need this isFunction(last[AllFields]) check if we don't care about child validators due to us using isFormValidSchemaless() on object/array updates
+		// if (isFunction(last[AllFields]))
+		// 	validators.push([[...currentPath, AllFields], last[AllFields]]);
 
 		// for (const key of Object.keys(last)) getValidators(key, last, validators);
 	}

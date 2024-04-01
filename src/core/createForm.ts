@@ -1,5 +1,5 @@
 import { onDestroy } from 'svelte';
-import { Writable } from 'svelte/store';
+import { Writable, get } from 'svelte/store';
 import { InternalFormState } from '../internal/types/Form';
 import { clone } from '../internal/util/clone';
 import {
@@ -74,6 +74,8 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		validateMode,
 	);
 
+	console.log('touched store', get(touched_store));
+
 	handleSubscriptions(internal_counter_store, state_store);
 
 	const internalState: [InternalFormState<T>] = [null] as any;
@@ -105,9 +107,9 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 	);
 
 	const valueChangeUnsub = value_change_store.subscribe((val) => {
-		console.log('value change detected', val);
+		console.log('value change detected', val[0], val[1]);
 
-		// if (val) updateValue(val[0], val[1]);
+		if (val) updateValue(val[0], val[1]);
 	});
 
 	onDestroy(() => {

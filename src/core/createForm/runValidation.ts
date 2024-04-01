@@ -27,7 +27,10 @@ export function createRunValidation<T extends object>(
 	isSchemaless: boolean,
 	isSchema: boolean,
 	validationResolver?: ValidationResolver<T>,
-): (name: string, internalState: [InternalFormState<T>]) => Promise<void> {
+): (
+	name: string | Array<string | number | symbol>,
+	internalState: [InternalFormState<T>],
+) => Promise<void> {
 	return async (name, internalState) => {
 		latest_field_event_store.set({ field: name, event: 'beforeValidate' });
 		internal_counter_store.update((x) => setImpure('validations', x.validations + 1, x));
@@ -64,10 +67,11 @@ export function createRunValidation<T extends object>(
 						throw new Error(
 							`Validator must be a function when value is a primitive or nullish for field: ${name}`,
 						);
+					console.log('running single field validation', name);
 
 					const validatorResult = await fieldValidator(fieldValue, {
 						...formState,
-						path: name,
+						path: Array.isArray(name) ? name.join('.') : name,
 					});
 					if (getInternal(name, formState.errors) !== validatorResult) {
 						errors_store.update((x) => setImpure(name, validatorResult, x));
@@ -81,19 +85,15 @@ export function createRunValidation<T extends object>(
 					const triggerValue = getInternal(triggerName, formState.values);
 					const triggerValidators = getValidators(triggerName, formState.validators);
 
-					// if (isObject(triggerValidator) || Array.isArray(triggerValidator))
-					// 	throw new Error('Trigger validator cannot be an object or array');
-
 					for (const triggerValidator of triggerValidators) {
 						const path = triggerValidator[0];
 						const validator = triggerValidator[1];
-						// TODO: associate the validator result here with correct path, CurrentObject and AllFields symbols should not leak to the user
 						const triggerValidatorResult = await validator(triggerValue, {
 							...formState,
-							path: name,
+							path,
 						});
-						if (getInternal(triggerName, formState.errors) !== triggerValidatorResult) {
-							errors_store.update((x) => setImpure(triggerName, triggerValidatorResult, x));
+						if (getInternal(path, formState.errors) !== triggerValidatorResult) {
+							errors_store.update((x) => setImpure(path, triggerValidatorResult, x));
 							if (!formState.state.hasErrors)
 								state_store.update((x) => setImpure('hasErrors', true, x));
 						}

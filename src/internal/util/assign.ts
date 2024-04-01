@@ -30,11 +30,53 @@ export const assign = <T, S extends object = object>(
 	objStructure: S,
 ): ObjectDeep<S, T> => {
 	const toReturn = empty(objStructure);
+	if (isObject(objStructure))
+		for (const key of Object.keys(objStructure)) {
+			let val = objStructure[key];
+
+			if (isObject(val) || Array.isArray(val)) {
+				toReturn[key] = assign(value, val);
+				continue;
+			}
+
+			toReturn[key] = clone(value);
+		}
+	else if (Array.isArray(objStructure))
+		for (let i = 0; i < objStructure.length; i++) {
+			let val = objStructure[i];
+
+			if (isObject(val) || Array.isArray(val)) {
+				toReturn[i] = assign(value, val);
+				continue;
+			}
+			toReturn[i] = clone(value);
+		}
+	// for (const key in objStructure) {
+	// 	let val = objStructure[key];
+
+	// 	if (isObject(val) || Array.isArray(val)) {
+	// 		Object.assign(toReturn, {
+	// 			[key]: assign(value, val),
+	// 		});
+	// 		continue;
+	// 	}
+	// 	Object.assign(toReturn, {
+	// 		[key]: clone(value),
+	// 	});
+	// }
+	return toReturn as ObjectDeep<S, T>;
+};
+
+export const assignWithReactivity = <T, S extends object = object>(
+	value: T,
+	objStructure: S,
+): ObjectDeep<S, T> => {
+	const toReturn = empty(objStructure);
 	for (const key in objStructure) {
 		let val = objStructure[key];
 
 		if (isObject(val)) {
-			let yes = assign(value, val);
+			let yes = assignWithReactivity(value, val);
 			Object.defineProperty(toReturn, key, {
 				get() {
 					// console.log('getting key', key, yes);
@@ -48,7 +90,7 @@ export const assign = <T, S extends object = object>(
 			});
 			continue;
 		} else if (Array.isArray(val)) {
-			let yes = assign(value, val);
+			let yes = assignWithReactivity(value, val);
 			yes = new Proxy(yes, {
 				get(_, prop) {
 					// if (typeof prop === 'string' && !Number.isNaN(parseInt(prop))) {

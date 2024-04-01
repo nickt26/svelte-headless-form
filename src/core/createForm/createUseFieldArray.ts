@@ -26,9 +26,9 @@ export function createUseFieldArray<T extends object>(
 	runValidation: (name: string, internalFormState: [InternalFormState<T>]) => Promise<void>,
 ): UseFieldArrayFnInternal {
 	return (name) => {
+		const formState = internalState[0];
 		if (typeof name !== 'string') throw Error('name must be a string'); // type check
-		if (!Array.isArray(getInternal(name, get(values_store))))
-			throw Error(name + ' is not an array');
+		if (!Array.isArray(getInternal(name, formState.values))) throw Error(name + ' is not an array');
 
 		return {
 			remove: (index) => {

@@ -15,8 +15,8 @@ export const clone = <T>(obj: T): T => {
 	if (Array.isArray(obj)) return obj.map(clone) as T;
 
 	const toReturn: Record<string | number | symbol, unknown> = {};
-	for (const key in Object.getOwnPropertySymbols(obj)) toReturn[key] = clone(obj[key]);
-	for (const key in Object.keys(obj)) toReturn[key] = clone(obj[key]);
+	for (const key of Object.getOwnPropertySymbols(obj)) toReturn[key] = clone(obj[key]);
+	for (const key of Object.keys(obj)) toReturn[key] = clone(obj[key]);
 
 	return toReturn as T;
 };
@@ -71,7 +71,8 @@ export const cloneWithStoreReactivity = <T>(
 					return newObj;
 				},
 				set(newVal) {
-					console.log('setting key', key, newVal);
+					// const fullPath = path ? [...path, key] : [key];
+					console.log('setting key', key, newVal, fullPath);
 					newObj = cloneWithStoreReactivity(newVal, store, fullPath);
 					if (store) store.set([fullPath, newVal]);
 				},
