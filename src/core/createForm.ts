@@ -1,5 +1,5 @@
 import { onDestroy } from 'svelte';
-import { Writable, get } from 'svelte/store';
+import { Writable } from 'svelte/store';
 import { InternalFormState } from '../internal/types/Form';
 import { clone } from '../internal/util/clone';
 import {
@@ -73,8 +73,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		initialState,
 		validateMode,
 	);
-
-	console.log('touched store', get(touched_store));
 
 	handleSubscriptions(internal_counter_store, state_store);
 

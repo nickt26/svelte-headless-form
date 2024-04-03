@@ -43,7 +43,7 @@ export const getValidators = (
 	}
 	// else if (Array.isArray(last))
 	// for (let i = 0; i < last.length; i++) getValidators(`${i}`, last, validators);
-	else if (isFunction(last)) validators.push(last);
+	else if (isFunction(last)) validators.push([currentPath, last]);
 
 	return validators;
 };

@@ -65,7 +65,7 @@ export const getTriggers = <T extends object>(
 		if (shouldFetchChildTriggers) getChildTriggers(obj, values, fullPath, triggers);
 		return Array.from(triggers);
 	}
-	const splitPath = Array.isArray(path) ? path : path.split(/\./g).reverse();
+	const splitPath = Array.isArray(path) ? [...path] : path.split(/\./g).reverse();
 
 	const key = splitPath.pop()!;
 

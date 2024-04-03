@@ -5,6 +5,7 @@ import { getTriggerField } from '../../internal/util/getTriggerField';
 import { getTriggers } from '../../internal/util/getTriggers';
 import { getValidators } from '../../internal/util/getValidators';
 import { isFormValidSchemaless } from '../../internal/util/isFormValid';
+import { isFunction } from '../../internal/util/isFunction';
 import { isNil } from '../../internal/util/isNil';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
@@ -88,14 +89,17 @@ export function createRunValidation<T extends object>(
 					for (const triggerValidator of triggerValidators) {
 						const path = triggerValidator[0];
 						const validator = triggerValidator[1];
-						const triggerValidatorResult = await validator(triggerValue, {
-							...formState,
-							path,
-						});
-						if (getInternal(path, formState.errors) !== triggerValidatorResult) {
-							errors_store.update((x) => setImpure(path, triggerValidatorResult, x));
-							if (!formState.state.hasErrors)
-								state_store.update((x) => setImpure('hasErrors', true, x));
+						console.log(path, validator);
+						if (isFunction(validator)) {
+							const triggerValidatorResult = await validator(triggerValue, {
+								...formState,
+								path,
+							});
+							if (getInternal(path, formState.errors) !== triggerValidatorResult) {
+								errors_store.update((x) => setImpure(path, triggerValidatorResult, x));
+								if (!formState.state.hasErrors)
+									state_store.update((x) => setImpure('hasErrors', true, x));
+							}
 						}
 					}
 				}
