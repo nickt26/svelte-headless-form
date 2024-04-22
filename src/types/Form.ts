@@ -213,7 +213,7 @@ type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath e
 				| Dependencies<
 						Extract<T[key], object>,
 						S,
-						TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`
+						TCurrentPath extends '' ? key & string : `${TCurrentPath}.${key & string}`
 				  >
 				| Exclude<T[key], object>;
 };

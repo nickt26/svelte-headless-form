@@ -13,7 +13,7 @@
 		"module": "ES2015",
 
 		// "strict": true,
-		// "strictNullChecks": true,
+		"strictNullChecks": true,
 		// "noUnusedParameters": true,
 		// "noImplicitAny": true,
 		// "noImplicitReturns": true,

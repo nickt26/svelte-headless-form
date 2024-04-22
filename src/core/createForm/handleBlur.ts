@@ -1,6 +1,6 @@
-import { assign } from 'svelte/internal';
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
+import { assign } from '../../internal/util/assign';
 import { getInternal } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';

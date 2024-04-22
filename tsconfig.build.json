@@ -1,9 +1,9 @@
 {
-	"compilerOptions": {
-		"esModuleInterop": true,
-		"outDir": "./dist",
-		"removeComments": true
-	},
 	"extends": "./tsconfig.json",
-	"exclude": ["node_modules", "coverage", "**/__test__/**/*", "dist", "app"]
+	"exclude": ["node_modules", "coverage", "**/__test__/**/*", "dist", "app", "./vite.config.ts", "./vitest.config.ts"],
+	"compilerOptions": {
+		"outDir": "./dist",
+		"esModuleInterop": true,
+		"removeComments": true
+	}
 }

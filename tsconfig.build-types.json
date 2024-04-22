@@ -1,11 +1,10 @@
 {
-	"extends": "./tsconfig.dist.json",
+	"extends": "./tsconfig.build.json",
 	"compilerOptions": {
 		"declaration": true,
 		"declarationMap": true,
 		"declarationDir": "./dist/types",
 		"emitDeclarationOnly": true,
-		"composite": true
-		// "tsBuildInfoFile": "./dist/types/tsconfig.build-types.tsbuildinfo"
+		"incremental": false,
 	}
 }

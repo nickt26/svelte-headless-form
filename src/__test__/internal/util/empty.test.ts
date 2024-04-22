@@ -9,7 +9,7 @@ describe('empty', () => {
 
 		const tester = empty(obj);
 
-		expect(obj === tester).toBeFalsy();
+		expect(obj).not.toBe(tester);
 		expect(obj).not.toEqual(tester);
 	});
 
@@ -17,7 +17,7 @@ describe('empty', () => {
 		const arr = [1, 2, 3];
 		const tester = empty(arr);
 
-		expect(arr === tester).toBeFalsy();
+		expect(arr).not.toBe(tester);
 		expect(arr).not.toEqual(tester);
 	});
 

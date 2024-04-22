@@ -46,15 +46,15 @@ export const createResetField = <T extends object>(
 			const optionValueExists = options?.value !== undefined;
 
 			if (
-				initialValue === undefined &&
-				!(isObject(initialValue) || Array.isArray(initialValue)) &&
-				options?.value === undefined
+				(initialValue === undefined && options?.value === undefined) ||
+				(!(isObject(initialValue) || Array.isArray(initialValue)) &&
+				options?.value === undefined)
 			)
 				throw new Error(
 					`There is no initial value for the field: ${name}. To fix this error you must provide a value in the options object.`,
 				);
 
-			const newValue = !options?.value ? clone(initialValue) : (clone(options.value) as object);
+			const newValue = options?.value === undefined ? clone(initialValue) : (clone(options.value) as object);
 
 			if (!options?.keepValue) values_store.update((x) => setImpure(name, newValue, x));
 			if (!options?.keepTouched) {
@@ -108,6 +108,7 @@ export const createResetField = <T extends object>(
 			latest_field_event_store.set({ field: name, event: 'afterReset' });
 			return;
 		}
+
 		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
 		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
 		if (!options?.keepValue) {

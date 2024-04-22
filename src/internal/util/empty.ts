@@ -1,7 +1,7 @@
 import { isObject } from './isObject';
 
-export type EmptyType<T> = T extends any[]
-	? T[]
+export type EmptyType<T> = T extends Array<any>
+	? T
 	: T extends object
 	? object
 	: T extends string
