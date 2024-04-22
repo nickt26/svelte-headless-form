@@ -4,7 +4,7 @@ import type { UserConfig } from 'vite';
 const config: UserConfig = {
 	build: {
 		lib: {
-			entry: resolve(__dirname, 'dist/src/index.js'),
+			entry: resolve(__dirname, 'dist/index.js'),
 			fileName: 'index',
 			formats: ['es', 'cjs'],
 		},

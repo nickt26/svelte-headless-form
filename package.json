@@ -3,9 +3,8 @@
 	"version": "0.2.1",
 	"description": "A fast, light and batteries-included form library to make you more productive",
 	"types": "dist/index.d.ts",
-	"main": "dist/svelte-headless-form.cjs",
-	"module": "dist/svelte-headless-form.js",
-	"umd:main": "dist/svelte-headless-form.umd.js",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
 	"scripts": {
 		"build": "npm run clean && tsc -p ./tsconfig.build.json && vite build --config ./vite.config.ts && tsc -p ./tsconfig.build-types.json",
 		"test": "vitest run --config ./vitest.config.ts",
@@ -20,8 +19,8 @@
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/svelte-headless-form.js",
-			"require": "./dist/svelte-headless-form.cjs"
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
 		}
 	},
 	"keywords": [

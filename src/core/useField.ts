@@ -20,14 +20,17 @@ export const useField = <S = unknown, T extends object = object>({
 	});
 	onDestroy(() => valueUnsubscribe());
 
-	const touched_store = derived(control.touched, ($touched) =>
-		getInternal<boolean>(name as string, $touched),
+	const touched_store = derived(
+		control.touched,
+		($touched) => getInternal<boolean>(name as string, $touched)!,
 	);
-	const dirty_store = derived(control.dirty, ($dirty) =>
-		getInternal<boolean>(name as string, $dirty),
+	const dirty_store = derived(
+		control.dirty,
+		($dirty) => getInternal<boolean>(name as string, $dirty)!,
 	);
-	const error_store = derived(control.errors, ($errors) =>
-		getInternal<string | false>(name as string, $errors),
+	const error_store = derived(
+		control.errors,
+		($errors) => getInternal<string | false>(name as string, $errors)!,
 	);
 
 	const handleBlur = () => control.handleBlur(name);

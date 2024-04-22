@@ -47,14 +47,14 @@ export const createResetField = <T extends object>(
 
 			if (
 				(initialValue === undefined && options?.value === undefined) ||
-				(!(isObject(initialValue) || Array.isArray(initialValue)) &&
-				options?.value === undefined)
+				(!(isObject(initialValue) || Array.isArray(initialValue)) && options?.value === undefined)
 			)
 				throw new Error(
 					`There is no initial value for the field: ${name}. To fix this error you must provide a value in the options object.`,
 				);
 
-			const newValue = options?.value === undefined ? clone(initialValue) : (clone(options.value) as object);
+			const newValue =
+				options?.value === undefined ? clone(initialValue!) : (clone(options.value) as object);
 
 			if (!options?.keepValue) values_store.update((x) => setImpure(name, newValue, x));
 			if (!options?.keepTouched) {
@@ -82,8 +82,8 @@ export const createResetField = <T extends object>(
 				const newValidator = optionValidatorExists
 					? clone(options.validator)
 					: validatorExistsInInitial
-					? clone(initialValidator)
-					: assign(undefined, newValue);
+						? clone(initialValidator)
+						: assign(undefined, newValue);
 				validators_store.update((x) => setImpure(name, newValidator, x));
 			}
 			if (!options?.keepDeps) {
@@ -93,8 +93,8 @@ export const createResetField = <T extends object>(
 				const newDeps = optionDepExists
 					? clone(options.deps)
 					: depExistsInInitial
-					? clone(initialDep)
-					: assign([], newValue);
+						? clone(initialDep)
+						: assign([], newValue);
 				deps_store.update((x) => setImpure(name, newDeps, x));
 			}
 			if (!options?.keepDependentErrors) {
