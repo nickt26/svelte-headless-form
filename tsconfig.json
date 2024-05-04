@@ -9,7 +9,7 @@
 
 		"target": "ES2015",
 		"lib": ["DOM", "DOM.Iterable", "ESNext"],
-		"moduleResolution": "node",
+		"moduleResolution": "Bundler",
 		"module": "ES2015",
 
 		// "strict": true,
@@ -20,5 +20,6 @@
 		"strictFunctionTypes": true,
 		"noFallthroughCasesInSwitch": true,
 		"alwaysStrict": true
-	}
+	},
+	"exclude": ["dist", "node_modules", "coverage"]
 }

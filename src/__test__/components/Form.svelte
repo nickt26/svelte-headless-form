@@ -1,13 +1,41 @@
 <script lang="ts">
 	import { createForm } from '../../core/createForm';
-	import Input from './Input.svelte';
+	import { formValues } from '../core/Form.test';
 
-	const { submitForm, control } = createForm({
-		initialValues: { name: '', email: '' },
-		initialValidators: { name: () => false, email: () => false }
+	const form = createForm({
+		initialValues: formValues,
+		initialValidators: {
+			name: (val) => (val.length === 0 ? 'Required' : false),
+			email: (val) => (val.length === 0 ? 'Required' : false),
+		},
 	});
+	const { submitForm, values, errors, touched, dirty, state, handleBlur } = form;
 </script>
 
 <form on:submit|preventDefault={submitForm((values) => console.log(values))}>
-	<Input {control} name="name" />
+	<input
+		name="name"
+		data-testid="name-input"
+		type="text"
+		bind:value={$values.name}
+		on:blur={() => handleBlur('name')} />
+	<div data-testid="name-touched">{$touched.name}</div>
+	<div data-testid="name-dirty">{$dirty.name}</div>
+	{#if $errors.name}
+		<div data-testid="name-error">{$errors.name}</div>
+	{/if}
+
+	<input
+		name="email"
+		data-testid="email-input"
+		type="text"
+		bind:value={$values.email}
+		on:blur={() => handleBlur('email')} />
+	<div data-testid="email-touched">{$touched.email}</div>
+	<div data-testid="email-dirty">{$dirty.email}</div>
+	{#if $errors.email}
+		<div data-testid="email-error">{$errors.email}</div>
+	{/if}
+
+	<button data-testid="submit-button" type="submit">Submit</button>
 </form>

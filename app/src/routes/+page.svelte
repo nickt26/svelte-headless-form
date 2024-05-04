@@ -49,12 +49,12 @@
 			password: (value) => (value.length > 0 ? false : 'Password is required'),
 			nested: {
 				[CurrentObject]: (val) => (val === null ? 'Nested is required' : false),
-				age: (val) => (val === null ? 'Age is required' : val <= 0 ? 'Age must be greater than 0' : false),
+				age: (val) => (!val ? 'Age is required' : val <= 0 ? 'Age must be greater than 0' : false),
 				gender: (val) => (val === false ? 'Gender must be true' : false),
 			},
 			roles: {
 				[CurrentObject]: (val) => (val.length > 0 ? false : 'Roles are required'),
-				[AllFields]: (val) => !roles.includes(val) ? 'Role is invalid' : false,
+				[AllFields]: (val) => (!roles.includes(val) ? 'Role is invalid' : false),
 				[Values]: initialValues.roles.map((_) => (val) => !roles.includes(val) ? 'Role is invalid' : false),
 			},
 			rolesAreUnique: (_, { values, errors }) => {
@@ -119,12 +119,13 @@
 	{/if}
 	<button type="button" on:click={() => (showUsername = !showUsername)}>Toggle Username</button>
 	{#if showUsername}
-		<input type="text" bind:value={$values.username} />
+		<input type="text" bind:value={$values.username} on:blur={() => handleBlur('username')} />
+		<div>Touched username:{$touched.username}</div>
 		<button type="button" on:click={() => resetField('username', { value: 'banana', deps: [], validator: () => false })}
 			>Reset Username</button
 		>
 	{/if}
-	 <!-- <Input {control} name="password" type="password" /> -->
+	<!-- <Input {control} name="password" type="password" /> -->
 	<Input {control} name="nested.age" type="number" />
 	<!-- <input type="number" bind:value={$values.nested.age} on:blur={() => handleBlur('nested.age')} />
 	{#if $errors?.nested?.age}

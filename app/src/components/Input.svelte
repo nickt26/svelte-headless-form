@@ -12,7 +12,7 @@
 	} = useField<string | number | null>({ name, control });
 </script>
 
-<input {type} on:input={e => $value = e.currentTarget.value} value={$value} on:blur={handleBlur}  />
+<input {...{ type }} bind:value={$value} on:blur={handleBlur}  />
 {#if ($error && $isTouched)}
 	<span style="color:red;">{$error}</span>
 {/if}

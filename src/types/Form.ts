@@ -34,27 +34,28 @@ export type ReadonlyDeep<T extends object> = {
 		: ReadonlyDeep<Extract<T[key], object>> | Exclude<T[key], object>;
 };
 
-export type Equals<T, U> = (<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2
-	? true
-	: false;
+export type Equals<T, U> =
+	(<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2 ? true : false;
 
-export type ValueOf<T, Key extends string> = Equals<T, object> extends true
-	? unknown
-	: T extends object
-	? Key extends `${infer Parent}.${infer Leaf}`
-		? ValueOf<T[Parent & keyof T], Leaf>
-		: T[Key & keyof T]
-	: never;
+export type ValueOf<T, Key extends string> =
+	Equals<T, object> extends true
+		? unknown
+		: T extends object
+			? Key extends `${infer Parent}.${infer Leaf}`
+				? ValueOf<T[Parent & keyof T], Leaf>
+				: T[Key & keyof T]
+			: never;
 
-export type ArrayValueOf<T, Key extends string> = Equals<T, object> extends true
-	? unknown
-	: T extends object
-	? Key extends `${infer Parent}.${infer Leaf}`
-		? ValueOf<T[Parent & keyof T], Leaf>
-		: T[Key & keyof T] extends any[]
-		? T[Key & keyof T][number]
-		: never
-	: never;
+export type ArrayValueOf<T, Key extends string> =
+	Equals<T, object> extends true
+		? unknown
+		: T extends object
+			? Key extends `${infer Parent}.${infer Leaf}`
+				? ValueOf<T[Parent & keyof T], Leaf>
+				: T[Key & keyof T] extends any[]
+					? T[Key & keyof T][number]
+					: never
+			: never;
 
 const dotPathSymbol = Symbol('dotPath');
 const remainSymbol = Symbol('remain');
@@ -78,11 +79,11 @@ type DotPathValue<
 > = Val extends BrowserNativeObject
 	? KeyChainVal<KeyChain, key>
 	: Val extends object
-	? {
-			[dotPathSymbol]: KeyChainVal<KeyChain, key>;
-			[remainSymbol]: DotPathObject<Val, KeyChainVal<KeyChain, key>>;
-	  }
-	: KeyChainVal<KeyChain, key>;
+		? {
+				[dotPathSymbol]: KeyChainVal<KeyChain, key>;
+				[remainSymbol]: DotPathObject<Val, KeyChainVal<KeyChain, key>>;
+			}
+		: KeyChainVal<KeyChain, key>;
 
 type DotPathEmptyTuple<
 	T,
@@ -92,41 +93,42 @@ type DotPathEmptyTuple<
 	? T[number] extends BrowserNativeObject
 		? KeyChainVal<KeyChain, `${number}`>
 		: T[number] extends object
-		? {
-				[dotPathSymbol]: KeyChainVal<KeyChain, `${number}`>;
-				[remainSymbol]: DotPathObject<T[number], KeyChainVal<KeyChain, `${number}`>>;
-		  }
-		: KeyChainVal<KeyChain, `${number}`>
+			? {
+					[dotPathSymbol]: KeyChainVal<KeyChain, `${number}`>;
+					[remainSymbol]: DotPathObject<T[number], KeyChainVal<KeyChain, `${number}`>>;
+				}
+			: KeyChainVal<KeyChain, `${number}`>
 	: // ? DotPathObject<T[number] | 1[], KeyChainVal<KeyChain, `${number}`>, true>
-	  // : `${KeyChain}${IgnoreKey extends true ? '' : `.${number}`}`
-	  never;
+		// : `${KeyChain}${IgnoreKey extends true ? '' : `.${number}`}`
+		never;
 
 type DotPathObject<
 	T,
 	KeyChain extends string | null = null,
 	IgnoreKey extends boolean = false,
 	StrippedObject = { -readonly [key in keyof T]-?: T[key] },
-> = Equals<T, object> extends true
-	? { [dotPathSymbol]: string }
-	: T extends any[]
-	? IsEmptyTuple<T> extends true
-		? DotPathEmptyTuple<StrippedObject, KeyChain, IgnoreKey>
-		: {
-				[key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
-		  }
-	: T extends object
-	? {
-			[key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
-	  }
-	: never;
+> =
+	Equals<T, object> extends true
+		? { [dotPathSymbol]: string }
+		: T extends any[]
+			? IsEmptyTuple<T> extends true
+				? DotPathEmptyTuple<StrippedObject, KeyChain, IgnoreKey>
+				: {
+						[key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
+					}
+			: T extends object
+				? {
+						[key in keyof StrippedObject]: DotPathValue<StrippedObject[key], KeyChain, key>;
+					}
+				: never;
 
 type ValueDeep<T> = T extends any[]
 	? { [key in keyof T]: ValueDeep<T[key]> }[number]
 	: T extends object
-	? {
-			[key in keyof T]: ValueDeep<T[key]>;
-	  }[keyof T]
-	: T;
+		? {
+				[key in keyof T]: ValueDeep<T[key]>;
+			}[keyof T]
+		: T;
 
 export type DotPaths<T> = Equals<T, object> extends true ? string : ValueDeep<CreateStarPaths4<T>>;
 
@@ -134,19 +136,19 @@ export type Validators<O extends object, T extends object> = {
 	[key in keyof T]: Extract<T[key], object> extends never
 		? ValidatorFn<O, T[key]> | undefined
 		: Extract<T[key], Array<any>> extends never
-		?
-				| (Validators<O, Extract<T[key], object>> & {
-						[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
-				  })
-				| ValidatorFn<O, Exclude<T[key], object>>
-		:
-				| Validators<O, Extract<T[key], object>>
-				| {
-						[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
-						[AllFields]?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
-						[Values]?: Validators<O, Extract<T[key], Array<any>>>;
-				  }
-				| ValidatorFn<O, Exclude<T[key], object>>;
+			?
+					| (Validators<O, Extract<T[key], object>> & {
+							[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
+					  })
+					| ValidatorFn<O, Exclude<T[key], object>>
+			:
+					| Validators<O, Extract<T[key], object>>
+					| {
+							[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+							[AllFields]?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+							[Values]?: Validators<O, Extract<T[key], Array<any>>>;
+					  }
+					| ValidatorFn<O, Exclude<T[key], object>>;
 };
 
 export const currentObjectKey = 'CurrentObject';
@@ -156,19 +158,19 @@ export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
 		? ValidatorFn<O, T[key]> | undefined
 		: Extract<T[key], Array<any>> extends never
-		?
-				| (Validators<O, Extract<T[key], object>> & {
-						[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
-				  })
-				| ValidatorFn<O, Exclude<T[key], object>>
-		:
-				| Validators<O, Extract<T[key], object>>
-				| {
-						[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
-						[AllFields]: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
-						[Values]?: Validators<O, Extract<T[key], Array<any>>>;
-				  }
-				| ValidatorFn<O, Exclude<T[key], object>>;
+			?
+					| (Validators<O, Extract<T[key], object>> & {
+							[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
+					  })
+					| ValidatorFn<O, Exclude<T[key], object>>
+			:
+					| Validators<O, Extract<T[key], object>>
+					| {
+							[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+							[AllFields]: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+							[Values]?: Validators<O, Extract<T[key], Array<any>>>;
+					  }
+					| ValidatorFn<O, Exclude<T[key], object>>;
 };
 
 type StarPaths<T extends string, R extends string = ''> = T extends `${infer First}.${infer Rest}`
@@ -176,8 +178,8 @@ type StarPaths<T extends string, R extends string = ''> = T extends `${infer Fir
 		? StarPaths<Rest, First>
 		: StarPaths<Rest, `${R}.${First | '*'}`>
 	: R extends ''
-	? never
-	: `${R}.${T}`;
+		? never
+		: `${R}.${T}`;
 
 type Paths<T extends string, S extends string> = T extends '' ? S : `${T}.${S}`;
 
@@ -189,17 +191,17 @@ type CreateStarPaths4<
 > = StrippedObject extends BrowserNativeObject
 	? Path
 	: StrippedObject extends Array<infer U>
-	? 0 extends StrippedObject['length']
-		? CreateStarPaths4<U, Paths<Path, `${number}`>>
-		: CreateStarPaths4<U, Path>
-	: StrippedObject extends object
-	? {
-			[K in keyof StrippedObject]: {
-				[dotPathSymbol]: Paths<Path, K & string>;
-				[remainSymbol]: CreateStarPaths4<StrippedObject[K], Paths<Path, K & string>>;
-			};
-	  }
-	: Path;
+		? 0 extends StrippedObject['length']
+			? CreateStarPaths4<U, Paths<Path, `${number}`>>
+			: CreateStarPaths4<U, Path>
+		: StrippedObject extends object
+			? {
+					[K in keyof StrippedObject]: {
+						[dotPathSymbol]: Paths<Path, K & string>;
+						[remainSymbol]: CreateStarPaths4<StrippedObject[K], Paths<Path, K & string>>;
+					};
+				}
+			: Path;
 
 export const allFieldsKey = 'allFields';
 export const AllFields = Symbol(allFieldsKey);
@@ -208,7 +210,7 @@ type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath e
 		? (
 				| Exclude<S[number], TCurrentPath extends '' ? key : `${TCurrentPath}.${key & string}`>
 				| StarPaths<S[number]>
-		  )[]
+			)[]
 		:
 				| Dependencies<
 						Extract<T[key], object>,
@@ -248,12 +250,12 @@ export type TriggerFields<T extends object = object> = {
 	[K in keyof T]?: T[K] extends Array<any>
 		? TriggerObject<TriggerFields<T[K]>> & {
 				[Star]?: TriggerFields<T[K][number] & object>;
-		  }
+			}
 		: T[K] extends object
-		? TriggerObject<TriggerFields<T[K]>> & {
-				[Star]?: TriggerFields<T[K][keyof T[K]] & object>;
-		  }
-		: string[];
+			? TriggerObject<TriggerFields<T[K]>> & {
+					[Star]?: TriggerFields<T[K][keyof T[K]] & object>;
+				}
+			: string[];
 } & {
 	[Star]?: T extends Array<any>
 		? TriggerFields<T[number] & object>
@@ -371,9 +373,9 @@ export type ResetFormFn<T extends object> = <TValues extends T>(
 	options?: ResetFormOptions<TValues>,
 ) => void;
 
-export type UseFieldArrayFn<T extends object> = <Path extends DotPaths<T>>(
+export type UseFieldArrayFn<T extends object> = <TObject extends T, Path extends DotPaths<TObject>>(
 	name: Path,
-) => FormUseFieldArray<T, ArrayValueOf<T, Path & string>>;
+) => FormUseFieldArray<TObject, ArrayValueOf<TObject, Path & string>>;
 
 export type UseFieldArrayFnInternal<T extends object = object> = (
 	name: string,

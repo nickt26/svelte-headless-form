@@ -2,6 +2,8 @@
 node_modules
 /build
 /.svelte-kit
+/dist
+/coverage
 /package
 .env
 .env.*

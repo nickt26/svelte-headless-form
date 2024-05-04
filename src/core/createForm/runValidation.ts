@@ -68,7 +68,7 @@ export function createRunValidation<T extends object>(
 						throw new Error(
 							`Validator must be a function when value is a primitive or nullish for field: ${name}`,
 						);
-					console.log('running single field validation', name);
+					// console.log('running single field validation', name);
 
 					const validatorResult = await fieldValidator(fieldValue, {
 						...formState,
@@ -82,14 +82,16 @@ export function createRunValidation<T extends object>(
 				}
 
 				const triggers = getTriggers(name, formState.triggers, formState.values);
+
 				for (const triggerName of triggers) {
 					const triggerValue = getInternal(triggerName, formState.values);
 					const triggerValidators = getValidators(triggerName, formState.validators);
-
 					for (const triggerValidator of triggerValidators) {
 						const path = triggerValidator[0];
 						const validator = triggerValidator[1];
+
 						console.log(path, validator);
+
 						if (isFunction(validator)) {
 							const triggerValidatorResult = await validator(triggerValue, {
 								...formState,

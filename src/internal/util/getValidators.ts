@@ -6,12 +6,15 @@ import { isObject } from './isObject';
 export const getValidators = (
 	path: string | Array<string | number | symbol>,
 	obj: object,
-	validators: Array<[Array<string | number | symbol>, Function]> = [],
 ): Array<[Array<string | number | symbol>, Function]> => {
 	const splitPath = Array.isArray(path) ? path : path.split(/\./g);
+
+	const validators: Array<[Array<string | number | symbol>, Function]> = [];
 	let current: any = obj;
+
 	for (let i = 0; i < splitPath.length - 1; i++) {
 		const key = splitPath[i];
+
 		if (isNil(current[key]) || (!isObject(current[key]) && !Array.isArray(current[key]))) return [];
 
 		if (isObject(current[key])) {
@@ -22,7 +25,7 @@ export const getValidators = (
 				validators.push([splitPath.slice(0, i + 2), current[key][AllFields]]);
 
 			if (current[key][Values]) {
-				current[key] = current[key][Values];
+				current = current[key][Values];
 				continue;
 			}
 		}
@@ -31,7 +34,8 @@ export const getValidators = (
 	}
 	const lastKey = splitPath[splitPath.length - 1];
 	const last = current[lastKey];
-	const currentPath = splitPath.slice(0, splitPath.length - 1);
+
+	const currentPath = [...splitPath];
 	if (isObject(last)) {
 		if (isFunction(last[CurrentObject])) validators.push([currentPath, last[CurrentObject]]);
 
