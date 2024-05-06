@@ -74,7 +74,11 @@ export function createRunValidation<T extends object>(
 						...formState,
 						path: Array.isArray(name) ? name.join('.') : name,
 					});
+					console.log('validator result', name, validatorResult);
+
 					if (getInternal(name, formState.errors) !== validatorResult) {
+						console.log('gets here');
+
 						errors_store.update((x) => setImpure(name, validatorResult, x));
 						if (!formState.state.hasErrors)
 							state_store.update((x) => setImpure('hasErrors', true, x));

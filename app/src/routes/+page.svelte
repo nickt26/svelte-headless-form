@@ -100,6 +100,7 @@
 	});
 
 	$: jsonstring = JSON.stringify($values);
+	$: errString = JSON.stringify($errors);
 </script>
 
 <form
@@ -108,7 +109,8 @@
 		(errors) => console.log(errors),
 	)}
 >
-	{jsonstring}
+	<div>{jsonstring}</div>
+	<div>{errString}</div>
 	<input type="file" bind:value={$values.files} />
 	{#if $values.files}
 		{#each $values.files as file}
