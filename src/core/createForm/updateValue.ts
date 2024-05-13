@@ -166,6 +166,8 @@ export function createUpdateValue<T extends object>(
 		// values_store.update((x) => setImpure(name, incomingValue, x));
 
 		const fieldIsDirty = getInternal<boolean | BooleanFields>(name, formState.dirty);
+		console.log('runs this for', name);
+
 		if (!fieldIsDirty) dirty_store.update((x) => setImpure(name, true, x));
 		// 	}
 		// }

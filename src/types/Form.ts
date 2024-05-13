@@ -122,7 +122,7 @@ type DotPathObject<
 					}
 				: never;
 
-type ValueDeep<T> = T extends any[]
+export type ValueDeep<T> = T extends any[]
 	? { [key in keyof T]: ValueDeep<T[key]> }[number]
 	: T extends object
 		? {
@@ -298,11 +298,17 @@ export type ValidationResolver<T extends object> = (
 	values: T,
 ) => PartialErrorFields<T> | Promise<PartialErrorFields<T>>;
 
-export type ArrayFieldAddOptions<T extends object> = {
-	deps?: string[];
-	validate?: boolean;
-	validator?: ValidatorFn<T>;
-};
+export type ArrayFieldAddOptions<T extends object> =
+	| {
+			deps?: DotPaths<T>[];
+			validate: boolean;
+			validator: ValidatorFn<T>;
+	  }
+	| {
+			deps?: DotPaths<T>[];
+			validate?: undefined;
+			validator?: undefined;
+	  };
 
 type ResetFieldValues<T extends object, Val> = {
 	value: Val;

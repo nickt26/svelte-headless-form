@@ -1,5 +1,5 @@
 import { onDestroy } from 'svelte';
-import { Writable } from 'svelte/store';
+import { Writable, derived, writable } from 'svelte/store';
 import { InternalFormState } from '../internal/types/Form';
 import { clone } from '../internal/util/clone';
 import {
@@ -104,15 +104,36 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		runValidation,
 	);
 
-	const valueChangeUnsub = value_change_store.subscribe((val) => {
-		console.log('value change detected', val?.[0], val?.[1]);
+	const should_validate_store = writable(false);
 
-		if (val) updateValue(val[0], val[1]);
+	let prevShouldValidate = false;
+	const run_validation_store = derived(
+		[should_validate_store, value_change_store],
+		([$shouldValidate, $valueChange]) => {
+			console.log('value change detected', $valueChange?.[0], $valueChange?.[1], $shouldValidate);
+			if (prevShouldValidate !== $shouldValidate) {
+				prevShouldValidate = $shouldValidate; // prevent validation from running when shouldValidate changes;
+				return;
+			}
+
+			if ($valueChange && $shouldValidate) updateValue($valueChange[0], $valueChange[1]);
+		},
+	);
+
+	const runValidationUnsub = run_validation_store.subscribe(() => {
+		console.log('run validation');
 	});
+
+	// const valueChangeUnsub = value_change_store.subscribe((val) => {
+	// 	console.log('value change detected', val?.[0], val?.[1]);
+
+	// 	if (val) updateValue(val[0], val[1]);
+	// });
 
 	onDestroy(() => {
 		internalStateUnsub();
-		valueChangeUnsub();
+		runValidationUnsub();
+		// valueChangeUnsub();
 	});
 
 	const submitForm = createSubmitForm(
@@ -154,6 +175,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		errors_store,
 		validators_store,
 		deps_store,
+		should_validate_store,
 		checkFormForStateReset,
 	);
 
@@ -164,6 +186,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		validators_store,
 		errors_store,
 		deps_store,
+		should_validate_store,
 		internalState,
 		checkFormForStateReset,
 		runValidation,
@@ -181,6 +204,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 
 	const validate = (name: string) => runValidation(name, internalState);
 
+	should_validate_store.set(true);
 	const control: FormControl<T> = {
 		touched: {
 			subscribe: touched_store.subscribe,

@@ -62,7 +62,7 @@ export const cloneWithStoreReactivity = <T>(
 	for (let i = 0; i < keys.length; i++) {
 		const key = keys[i];
 		const fullPath = path ? [...path, key] : [key];
-		let newObj = cloneWithStoreReactivity(obj[key as keyof typeof obj], store, fullPath);
+		let newObj = cloneWithStoreReactivity(obj[key], store, fullPath);
 
 		if (isObject(toReturn)) {
 			Object.defineProperty(toReturn, key, {

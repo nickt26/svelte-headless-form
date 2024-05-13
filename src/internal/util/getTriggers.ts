@@ -62,20 +62,27 @@ export const getTriggers = <T extends object>(
 	triggers: Set<string> = new Set(),
 ): Array<string> => {
 	if (path.length === 0) {
-		if (shouldFetchChildTriggers) getChildTriggers(obj, values, fullPath, triggers);
+		if (shouldFetchChildTriggers) {
+			getChildTriggers(obj, values, fullPath, triggers);
+		}
 		return Array.from(triggers);
 	}
 	const splitPath = Array.isArray(path) ? [...path] : path.split(/\./g).reverse();
 
 	const key = splitPath.pop()!;
 
-	if (!(key in obj)) return [];
+	if (!(key in obj)) {
+		return [];
+	}
 	const current = (obj as any)[key];
 
-	if (Array.isArray(current?.[Triggers]))
-		for (const trigger of current[Triggers]) triggers.add(trigger);
+	if (Array.isArray(current?.[Triggers])) {
+		for (const trigger of current[Triggers]) {
+			triggers.add(trigger);
+		}
+	}
 
-	if (isObject(current) && !(Values in current) && !(Star in current))
+	if (isObject(current) && !(Values in current) && !(Star in current)) {
 		getTriggers(
 			splitPath,
 			current as TriggerFields,
@@ -84,7 +91,7 @@ export const getTriggers = <T extends object>(
 			fullPath,
 			triggers,
 		);
-	else if (Array.isArray(current)) {
+	} else if (Array.isArray(current)) {
 		if (splitPath.length === 0) for (const trigger of current) triggers.add(trigger);
 		getTriggers(
 			splitPath,
@@ -96,7 +103,7 @@ export const getTriggers = <T extends object>(
 		);
 	}
 
-	if (isObject(current?.[Star]) || Array.isArray(current?.[Star]))
+	if (isObject(current?.[Star]) || Array.isArray(current?.[Star])) {
 		getTriggers(
 			splitPath.slice(0, -1),
 			current[Star] as TriggerFields,
@@ -105,8 +112,9 @@ export const getTriggers = <T extends object>(
 			fullPath,
 			triggers,
 		);
+	}
 
-	if (isObject(current?.[Values]) || Array.isArray(current?.[Values]))
+	if (isObject(current?.[Values]) || Array.isArray(current?.[Values])) {
 		getTriggers(
 			splitPath,
 			current[Values] as TriggerFields,
@@ -115,6 +123,7 @@ export const getTriggers = <T extends object>(
 			fullPath,
 			triggers,
 		);
+	}
 
 	return Array.from(triggers);
 };

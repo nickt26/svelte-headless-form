@@ -32,51 +32,58 @@ export const createResetField = <T extends object>(
 	errors_store: Writable<ErrorFields<T>>,
 	validators_store: Writable<ValidatorFields<T>>,
 	deps_store: Writable<DependencyFieldsInternal<T>>,
+	should_validate_store: Writable<boolean>,
 	checkFormForStateReset: () => void,
 ): ResetFieldFn<object> => {
 	return (name, options): void => {
-		if (typeof name !== 'string') throw new Error('The name argument must be a string.');
+		if (typeof name !== 'string') {
+			throw new Error('The name argument must be a string.');
+		}
 		latest_field_event_store.set({ field: name, event: 'beforeReset' });
 
 		const formStateInternal = internalState[0];
 		const fieldValue = getInternal(name, formStateInternal.values);
 
 		if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-			const initialValue = getInternal<object>(name, initialValues);
+			const initialValue = getInternal(name, initialValues);
 			const optionValueExists = options?.value !== undefined;
 
 			if (
 				(initialValue === undefined && options?.value === undefined) ||
-				(!(isObject(initialValue) || Array.isArray(initialValue)) && options?.value === undefined)
-			)
+				(!isObject(initialValue) && !Array.isArray(initialValue) && options?.value === undefined)
+			) {
 				throw new Error(
 					`There is no initial value for the field: ${name}. To fix this error you must provide a value in the options object.`,
 				);
+			}
 
+			should_validate_store.set(false);
 			const newValue =
-				options?.value === undefined ? clone(initialValue!) : (clone(options.value) as object);
+				options?.value === undefined ? clone(initialValue!) : clone(options.value as object);
 
-			if (!options?.keepValue) values_store.update((x) => setImpure(name, newValue, x));
+			if (!options?.keepValue) {
+				values_store.update((x) => setImpure(name, newValue, x));
+			}
 			if (!options?.keepTouched) {
 				const newTouched = optionValueExists
 					? assign(false, newValue)
-					: clone(getInternal<BooleanFields>(name, initialTouched));
+					: clone(getInternal(name, initialTouched));
 				touched_store.update((x) => setImpure(name, newTouched, x));
 			}
 			if (!options?.keepDirty) {
 				const newDirty = optionValueExists
 					? assign(false, newValue)
-					: clone(getInternal<BooleanFields>(name, initialDirty));
+					: clone(getInternal(name, initialDirty));
 				dirty_store.update((x) => setImpure(name, newDirty, x));
 			}
 			if (!options?.keepError) {
 				const newErrors = optionValueExists
 					? assign(false, newValue)
-					: clone(getInternal<ErrorFields>(name, initialErrors));
+					: clone(getInternal(name, initialErrors));
 				errors_store.update((x) => setImpure(name, newErrors, x));
 			}
 			if (!options?.keepValidator) {
-				const initialValidator = getInternal<object>(name, initialValidators);
+				const initialValidator = getInternal(name, initialValidators);
 				const validatorExistsInInitial = initialValidator !== undefined;
 				const optionValidatorExists = options?.validator !== undefined;
 				const newValidator = optionValidatorExists
@@ -101,16 +108,24 @@ export const createResetField = <T extends object>(
 				const triggers = getTriggers(name, formStateInternal.triggers, formStateInternal.values);
 				const errors = {} as PartialDeep<T, string | false>;
 
-				for (const trigger of triggers) setImpure(trigger, false, errors);
+				for (const trigger of triggers) {
+					setImpure(trigger, false, errors);
+				}
 				errors_store.update((x) => mergeRightDeepImpure(x, errors));
 			}
 			checkFormForStateReset();
+			should_validate_store.set(true);
 			latest_field_event_store.set({ field: name, event: 'afterReset' });
 			return;
 		}
 
-		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
-		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
+		should_validate_store.set(false);
+		if (!options?.keepTouched) {
+			touched_store.update((x) => setImpure(name, false, x));
+		}
+		if (!options?.keepDirty) {
+			dirty_store.update((x) => setImpure(name, false, x));
+		}
 		if (!options?.keepValue) {
 			const newValue =
 				options?.value !== undefined ? options.value : getInternal(name, initialValues);
@@ -118,10 +133,14 @@ export const createResetField = <T extends object>(
 		}
 		if (!options?.keepValidator) {
 			const newValidator =
-				options?.deps !== undefined ? options.validator : getInternal<string[]>(name, initialDeps);
+				options?.validator !== undefined
+					? options.validator
+					: getInternal<string[]>(name, initialValidators);
 			validators_store.update((x) => setImpure(name, newValidator, x));
 		}
-		if (!options?.keepError) errors_store.update((x) => setImpure(name, false, x));
+		if (!options?.keepError) {
+			errors_store.update((x) => setImpure(name, false, x));
+		}
 
 		if (!options?.keepDeps) {
 			const newDeps =
@@ -135,6 +154,7 @@ export const createResetField = <T extends object>(
 			for (const trigger of triggers) setImpure(trigger, false, errors);
 			errors_store.update((x) => mergeRightDeepImpure(x, errors));
 		}
+		should_validate_store.set(true);
 		latest_field_event_store.set({ field: name, event: 'afterReset' });
 		checkFormForStateReset();
 	};

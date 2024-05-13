@@ -3,7 +3,6 @@ import { InternalFormState } from '../../internal/types/Form';
 import { assign } from '../../internal/util/assign';
 import { getInternal } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
-import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
 import { setImpure } from '../../internal/util/set';
 import { BooleanFields, FormState, LatestFieldEvent } from '../../types/Form';
 
@@ -19,23 +18,25 @@ export function createHandleBlur<T extends object>(
 
 		latest_field_event_store.update(() => ({ field: name, event: 'beforeBlur' }));
 
-		const fieldTouched = getInternal<boolean>(name, formState.touched)!;
-		if (fieldTouched === undefined) return;
+		const fieldTouched = getInternal(name, formState.touched);
+		if (fieldTouched === undefined) {
+			return;
+		}
 
-		const fieldValue = getInternal<T[keyof T]>(name, internalState.values);
+		const fieldValue = getInternal(name, formState.values);
 
 		if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-			touched_store.update((x) =>
-				mergeRightDeepImpure(x, assign(true, fieldValue), {
-					replaceArrays: true,
-					onlySameKeys: true,
-				}),
-			);
-		} else if (fieldTouched === false) touched_store.update((x) => setImpure(name, true, x));
+			touched_store.update((x) => setImpure(name, assign(true, fieldValue), x));
+		} else if (fieldTouched === false) {
+			touched_store.update((x) => setImpure(name, true, x));
+		}
 
-		if (!formState.state.isTouched) state_store.update((x) => setImpure('isTouched', true, x));
-		if (formState.validateMode === 'onBlur' || formState.validateMode === 'all')
+		if (!formState.state.isTouched) {
+			state_store.update((x) => setImpure('isTouched', true, x));
+		}
+		if (formState.validateMode === 'onBlur' || formState.validateMode === 'all') {
 			await runValidation(name, internalState);
+		}
 		latest_field_event_store.update(() => ({ field: name, event: 'afterBlur' }));
 	};
 }
