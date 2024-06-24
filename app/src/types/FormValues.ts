@@ -13,6 +13,9 @@ export type FormValues = {
 		| {
 				height: number;
 				weight: number;
+		  }
+		| {
+				bananas: string[];
 		  };
 	rolesAreUnique: null;
 	files: FileList | null;

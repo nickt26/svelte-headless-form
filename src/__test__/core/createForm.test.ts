@@ -2,66 +2,16 @@ import { render } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { describe, expect, it } from 'vitest';
 import { clone } from '../../internal/util/clone';
-import { isObject } from '../../internal/util/isObject';
 import { setImpure } from '../../internal/util/set';
-import { DotPaths, PartialValidatorFields, type Form as FormType } from '../../types/Form';
+import { DotPaths } from '../../types/Form';
 import Form from '../components/Form.svelte';
-
-type FormValues = {
-	name: string;
-	email: string;
-	roles: string[];
-};
-
-export const formValues: FormValues = {
-	name: '',
-	email: '',
-	roles: ['user'],
-};
-
-export const formValidators: PartialValidatorFields<FormValues> = {
-	name: (value) => value.length === 0 && 'Required',
-	email: (value) => value.length === 0 && 'Required',
-};
-
-function getComponentState(component: Form) {
-	return component.$capture_state() as unknown as { form: FormType<FormValues> };
-}
-
-type ValueUpdate = Array<{ key: DotPaths<FormValues>; value: any }>;
-
-function waitForAllFieldsToValidate(
-	valueUpdates: ValueUpdate | Array<DotPaths<FormValues>>,
-	form: FormType<FormValues>,
-): Promise<void> {
-	const { latestFieldEvent } = form;
-	return new Promise<void>((resolve) => {
-		const fieldsThatHaveValidated: (string | (string | number | symbol)[])[] = [];
-		const unsub = latestFieldEvent.subscribe(async (x) => {
-			if (
-				x?.event === 'afterValidate' &&
-				valueUpdates.some(
-					(val: { key: DotPaths<FormValues>; value: any } | DotPaths<FormValues>) => {
-						const path = Array.isArray(x.field) ? x.field.join('.') : x.field;
-						if (isObject(val)) {
-							return val.key === path;
-						}
-
-						if (typeof val === 'string') {
-							return val === path;
-						}
-					},
-				)
-			) {
-				fieldsThatHaveValidated.push(x.field);
-				if (fieldsThatHaveValidated.length === valueUpdates.length) {
-					unsub();
-					resolve();
-				}
-			}
-		});
-	});
-}
+import {
+	FormValues,
+	formValidators,
+	formValues,
+	getComponentState,
+	waitForAllFieldsToValidate,
+} from './createFormUtils';
 
 describe('createForm', async () => {
 	it('[Form creation] should have correct initial state', async () => {
@@ -517,84 +467,36 @@ describe('createForm', async () => {
 		expect(() => rolesHelpers.remove(-1)).toThrowError(`Index (-1) is out of bounds`);
 	});
 
-	it('[Form resetField primitive] should reset field correctly', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
+	// batch(() => {
+	// 	$values.firstName = 'Banana';
+	// 	blur('firstName');
+	// 	clean('firstName');
 
-		const { resetField, values, deps, errors, dirty, touched, validators } = form;
+	// 	blur('lastName');
+	// 	unBlur('lastName');
 
-		const valueUpdate: ValueUpdate = [{ key: 'name', value: 'Test Test' }];
+	// 	// values.update((vals) => {
+	// 	// 	[firstName, lastName] = [vals.lastName, vals.firstName];
+	// 	// 	return {
+	// 	// 		...vals,
+	// 	// 		firstName,
+	// 	// 		lastName
+	// 	// 	};
+	// 	// });
+	// 	[firstName, lastName] = [$values.lastName, $values.firstName];
+	// 	updateValue('firstName', firstName);
+	// 	$touched.lastName && blur('firstName');
+	// 	$dirty.lastName && makeDirty('firstName');
+	// 	updateValue('lastName', lastName);
+	// 	validate(['firstName', 'lastName']);
 
-		deps.update((deps) => {
-			for (const { key } of valueUpdate) {
-				setImpure(key, ['email'], deps);
-			}
-			return deps;
-		});
-
-		const wait = waitForAllFieldsToValidate(valueUpdate, form);
-
-		values.update((vals) => {
-			for (const { key, value } of valueUpdate) {
-				setImpure(key, value, vals);
-			}
-			return vals;
-		});
-
-		await wait;
-
-		expect(get(values).name).toEqual('Test Test');
-		expect(get(deps).name).toEqual(['email']);
-
-		resetField('name');
-
-		expect(get(values).name).toEqual('');
-		expect(get(touched).name).toEqual(false);
-		expect(get(errors).name).toEqual(false);
-		expect(get(dirty).name).toEqual(false);
-		expect(get(validators).name).toEqual(formValidators.name);
-		expect(get(deps).name).toEqual([]);
-	});
-
-	it('[Form resetField object-like] should reset field correctly', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
-
-		const { resetField, values, deps, errors, dirty, touched, validators } = form;
-
-		const valueUpdate: ValueUpdate = [{ key: 'roles', value: ['user', 'admin', 'tester'] }];
-
-		deps.update((deps) => {
-			for (const { key } of valueUpdate) {
-				// TODO: user is able to update deps for fields and set them to be invalid with the rest of the form state
-				setImpure(key, ['email', 'email', 'email'], deps);
-			}
-			return deps;
-		});
-
-		const wait = waitForAllFieldsToValidate(valueUpdate, form);
-
-		values.update((vals) => {
-			for (const { key, value } of valueUpdate) {
-				setImpure(key, value, vals);
-			}
-			return vals;
-		});
-
-		await wait;
-
-		expect(get(values).roles).toEqual(['user', 'admin', 'tester']);
-		expect(get(deps).roles).toEqual(['email', 'email', 'email']);
-
-		resetField('roles');
-
-		expect(get(values).roles).toEqual(['user']);
-		expect(get(touched).roles).toEqual([false]);
-		expect(get(errors).roles).toEqual([false]);
-		expect(get(dirty).roles).toEqual([false]);
-		expect(get(validators).roles).toEqual([undefined]);
-		expect(get(deps).roles).toEqual([[]]);
-	});
+	// 	$values = initialValues;
+	// 	clean('$');
+	// 	unBlur('$');
+	// 	$deps = initialDeps;
+	// 	$validators = initialValidators;
+	// 	clearErrors('$');
+	// });
 
 	it('[Form state] should update correctly when changes occur', async () => {
 		const { component } = render(Form);
@@ -607,6 +509,11 @@ describe('createForm', async () => {
 		expect(() => rolesHelpers.remove(-1)).toThrowError(`Index (-1) is out of bounds`);
 	});
 
+	/* TODO: Rewrite entire form api to not have a reset field or reset form method 
+	rather have a bunch of smaller methods to undo a change in the form with a 
+	batch api that can be used to undo multiple changes at once without causing a jitter between lots of components on the UI
+*/
+	// TODO: Figure out how to make the batch method work when both values and deps have changed
 	it('[Form submission] should update errors and touched state on all fields', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
@@ -615,5 +522,93 @@ describe('createForm', async () => {
 
 		expect(get(form.touched)).toEqual({ name: true, email: true, roles: [true] });
 		expect(get(form.errors)).toEqual({ name: 'Required', email: 'Required', roles: [false] });
+	});
+
+	it('banana', async () => {
+		// const arr = new Proxy([1, 2, 3], {
+		// 	get(target, prop, receiver) {
+		// 		console.log('getting', prop, target[prop]);
+
+		// 		return Reflect.get(...arguments);
+		// 	},
+		// 	set(target, prop, val) {
+		// 		console.log('setting', prop, val);
+
+		// 		return Reflect.set(...arguments);
+		// 	},
+		// });
+
+		// const state: [{ val: string }] = [{ val: 'banana' }];
+
+		// const myFn = (stateRef: [{ val: string }]) => {
+		// 	const state = stateRef[0];
+		// 	console.log(state);
+
+		// 	setTimeout(() => {
+		// 		console.log(state);
+		// 	}, 3000);
+		// };
+
+		// myFn(state);
+		// setTimeout(() => {
+		// 	state[0].val = 'apple';
+		// }, 1000);
+
+		// arr[2] = 2;
+		// arr.push(4); //handled by default setter clone behavior
+		// arr.pop(); //handled by length setter check
+
+		// arr.shift(); //handled by length setter check, needs to be batched
+		// arr.unshift(0); //handled by length setter check, needs to be batched
+		// arr.reverse(); // not handled and needs to be batched
+		// arr.sort(); // not handled and needs to be batched
+		// arr.splice(0, 1); // handled by length setter check
+		// arr.copyWithin(0, 1); //not handled but has to be done in batch to work correctly
+		// console.log(arr[0]);
+
+		// const delay = new Promise((resolve) => setTimeout(resolve, 5000));
+
+		// await delay;
+
+		function tester(banana, lemon) {
+			return () => {
+				console.log('in banana', arguments);
+			};
+		}
+
+		function Lemon(fn: () => void) {
+			this.myvar = 3;
+			this.logmyvar = fn;
+		}
+
+		const lemon = new Lemon(tester(1, 2));
+		lemon.logmyvar();
+
+		const delay = (fn: () => void, ms: number) =>
+			new Promise<void>((resolve) => setTimeout(() => resolve(fn()), ms));
+
+		let test = 0;
+
+		const fn = () => {
+			console.log('running', test);
+			test++;
+		};
+
+		const fn2 = () => {
+			console.log('running2', test);
+			test++;
+		};
+
+		delay(fn, 1000);
+
+		delay(fn2, 500);
+
+		console.log('done', test);
+
+		await delay(() => console.log('done delay', test), 1000);
+
+		// expect(arr).toBeDefined();
+
+		// expect(arr).toEqual([1, 2, 2]);
 	});
 });

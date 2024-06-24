@@ -1,7 +1,11 @@
 import { onDestroy } from 'svelte';
-import { Writable, derived, writable } from 'svelte/store';
+import { Writable } from 'svelte/store';
 import { InternalFormState } from '../internal/types/Form';
+import { assign } from '../internal/util/assign';
 import { clone } from '../internal/util/clone';
+import { getInternal } from '../internal/util/get';
+import { isObject } from '../internal/util/isObject';
+import { setImpure } from '../internal/util/set';
 import {
 	DependencyFields,
 	DependencyFieldsInternal,
@@ -9,6 +13,7 @@ import {
 	FormControl,
 	FormOptions,
 	HandlerFn,
+	ReadonlyDeep,
 	UpdateValueFn,
 	UseFieldArrayFn,
 	ValidateFn,
@@ -104,36 +109,39 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		runValidation,
 	);
 
-	const should_validate_store = writable(false);
+	// const should_validate_store = writable<{ id: number; value: boolean } | undefined>();
 
-	let prevShouldValidate = false;
-	const run_validation_store = derived(
-		[should_validate_store, value_change_store],
-		([$shouldValidate, $valueChange]) => {
-			console.log('value change detected', $valueChange?.[0], $valueChange?.[1], $shouldValidate);
-			if (prevShouldValidate !== $shouldValidate) {
-				prevShouldValidate = $shouldValidate; // prevent validation from running when shouldValidate changes;
-				return;
-			}
+	// let prevShouldValidate = false;
+	// const run_validation_store = derived(
+	// 	[should_validate_store, value_change_store],
+	// 	([$shouldValidate, $valueChange]) => {
+	// 		console.log('value change detected', $valueChange?.[0], $valueChange?.[1], $shouldValidate);
+	// 		if (prevShouldValidate !== $shouldValidate || (!prevShouldValidate && !$shouldValidate)) {
+	// 			prevShouldValidate = $shouldValidate; // prevent validation from running when shouldValidate changes;
+	// 			return;
+	// 		}
 
-			if ($valueChange && $shouldValidate) updateValue($valueChange[0], $valueChange[1]);
-		},
-	);
+	// 		if ($valueChange && $shouldValidate) updateValue($valueChange[0], $valueChange[1]);
+	// 	},
+	// );
 
-	const runValidationUnsub = run_validation_store.subscribe(() => {
-		console.log('run validation');
-	});
-
-	// const valueChangeUnsub = value_change_store.subscribe((val) => {
-	// 	console.log('value change detected', val?.[0], val?.[1]);
-
-	// 	if (val) updateValue(val[0], val[1]);
+	// const runValidationUnsub = run_validation_store.subscribe(() => {
+	// 	console.log('run validation');
 	// });
+
+	const valueChangeUnsub = value_change_store.subscribe((val) => {
+		console.log('value change detected', val?.[0], val?.[1]);
+
+		const shouldValidate = val && !val[2];
+		if (shouldValidate) {
+			updateValue(val[0], val[1]);
+		}
+	});
 
 	onDestroy(() => {
 		internalStateUnsub();
-		runValidationUnsub();
-		// valueChangeUnsub();
+		// runValidationUnsub();
+		valueChangeUnsub();
 	});
 
 	const submitForm = createSubmitForm(
@@ -175,7 +183,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		errors_store,
 		validators_store,
 		deps_store,
-		should_validate_store,
 		checkFormForStateReset,
 	);
 
@@ -186,7 +193,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		validators_store,
 		errors_store,
 		deps_store,
-		should_validate_store,
 		internalState,
 		checkFormForStateReset,
 		runValidation,
@@ -204,7 +210,125 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 
 	const validate = (name: string) => runValidation(name, internalState);
 
-	should_validate_store.set(true);
+	const clean: Form['clean'] = (path) => {
+		const val = getInternal(path, internalState[0].values);
+		if (isObject(val) || Array.isArray(val)) {
+			return dirty_store.update((x) => setImpure(path, assign(false, val), x));
+		}
+		return dirty_store.update((x) => setImpure(path, false, x));
+	};
+
+	const makeDirty: Form['makeDirty'] = (path) => {
+		const val = getInternal(path, internalState[0].values);
+		if (isObject(val) || Array.isArray(val)) {
+			return dirty_store.update((x) => setImpure(path, assign(true, val), x));
+		}
+		return dirty_store.update((x) => setImpure(path, true, x));
+	};
+
+	const unBlur: Form['unBlur'] = (path) => {
+		const val = getInternal(path, internalState[0].values);
+		if (isObject(val) || Array.isArray(val)) {
+			return touched_store.update((x) => setImpure(path, assign(false, val), x));
+		}
+		return touched_store.update((x) => setImpure(path, false, x));
+	};
+
+	// type BatchType = {
+	// 	id: number;
+	// 	values: Array<string>;
+	// };
+
+	// type BatchValueType = {
+	// 	id: number;
+	// 	values: Array<{ path: string; value: unknown }>;
+	// };
+	// const batch_value_store = writable<BatchValueType | undefined>();
+	// const batch_touched_store = writable<BatchType | undefined>();
+	// const batch_untouch_store = writable<BatchType | undefined>();
+	// const batch_dirty_store = writable<BatchType | undefined>();
+	// const batch_clean_store = writable<BatchType | undefined>();
+	// const batch_validator_store = writable<BatchType | undefined>();
+	// const batch_deps_store = writable<BatchType | undefined>();
+	// const batch_errors_store = writable<BatchType | undefined>();
+	// const batch_counter_store = writable<number>(0);
+
+	// const applyValueBatch = (batch: BatchValueType) => {
+	// 	values_store.update((x) => {
+	// 		for (const { path, value } of batch.values) {
+	// 			setImpure(path, value, x);
+	// 		}
+	// 		return x;
+	// 	});
+	// };
+
+	// const applyTouchedBatch = (batch: BatchType) => {
+	// 	touched_store.update((x) => {
+	// 		for (const path of batch.values) {
+	// 			const val = getInternal(path, x);
+	// 			if (isObject(val) || Array.isArray(val)) {
+	// 				setImpure(path, assign(true, val), x);
+	// 			} else {
+	// 				setImpure(path, true, x);
+	// 			}
+	// 		}
+	// 		return x;
+	// 	});
+	// };
+
+	// const resolveTouchedBatches = (
+	// 	touchedBatch: BatchType,
+	// 	untouchBatch: BatchType,
+	// 	valuesBatch: BatchValueType,
+	// ) => {
+	// 	return {
+	// 		touched: {
+	// 			id: touchedBatch.id,
+	// 			values: touchedBatch.values.filter(
+	// 				(x) => !touchedBatch.values.includes(x) && !untouchBatch.values.includes(x) && valuesBatch.values.some(y => y.),
+	// 			),
+	// 		},
+	// 		untouch: {
+	// 			id: untouchBatch.id,
+	// 			values: untouchBatch.values.filter(
+	// 				(x) => !untouchBatch.values.includes(x) && !touchedBatch.values.includes(x),
+	// 			),
+	// 		},
+	// 	};
+	// };
+
+	// const applyUntouchBatch = (batch: BatchType) => {};
+
+	// const applyDirtyBatch = (batch: BatchType) => {
+	// 	dirty_store.update((x) => {
+	// 		for (const path of batch.values) {
+	// 			const val = getInternal(path, x);
+	// 			if (isObject(val) || Array.isArray(val)) {
+	// 				setImpure(path, assign(true, val), x);
+	// 			} else {
+	// 				setImpure(path, true, x);
+	// 			}
+	// 		}
+	// 		return x;
+	// 	});
+	// };
+
+	//TODO: Potentially add an object to this tuple and make all references to the counter use .value so that reference updates carry through to uses of the counter
+	// Alternatively, just use [0] everywhere instead of turning into a variable like so: const batchCount = batch_counter[0];
+	// let batch_counter: [number] = [0];
+	// const batchCounterUnsub = batch_counter_store.subscribe((x) => {
+	// 	batch_counter[0] = x;
+	// });
+
+	// const batch = async (fn: (options: FormControl<T>) => void | Promise<void>) => {
+	// 	batch_counter_store.update((x) => x + 1);
+	// const options: FormControl<T> = {
+
+	// };
+	// 	await fn({} as any);
+	// 	batch_counter_store.update((x) => x - 1);
+	// };
+
 	const control: FormControl<T> = {
 		touched: {
 			subscribe: touched_store.subscribe,
@@ -233,13 +357,16 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		submitForm,
 		resetForm,
 		resetField,
-		initialValues: clone(initialValues),
+		initialValues: clone(initialValues) as ReadonlyDeep<T>,
 		initialValidators: clone(initialValidators),
 		initialDeps: clone(initialDeps) as DependencyFields<T>,
 		validate: validate as ValidateFn<T>,
 		latestFieldEvent: {
 			subscribe: latest_field_event_store.subscribe,
 		},
+		clean,
+		makeDirty,
+		unBlur,
 	};
 	return {
 		control,

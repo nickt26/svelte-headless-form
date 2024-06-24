@@ -1,160 +1,125 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
 import { assign } from '../../internal/util/assign';
-import { clone } from '../../internal/util/clone';
-import { getInternal } from '../../internal/util/get';
-import { getTriggers } from '../../internal/util/getTriggers';
+import { clone, noValidate } from '../../internal/util/clone';
+import { getInternal, getInternalSafe } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
+import { removePropertyImpure } from '../../internal/util/removeProperty';
 import { setImpure } from '../../internal/util/set';
 import {
 	BooleanFields,
 	DependencyFieldsInternal,
 	ErrorFields,
 	LatestFieldEvent,
-	PartialDeep,
 	ResetFieldFn,
 	ValidatorFields,
 } from '../../types/Form';
 
-export const createResetField = <T extends object>(
-	initialValues: T,
-	initialTouched: BooleanFields<T>,
-	initialDirty: BooleanFields<T>,
-	initialErrors: ErrorFields<T>,
-	initialValidators: ValidatorFields<T>,
-	initialDeps: DependencyFieldsInternal<T>,
+export const createResetField = <TValues extends object>(
+	initialValues: TValues,
+	initialTouched: BooleanFields<TValues>,
+	initialDirty: BooleanFields<TValues>,
+	initialErrors: ErrorFields<TValues>,
+	initialValidators: ValidatorFields<TValues>,
+	initialDeps: DependencyFieldsInternal<TValues>,
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
-	internalState: [InternalFormState<T>],
-	values_store: Writable<T>,
-	touched_store: Writable<BooleanFields<T>>,
-	dirty_store: Writable<BooleanFields<T>>,
-	errors_store: Writable<ErrorFields<T>>,
-	validators_store: Writable<ValidatorFields<T>>,
-	deps_store: Writable<DependencyFieldsInternal<T>>,
-	should_validate_store: Writable<boolean>,
+	internalState: [InternalFormState<TValues>],
+	values_store: Writable<TValues>,
+	touched_store: Writable<BooleanFields<TValues>>,
+	dirty_store: Writable<BooleanFields<TValues>>,
+	errors_store: Writable<ErrorFields<TValues>>,
+	validators_store: Writable<ValidatorFields<TValues>>,
+	deps_store: Writable<DependencyFieldsInternal<TValues>>,
 	checkFormForStateReset: () => void,
 ): ResetFieldFn<object> => {
 	return (name, options): void => {
-		if (typeof name !== 'string') {
-			throw new Error('The name argument must be a string.');
-		}
+		if (typeof name !== 'string')
+			throw new Error('resetField: The `name` argument must be a string');
+
 		latest_field_event_store.set({ field: name, event: 'beforeReset' });
 
-		const formStateInternal = internalState[0];
-		const fieldValue = getInternal(name, formStateInternal.values);
+		const initialValue = getInternalSafe(name, initialValues);
+		if (initialValue instanceof Error) {
+			throw new Error(
+				`resetField: There is no initial value for the field: ${name}. To fix this error you must provide a value in the options object.`,
+			);
+		}
 
-		if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-			const initialValue = getInternal(name, initialValues);
-			const optionValueExists = options?.value !== undefined;
+		const hasNewValue = options && 'value' in options;
+		const newValue = hasNewValue ? clone(options.value) : clone(initialValue);
+		const newDeps = clone(options?.deps) ?? clone(getInternal(name, initialDeps));
+		const newValidator = clone(options?.validator) ?? clone(getInternal(name, initialValidators));
+		const shouldValidate = options?.validate ?? false;
+		const newValueWithNoValidateRule = shouldValidate ? newValue : [noValidate, newValue];
 
-			if (
-				(initialValue === undefined && options?.value === undefined) ||
-				(!isObject(initialValue) && !Array.isArray(initialValue) && options?.value === undefined)
-			) {
-				throw new Error(
-					`There is no initial value for the field: ${name}. To fix this error you must provide a value in the options object.`,
+		if (isObject(newValue) || Array.isArray(newValue)) {
+			deps_store.update((x) => setImpure(name, newDeps, x));
+			validators_store.update((x) => setImpure(name, newValidator, x));
+			if (options?.keepTouched) {
+				const currentTouched = getInternal<object>(name, internalState[0].touched);
+				const initlTouched = getInternal<object>(name, initialTouched);
+				const initialTouchedWithNewVal = mergeRightDeepImpure(
+					clone(initlTouched),
+					assign(false, newValue),
+					{
+						onlyNewKeys: true,
+					},
 				);
-			}
-
-			should_validate_store.set(false);
-			const newValue =
-				options?.value === undefined ? clone(initialValue!) : clone(options.value as object);
-
-			if (!options?.keepValue) {
-				values_store.update((x) => setImpure(name, newValue, x));
-			}
-			if (!options?.keepTouched) {
-				const newTouched = optionValueExists
-					? assign(false, newValue)
-					: clone(getInternal(name, initialTouched));
+				const newTouched = mergeRightDeepImpure(initialTouchedWithNewVal, clone(currentTouched), {
+					onlySameKeys: true,
+				});
 				touched_store.update((x) => setImpure(name, newTouched, x));
-			}
-			if (!options?.keepDirty) {
-				const newDirty = optionValueExists
-					? assign(false, newValue)
-					: clone(getInternal(name, initialDirty));
-				dirty_store.update((x) => setImpure(name, newDirty, x));
-			}
-			if (!options?.keepError) {
-				const newErrors = optionValueExists
-					? assign(false, newValue)
-					: clone(getInternal(name, initialErrors));
-				errors_store.update((x) => setImpure(name, newErrors, x));
-			}
-			if (!options?.keepValidator) {
-				const initialValidator = getInternal(name, initialValidators);
-				const validatorExistsInInitial = initialValidator !== undefined;
-				const optionValidatorExists = options?.validator !== undefined;
-				const newValidator = optionValidatorExists
-					? clone(options.validator)
-					: validatorExistsInInitial
-						? clone(initialValidator)
-						: assign(undefined, newValue);
-				validators_store.update((x) => setImpure(name, newValidator, x));
-			}
-			if (!options?.keepDeps) {
-				const initialDep = getInternal<object>(name, initialDeps);
-				const depExistsInInitial = initialDep !== undefined;
-				const optionDepExists = options?.deps !== undefined;
-				const newDeps = optionDepExists
-					? clone(options.deps)
-					: depExistsInInitial
-						? clone(initialDep)
-						: assign([], newValue);
-				deps_store.update((x) => setImpure(name, newDeps, x));
-			}
-			if (!options?.keepDependentErrors) {
-				const triggers = getTriggers(name, formStateInternal.triggers, formStateInternal.values);
-				const errors = {} as PartialDeep<T, string | false>;
+			} else touched_store.update((x) => setImpure(name, assign(false, newValue), x));
 
-				for (const trigger of triggers) {
-					setImpure(trigger, false, errors);
-				}
-				errors_store.update((x) => mergeRightDeepImpure(x, errors));
-			}
-			checkFormForStateReset();
-			should_validate_store.set(true);
+			if (options?.keepDirty) {
+				const currentDirty = getInternal<object>(name, internalState[0].dirty);
+				const initlDirty = getInternal<object>(name, initialDirty);
+				const initialDirtyWithNewVal = mergeRightDeepImpure(
+					clone(initlDirty),
+					assign(false, newValue),
+					{
+						onlyNewKeys: true,
+					},
+				);
+				const newDirty = mergeRightDeepImpure(initialDirtyWithNewVal, clone(currentDirty), {
+					onlySameKeys: true,
+				});
+				dirty_store.update((x) => setImpure(name, newDirty, x));
+			} else dirty_store.update((x) => setImpure(name, assign(false, newValue), x));
+
+			if (options?.keepError) {
+				const currentErr = getInternal<object>(name, internalState[0].errors);
+				const initialErr = getInternal<object>(name, initialErrors);
+				const initialErrWithNewVal = mergeRightDeepImpure(
+					clone(initialErr),
+					assign(false, newValue),
+					{
+						onlyNewKeys: true,
+					},
+				);
+				const newErr = mergeRightDeepImpure(initialErrWithNewVal, clone(currentErr), {
+					onlySameKeys: true,
+				});
+				if (newErr) errors_store.update((x) => setImpure(name, newErr, x));
+				else errors_store.update((x) => removePropertyImpure(name, x));
+			} else errors_store.update((x) => removePropertyImpure(name, x));
+			values_store.update((x) => setImpure(name, newValueWithNoValidateRule, x));
+
 			latest_field_event_store.set({ field: name, event: 'afterReset' });
+			checkFormForStateReset();
 			return;
 		}
 
-		should_validate_store.set(false);
-		if (!options?.keepTouched) {
-			touched_store.update((x) => setImpure(name, false, x));
-		}
-		if (!options?.keepDirty) {
-			dirty_store.update((x) => setImpure(name, false, x));
-		}
-		if (!options?.keepValue) {
-			const newValue =
-				options?.value !== undefined ? options.value : getInternal(name, initialValues);
-			values_store.update((x) => setImpure(name, newValue, x));
-		}
-		if (!options?.keepValidator) {
-			const newValidator =
-				options?.validator !== undefined
-					? options.validator
-					: getInternal<string[]>(name, initialValidators);
-			validators_store.update((x) => setImpure(name, newValidator, x));
-		}
-		if (!options?.keepError) {
-			errors_store.update((x) => setImpure(name, false, x));
-		}
+		// const newValidator = options?.validator ?? getInternal(name, initialValidators);
+		// reset all the field values before setting the new value and triggering validation
+		deps_store.update((x) => setImpure(name, newDeps, x));
+		validators_store.update((x) => setImpure(name, newValidator, x));
+		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
+		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
+		if (!options?.keepError) errors_store.update((x) => removePropertyImpure(name, x));
+		values_store.update((x) => setImpure(name, newValueWithNoValidateRule, x));
 
-		if (!options?.keepDeps) {
-			const newDeps =
-				options?.deps !== undefined ? options.deps : getInternal<string[]>(name, initialDeps);
-			deps_store.update((x) => setImpure(name, newDeps, x));
-		}
-		if (!options?.keepDependentErrors) {
-			const triggers = getTriggers(name, formStateInternal.triggers, formStateInternal.values);
-			const errors = {} as PartialDeep<T, string | false>;
-
-			for (const trigger of triggers) setImpure(trigger, false, errors);
-			errors_store.update((x) => mergeRightDeepImpure(x, errors));
-		}
-		should_validate_store.set(true);
 		latest_field_event_store.set({ field: name, event: 'afterReset' });
 		checkFormForStateReset();
 	};

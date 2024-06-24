@@ -29,8 +29,8 @@ type MergeRightDeepOptionsAll = MergeRightDeepOptionsCommon & {
 };
 
 export function mergeRightDeepImpure<T extends object, S extends object>(
-	left: T,
-	right: S,
+	left: T | undefined,
+	right: S | undefined,
 	options?: MergeRightDeepOptions,
 ): T & S {
 	// if ((!isObject(left) || !isObject(right)) && (!Array.isArray(left) || !Array.isArray(right))) {
@@ -44,14 +44,10 @@ export function mergeRightDeepImpure<T extends object, S extends object>(
 	// }
 
 	if (Array.isArray(left) && Array.isArray(right)) {
-		for (let i = 0; i < right.length; i++) {
-			mergeRightLoop(left, right, i, options);
-		}
+		for (let i = 0; i < right.length; i++) mergeRightLoop(left, right, i, options);
 	} else if (isObject(left) && isObject(right)) {
 		const keys = Object.keys(right);
-		for (let i = 0; i < keys.length; i++) {
-			mergeRightLoop(left, right, keys[i], options);
-		}
+		for (let i = 0; i < keys.length; i++) mergeRightLoop(left, right, keys[i], options);
 	}
 
 	// const rightKeys = Object.keys(right);
@@ -94,9 +90,7 @@ function mergeRightLoop(
 	const leftVal = left[key];
 	const rightVal = right[key];
 
-	if ((onlySameKeys && !(key in left)) || (onlyNewKeys && key in left)) {
-		return;
-	}
+	if ((onlySameKeys && !(key in left)) || (onlyNewKeys && key in left)) return;
 	// } else if (onlyNewKeys && key in left) {
 	// 	return;
 	// }
@@ -106,7 +100,5 @@ function mergeRightLoop(
 		(Array.isArray(leftVal) && Array.isArray(rightVal) && !replaceArrays)
 	) {
 		mergeRightDeepImpure(leftVal, rightVal, options);
-	} else if (noUndefinedMerges ? rightVal !== undefined : true) {
-		left[key] = rightVal;
-	}
+	} else if (noUndefinedMerges ? rightVal !== undefined : true) left[key] = rightVal;
 }

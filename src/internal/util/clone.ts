@@ -1,5 +1,4 @@
 import { Writable } from 'svelte/store';
-import { empty } from './empty';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
@@ -21,12 +20,19 @@ export const clone = <T>(obj: T): T => {
 	return toReturn as T;
 };
 
+function hasNoValidateFlag(val: unknown): boolean {
+	return Array.isArray(val) && val[0] === noValidate;
+}
+
+export const noValidate = Symbol('noValidate');
 export const cloneWithStoreReactivity = <T>(
 	obj: T,
-	store: Writable<[Array<string | number | symbol>, unknown] | null> | null = null,
+	store: Writable<[Array<string | number | symbol>, unknown, boolean] | null> | null = null,
 	path?: string | Array<string | number | symbol>,
 ): T => {
-	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj))) return obj;
+	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj))) {
+		return obj;
+	}
 
 	if (obj instanceof Date) {
 		const date = new Date();
@@ -34,54 +40,58 @@ export const cloneWithStoreReactivity = <T>(
 		return date as T;
 	}
 
-	let toReturn = empty(obj);
-	if (Array.isArray(toReturn)) {
-		toReturn = new Proxy(toReturn, {
-			// get(_, prop) {
-			// if (typeof prop === 'string' && !Number.isNaN(parseInt(prop))) {
-			// console.log('getting', prop, target[prop]);
-			// }
-			// 	return Reflect.get(...arguments);
-			// },
+	if (Array.isArray(obj)) {
+		let res = obj.map((val, i) => {
+			const fullPath = path ? [...path, `${i}`] : [`${i}`];
+			const shouldNotValidate = hasNoValidateFlag(val);
+			const newVal = shouldNotValidate ? val[1] : val;
+			return cloneWithStoreReactivity(newVal, store, fullPath);
+		});
+		res = new Proxy(res, {
 			set(target, prop, val) {
 				if (typeof prop === 'string' && !isNaN(parseInt(prop))) {
 					const fullPath = path ? [...path, prop] : [prop];
 					console.log('setting', fullPath, val);
 
-					target[parseInt(prop)] = cloneWithStoreReactivity(val, store, fullPath);
-					if (store) store.set([fullPath, val]);
+					const shouldNotValidate = hasNoValidateFlag(val);
+
+					const newVal = shouldNotValidate ? val[1] : val;
+					target[parseInt(prop)] = cloneWithStoreReactivity(newVal, store, fullPath);
+					if (store) store.set([fullPath, newVal, shouldNotValidate]);
 					return true;
 				}
 				// @ts-ignore
 				return Reflect.set(...arguments);
 			},
 		});
+		return res as T;
 	}
 
+	const res = {};
 	const keys = Object.keys(obj);
 	for (let i = 0; i < keys.length; i++) {
 		const key = keys[i];
 		const fullPath = path ? [...path, key] : [key];
 		let newObj = cloneWithStoreReactivity(obj[key], store, fullPath);
 
-		if (isObject(toReturn)) {
-			Object.defineProperty(toReturn, key, {
-				get() {
-					return newObj;
-				},
-				set(newVal) {
-					console.log('setting key', key, newVal, fullPath, keys);
-					newObj = cloneWithStoreReactivity(newVal, store, [...fullPath]);
-					if (store) store.set([fullPath, newVal]);
-				},
-				enumerable: true,
-			});
-		} else if (Array.isArray(toReturn)) {
-			Object.assign(toReturn, {
-				[key]: newObj,
-			});
-		}
+		Object.defineProperty(res, key, {
+			get() {
+				return newObj;
+			},
+			set(val) {
+				console.log('setting key', key, val, fullPath, keys);
+
+				const shouldNotValidate = hasNoValidateFlag(val);
+				const newVal = shouldNotValidate ? val[1] : val;
+				// TODO: this assignment triggers the store to call to .set with some circular magic that I need to figure out, run resetField on object test to understand
+				newObj = cloneWithStoreReactivity(newVal, store, [...fullPath]);
+				if (store) {
+					store.set([fullPath, newVal, shouldNotValidate]);
+				}
+			},
+			enumerable: true,
+		});
 	}
 
-	return toReturn as T;
+	return res as T;
 };

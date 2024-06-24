@@ -26,7 +26,7 @@ type Stores<T extends object> = {
 	latest_field_event_store: Writable<LatestFieldEvent | null>;
 	internal_counter_store: Writable<InternalFormStateCounter>;
 	internal_state_store: Readable<InternalFormState<T>>;
-	value_change_store: Writable<[Array<string | number | symbol>, any] | null>;
+	value_change_store: Writable<[Array<string | number | symbol>, unknown, boolean] | null>;
 };
 
 export function createStores<T extends object>(
@@ -39,7 +39,8 @@ export function createStores<T extends object>(
 	initialState: FormState,
 	validateMode: ValidateMode,
 ): Stores<T> {
-	const value_change_store = writable<[Array<string | number | symbol>, unknown] | null>(null);
+	const value_change_store: Writable<[Array<string | number | symbol>, unknown, boolean] | null> =
+		writable(null);
 
 	const touched_store = writable(clone(initialTouched));
 	const dirty_store = writable(clone(initialDirty));

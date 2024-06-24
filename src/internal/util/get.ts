@@ -2,6 +2,41 @@ import { Equals, ValueDeep } from '../../types/Form';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
+export class FieldNotFoundError extends Error {
+	constructor() {
+		super();
+	}
+}
+
+export const getInternalSafe = function <V = unknown, T extends object = object>(
+	path: string | Array<string | number | symbol>,
+	obj: T,
+): Equals<V, unknown> extends true ? ValueDeep<T> | FieldNotFoundError : V | FieldNotFoundError {
+	if (
+		isNil(obj) ||
+		(!isObject(obj) && !Array.isArray(obj)) ||
+		(typeof path !== 'string' && !Array.isArray(path))
+	) {
+		return new FieldNotFoundError();
+	}
+
+	let current: any = obj;
+	const splitPath = Array.isArray(path) ? path : path.split(/\./g);
+
+	for (let i = 0; i < splitPath.length - 1; i++) {
+		const key = splitPath[i];
+		if (isNil(current[key]) || (!isObject(current[key]) && !Array.isArray(current[key]))) {
+			return new FieldNotFoundError();
+		}
+		current = current[key];
+	}
+	const last = splitPath[splitPath.length - 1];
+	if (!(last in current)) {
+		return new FieldNotFoundError();
+	}
+	return current[last];
+};
+
 export const getInternal = function <V = unknown, T extends object = object>(
 	path: string | Array<string | number | symbol>,
 	obj: T,
@@ -9,9 +44,9 @@ export const getInternal = function <V = unknown, T extends object = object>(
 	if (
 		isNil(obj) ||
 		(!isObject(obj) && !Array.isArray(obj)) ||
-		!(typeof path === 'string' || Array.isArray(path))
+		(typeof path !== 'string' && !Array.isArray(path))
 	) {
-		return undefined as any;
+		return undefined;
 	}
 
 	let current: any = obj;

@@ -1,7 +1,7 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
 import { appendImpure } from '../../internal/util/append';
-import { clone } from '../../internal/util/clone';
+import { clone, noValidate } from '../../internal/util/clone';
 import { getInternal } from '../../internal/util/get';
 import { prependImpure } from '../../internal/util/prepend';
 import { removePropertyImpure } from '../../internal/util/removeProperty';
@@ -21,21 +21,15 @@ export function createUseFieldArray<T extends object>(
 	validators_store: Writable<ValidatorFields<T>>,
 	errors_store: Writable<ErrorFields<T>>,
 	deps_store: Writable<DependencyFields>,
-	should_validate_store: Writable<boolean>,
 	internalState: [InternalFormState<T>],
 	checkFormForStateReset: () => void,
 	runValidation: (name: string, internalFormState: [InternalFormState<T>]) => Promise<void>,
 ): UseFieldArrayFnInternal {
 	return (name) => {
 		const formState = internalState[0];
-		if (typeof name !== 'string') {
-			throw Error('name must be a string');
-		}
-
+		if (typeof name !== 'string') throw Error('name must be a string');
 		const arrValue = getInternal(name, formState.values);
-		if (!Array.isArray(arrValue)) {
-			throw Error(`Field (${name}) is not an array`);
-		}
+		if (!Array.isArray(arrValue)) throw Error(`Field (${name}) is not an array`);
 
 		return {
 			remove: (index) => {
@@ -52,10 +46,9 @@ export function createUseFieldArray<T extends object>(
 				checkFormForStateReset();
 			},
 			append: (val, { deps = [], validate = false, validator } = {}) => {
-				should_validate_store.set(false);
 				touched_store.update((x) => appendImpure(name, false, x));
 				dirty_store.update((x) => appendImpure(name, false, x));
-				values_store.update((x) => appendImpure(name, val, x));
+				values_store.update((x) => appendImpure(name, [noValidate, val], x));
 				const array = getInternal<any[]>(name, formState.values)!;
 				const path = `${name}.${array.length - 1}`;
 				if (validator) {
@@ -64,7 +57,6 @@ export function createUseFieldArray<T extends object>(
 					validators_store.update((x) => setImpure(path, undefined, x));
 				}
 				deps_store.update((x) => appendImpure(name, clone(deps), x));
-				should_validate_store.set(true);
 				if (validator && validate) {
 					runValidation(path, [internalState[0]]);
 				} else {
@@ -72,35 +64,21 @@ export function createUseFieldArray<T extends object>(
 				}
 			},
 			prepend: (val, { deps = [], validate = false, validator } = {}) => {
-				should_validate_store.set(false);
 				touched_store.update((x) => prependImpure(name, false, x));
 				dirty_store.update((x) => prependImpure(name, false, x));
-				values_store.update((x) => prependImpure(name, val, x));
-				if (validator) {
-					validators_store.update((x) => prependImpure(name, validator, x));
-				} else {
-					validators_store.update((x) => prependImpure(name, undefined, x));
-				}
+				values_store.update((x) => prependImpure(name, [noValidate, val], x));
+				if (validator) validators_store.update((x) => prependImpure(name, validator, x));
+				else validators_store.update((x) => prependImpure(name, undefined, x));
 				deps_store.update((x) => prependImpure(name, clone(deps), x));
-				should_validate_store.set(true);
-				if (validator && validate) {
-					runValidation(`${name}.0`, internalState);
-				} else {
-					errors_store.update((x) => prependImpure(name, false, x));
-				}
+				if (validator && validate) runValidation(`${name}.0`, internalState);
+				else errors_store.update((x) => prependImpure(name, false, x));
 			},
 			swap: (from, to) => {
 				const formState = internalState[0];
 				const array = getInternal<Array<any>>(name, formState.values)!;
-				if (from < 0 || from >= array.length) {
-					throw Error(`From index (${from}) is out of bounds`);
-				}
 
-				if (to < 0 || to >= array.length) {
-					throw Error(`To index (${to}) is out of bounds`);
-				}
-
-				should_validate_store.set(false);
+				if (from < 0 || from >= array.length) throw Error(`From index (${from}) is out of bounds`);
+				if (to < 0 || to >= array.length) throw Error(`To index (${to}) is out of bounds`);
 
 				const index1Path = `${name}.${from}`;
 				const fromItems = {
@@ -139,15 +117,13 @@ export function createUseFieldArray<T extends object>(
 					return setImpure(index2Path, fromItems.deps, x);
 				});
 				values_store.update((x) => {
-					setImpure(index1Path, toItems.value, x);
-					return setImpure(index2Path, fromItems.value, x);
+					setImpure(index1Path, [noValidate, toItems.value], x);
+					return setImpure(index2Path, [noValidate, fromItems.value], x);
 				});
 				validators_store.update((x) => {
 					setImpure(index1Path, toItems.validators, x);
 					return setImpure(index2Path, fromItems.validators, x);
 				});
-
-				should_validate_store.set(true);
 			},
 		};
 	};

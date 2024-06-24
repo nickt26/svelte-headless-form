@@ -298,33 +298,23 @@ export type ValidationResolver<T extends object> = (
 	values: T,
 ) => PartialErrorFields<T> | Promise<PartialErrorFields<T>>;
 
-export type ArrayFieldAddOptions<T extends object> =
-	| {
-			deps?: DotPaths<T>[];
-			validate: boolean;
-			validator: ValidatorFn<T>;
-	  }
-	| {
-			deps?: DotPaths<T>[];
-			validate?: undefined;
-			validator?: undefined;
-	  };
-
-type ResetFieldValues<T extends object, Val> = {
-	value: Val;
+export type ArrayFieldAddOptions<T extends object> = {
 	deps?: DotPaths<T>[];
-	validator?: ValidatorFn<T, Val>;
+	validate?: boolean;
+	validator?: ValidatorFn<T>;
 };
-type ResetFieldKeep = {
+
+type ResetFieldValues<T extends object, TValue> = {
+	value: TValue;
+	deps?: DotPaths<T>[];
+	validator?: ValidatorFn<T, TValue>;
+	validate?: boolean;
+};
+export type ResetFieldOptions<T extends object, TValue> = ResetFieldValues<T, TValue> & {
 	keepTouched?: boolean;
-	keepValidator?: boolean;
-	keepValue?: boolean;
-	keepDeps?: boolean;
-	keepError?: boolean;
 	keepDirty?: boolean;
-	keepDependentErrors?: boolean;
+	keepError?: boolean;
 };
-export type ResetFieldOptions<T extends object, Val> = ResetFieldKeep & ResetFieldValues<T, Val>;
 
 export type FormUseFieldArray<T extends object, S = unknown> = {
 	remove: (index: number) => void;
@@ -333,19 +323,18 @@ export type FormUseFieldArray<T extends object, S = unknown> = {
 	swap: (from: number, to: number) => void;
 };
 
-// export type Field<T extends object> = {
-// 	handleChange: <Obj extends T, Path extends DotPath<T>>(path: Path, value: NestedValueOf<Obj, Path & string>) => void;
-// 	handleBlur: (name: string) => void;
-// 	handleFocus: (name: string) => void;
-// };
-
 export type HandleChangeFn = (
 	e: Event & { currentTarget: EventTarget & HTMLInputElement },
 ) => Promise<void>;
 
-export type UpdateValueFn<T extends object> = <TObject extends T, Path extends DotPaths<T>>(
-	path: Path,
-	value: ValueOf<TObject, Path & string>,
+export type UpdateValueFn<T extends object> = <TObject extends T, TPath extends DotPaths<T>>(
+	path: TPath,
+	value: ValueOf<TObject, TPath & string>,
+	options?: {
+		validate?: boolean;
+		newDeps?: (DotPaths<TObject> | StarPaths<DotPaths<TObject>>)[];
+		newValidator?: ValidatorFn<TObject, ValueOf<TObject, TPath & string>>;
+	},
 ) => Promise<void>;
 
 export type HandlerFn<T extends object = object> = <
@@ -370,12 +359,12 @@ export type ResetFieldFn<T extends object> = <TObject extends T, Path extends Do
 ) => void;
 
 export type ResetFormOptions<T extends object> = {
-	values: T;
+	values: T | ReadonlyDeep<T>;
 	validators?: ValidatorFields<T>;
 	deps?: Dependencies<T, DotPaths<T>[]>;
 };
 
-export type ResetFormFn<T extends object> = <TValues extends T>(
+export type ResetFormFn<T extends object = object> = <TValues extends T>(
 	options?: ResetFormOptions<TValues>,
 ) => void;
 
@@ -405,7 +394,7 @@ export type LatestFieldEvent = {
 	event: FieldEventHook;
 };
 
-export type ValidateFn<T extends object> = <Path extends DotPaths<T>>(name: Path) => void;
+export type ValidateFn<T extends object> = <TPath extends DotPaths<T>>(name: TPath) => void;
 
 export type Form<T extends object = object> = {
 	touched: Readable<BooleanFields<T>>;
@@ -423,12 +412,16 @@ export type Form<T extends object = object> = {
 	handleBlur: HandlerFn<T>;
 	handleFocus: HandlerFn<T>;
 	control: FormControl<T>;
-	initialValues: T;
+	initialValues: ReadonlyDeep<T>;
 	initialValidators: ValidatorFields<T>;
 	initialDeps: DependencyFields<T>;
 	validate: ValidateFn<T>;
 	latestFieldEvent: Readable<LatestFieldEvent | null>;
 	validators: Writable<ValidatorFields<T>>;
+	clean: <TPath extends DotPaths<T>>(path: TPath) => void;
+	makeDirty: <TPath extends DotPaths<T>>(path: TPath) => void;
+	unBlur: <TPath extends DotPaths<T>>(path: TPath) => void;
+	// batch: (fn: (options: FormControl<T>) => void | Promise<void>) => Promise<void>;
 };
 
 export type ValidatorState<T extends object> = {

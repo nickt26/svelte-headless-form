@@ -165,16 +165,18 @@ export function createUpdateValue<T extends object>(
 		// 	} else {
 		// values_store.update((x) => setImpure(name, incomingValue, x));
 
-		const fieldIsDirty = getInternal<boolean | BooleanFields>(name, formState.dirty);
-		console.log('runs this for', name);
+		const fieldIsDirty = getInternal(name, formState.dirty);
 
 		if (!fieldIsDirty) dirty_store.update((x) => setImpure(name, true, x));
 		// 	}
 		// }
 
-		if (!formState.state.isDirty) state_store.update((x) => setImpure('isDirty', true, x));
-		if (formState.validateMode === 'onChange' || formState.validateMode === 'all')
+		if (!formState.state.isDirty) {
+			state_store.update((x) => setImpure('isDirty', true, x));
+		}
+		if (formState.validateMode === 'onChange' || formState.validateMode === 'all') {
 			await runValidation(name, internalState);
+		}
 		latest_field_event_store.set({ field: name, event: 'afterChange' });
 	};
 }

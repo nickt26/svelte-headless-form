@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createForm } from '../../core/createForm';
-	import { formValidators, formValues } from '../core/createForm.test';
+	import { formValidators, formValues } from '../core/createFormUtils';
 
 	const form = createForm({
 		initialValues: formValues,
@@ -9,7 +9,7 @@
 	const { submitForm, values, errors, touched, dirty, state, handleBlur } = form;
 </script>
 
-<form on:submit|preventDefault={submitForm((values) => console.log(values))}>
+<form on:submit={submitForm((values) => console.log(values))}>
 	<input
 		name="name"
 		data-testid="name-input"

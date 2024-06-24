@@ -1,5 +1,6 @@
 import { Star, TriggerFields, Triggers, Values } from '../../types/Form';
 import { canParseToInt } from './canParseToInt';
+import { noValidate } from './clone';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
@@ -22,8 +23,8 @@ export const setImpure = <V, T extends object>(
 		const key = splitPath[i];
 		let next = current[key];
 		if (!isObject(next) && !Array.isArray(next)) {
-			current[key] = canParseToInt(splitPath[i + 1]) ? [] : {};
-			next = current[key];
+			current[key] = { value: canParseToInt(splitPath[i + 1]) ? [] : {}, [noValidate]: true };
+			next = current[key].value;
 		}
 		current = next;
 	}

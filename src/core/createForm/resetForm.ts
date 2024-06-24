@@ -19,8 +19,8 @@ export const createResetForm = <T extends object>(
 	errors_store: Writable<ErrorFields<T>>,
 	deps_store: Writable<DependencyFieldsInternal<T>>,
 	state_store: Writable<FormState>,
-): ResetFormFn<object> => {
-	return (options): void => {
+): ResetFormFn => {
+	return (options) => {
 		const newValues =
 			options?.values === undefined
 				? clone(initialValues)
