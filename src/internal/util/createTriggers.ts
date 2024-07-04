@@ -3,6 +3,40 @@ import { getInternal } from './get';
 import { isObject } from './isObject';
 import { setTriggerImpure } from './set';
 
+function path(
+	p: Array<string | number | symbol>,
+	key: string | number | symbol,
+): Array<string | number | symbol> {
+	return p.length ? [...p, key] : [key];
+}
+
+export function createTrigger<T extends object>(
+	values: T,
+	deps: any,
+	currentKey: Array<string | number | symbol> = [],
+	triggers: TriggerFields<T> = {},
+): TriggerFields<T> {
+	if (isObject(deps)) {
+		const keys = Object.keys(deps);
+
+		for (const key of keys) {
+			createTrigger(values, deps[key], path(currentKey, key), triggers);
+		}
+	} else if (Array.isArray(deps)) {
+		if (deps.length === 2) {
+			if (isObject(deps[0])) {
+				for (const key of Object.keys(deps[0])) {
+					setTriggerImpure(currentKey.join('.'), key, triggers);
+				}
+			}
+		}
+		for (let i = 0; i < deps.length; i++) {
+			createTrigger(values, deps[i], path(currentKey, i), triggers);
+		}
+	}
+	return triggers;
+}
+
 export const createTriggers = <T extends object>(
 	values: T,
 	deps: Record<string | number | symbol, unknown> | any[] | string | undefined,

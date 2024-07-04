@@ -360,6 +360,9 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		initialValues: clone(initialValues) as ReadonlyDeep<T>,
 		initialValidators: clone(initialValidators),
 		initialDeps: clone(initialDeps) as DependencyFields<T>,
+		initialTouched: clone(initialTouched),
+		initialDirty: clone(initialDirty),
+		initialErrors: clone(initialErrors),
 		validate: validate as ValidateFn<T>,
 		latestFieldEvent: {
 			subscribe: latest_field_event_store.subscribe,

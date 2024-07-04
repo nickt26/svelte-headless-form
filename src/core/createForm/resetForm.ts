@@ -21,18 +21,17 @@ export const createResetForm = <T extends object>(
 	state_store: Writable<FormState>,
 ): ResetFormFn => {
 	return (options) => {
-		const newValues =
-			options?.values === undefined
-				? clone(initialValues)
-				: (clone(options.values) as unknown as T);
-		const newValidators =
-			options?.validators === undefined ? clone(initialValidators) : clone(options.validators);
-		const newDeps =
-			options?.deps === undefined
-				? clone(initialDeps)
-				: mergeRightDeepImpure(assign([], newValues), clone(options.deps));
+		const newValues = !options?.values
+			? clone(initialValues)
+			: (clone(options.values) as unknown as T);
+		const newValidators = !options?.validators
+			? clone(initialValidators)
+			: clone(options.validators);
+		const newDeps = !options?.deps
+			? clone(initialDeps)
+			: mergeRightDeepImpure(assign([], newValues), clone(options.deps));
 
-		values_store.set(newValues as T);
+		values_store.set(newValues);
 		validators_store.set(newValidators as ValidatorFields<T>);
 		errors_store.set(assign(false as string | false, newValues) as ErrorFields<T>);
 		deps_store.set(newDeps);

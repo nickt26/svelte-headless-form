@@ -58,8 +58,6 @@ export const setTriggerImpure = <T extends object>(
 				// TODO: Since star is so nested, you can end up in a situation where both array keys and object keys have to go into this property, potentially add an array path and object path to star symbol paths, will have to consider this in getTriggers as well
 				if (!current[Star]) current[Star] = nextShouldBeArray ? [] : {};
 				next = current[Star];
-				current = next;
-				continue;
 			} else {
 				if (isNil(next?.[Star])) {
 					const nextNextIsArray = canParseToInt(splitPath[i + 2]);
@@ -69,9 +67,9 @@ export const setTriggerImpure = <T extends object>(
 					};
 				}
 				next = current[key === '*' ? Star : key][Star];
-				current = next;
-				continue;
 			}
+			current = next;
+			continue;
 		}
 
 		if (

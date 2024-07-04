@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { derived, writable } from 'svelte/store';
 	import { createForm } from '../../../src/core/createForm';
-	import { AllFields, CurrentObject, Values } from '../../../src/types/Form';
+	import {
+		AllFields,
+		CurrentObject,
+		PartialValidatorFields,
+		PartialValidatorss,
+		Values,
+	} from '../../../src/types/Form';
 	import FieldArray from '../components/FieldArray.svelte';
 	import Input from '../components/Input.svelte';
 	import { roles, type FormValues } from '../types/FormValues';
@@ -15,6 +21,27 @@
 				resolve(fn());
 			}, ms ?? 3000),
 		);
+
+	type No<T extends object> = {
+		[K in keyof T]: () => string | false;
+	};
+	type Yes<O extends object> = {
+		a: <const T extends No<O> = No<O>>(val: any) => T;
+	};
+
+	const yes = { a: 3, b: '4' };
+	const fn = (ret: { a: number }, unused?: { a: number }): typeof unused => {
+		return ret;
+	};
+
+	type Fn = (values: { a: number }, unused?: { a: number }) => typeof unused;
+
+	const ffn: Fn = (values) => {
+		return {
+			a: 3,
+			b: '4',
+		};
+	};
 
 	const {
 		submitForm,
@@ -46,16 +73,24 @@
 			roles: ['admin', 'user', 'guest'],
 			rolesAreUnique: null,
 			files: null,
+			testers: [],
 		},
-		initialValidators: (initialValues) => ({
+		initialValidators: (val) => ({
 			username: (value) => !value.length && 'Username is required',
 			password: (value) => !value.length && 'Password is required',
 			nested: {
-				[CurrentObject]: (val) => !val && 'Nested is required',
+				// [CurrentObject]: (val) => !val && 'Nested is required',
 				age: (val) => (val === null && 'Age is required') || (val <= 0 && 'Age must be greater than 0'),
 				gender: (val) => !val && 'Gender must be true',
 			},
-			roles: {
+			// roles: [
+			// 	{
+			// 		current: (val) => !val.length && 'Roles are required',
+			// 		all: (val) => !roles.includes(val) && 'Role is invalid',
+			// 	},
+			// 	[(val) => !roles.includes(val) && 'Role is invalid'],
+			// ],
+			testers: {
 				[CurrentObject]: (val) => val.length === 0 && 'Roles are required',
 				[AllFields]: (val) => !roles.includes(val) && 'Role is invalid',
 				[Values]: initialValues.roles.map((_) => (val) => !roles.includes(val) && 'Role is invalid'),

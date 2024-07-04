@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
-import {
-	AllFields,
-	DependencyFields,
-	Star,
-	TriggerFields,
-	Triggers,
-	Values,
-} from '../../../types/Form';
+import { All, DependencyFields, Star, TriggerFields, Triggers, Values } from '../../../types/Form';
 
 type FormValues = {
 	firstName: string;
@@ -151,7 +144,7 @@ describe('createTriggers', () => {
 	it('[non-nested] should convert deps into triggers correctly - AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
-				[AllFields]: ['firstName', 'lastName'],
+				[All]: ['firstName', 'lastName'],
 			},
 		};
 
@@ -168,7 +161,7 @@ describe('createTriggers', () => {
 	it('[non-nested] should convert deps into triggers correctly - multiple deps & AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
-				[AllFields]: ['firstName', 'lastName'],
+				[All]: ['firstName', 'lastName'],
 			},
 			age: ['firstName'],
 		};
@@ -204,7 +197,7 @@ describe('createTriggers', () => {
 			age: ['extra.*.city', 'extra.*.country'],
 			extra: {
 				location: {
-					[AllFields]: ['extra.*.coords.lat'],
+					[All]: ['extra.*.coords.lat'],
 					postCode: ['extra.roles.*.name'],
 				},
 			},
@@ -283,7 +276,7 @@ describe('createTriggers', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
-					[AllFields]: ['firstName'],
+					[All]: ['firstName'],
 				},
 			},
 		};
@@ -301,7 +294,7 @@ describe('createTriggers', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
-					[AllFields]: ['firstName'],
+					[All]: ['firstName'],
 					unitNumber: ['lastName'],
 				},
 				roles: [
@@ -390,7 +383,7 @@ describe('createTriggers', () => {
 	it('[dep-nested] should convert deps into triggers correctly - AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
-				[AllFields]: ['extra.location.country'],
+				[All]: ['extra.location.country'],
 			},
 		};
 
@@ -414,7 +407,7 @@ describe('createTriggers', () => {
 	it('[dep-nested] should convert deps into triggers correctly - multiple deps & AllFields symbol', () => {
 		const deps: DependencyFields<FormValues> = {
 			middleNames: {
-				[AllFields]: ['extra.location.country'],
+				[All]: ['extra.location.country'],
 			},
 		};
 
@@ -523,7 +516,7 @@ describe('createTriggers', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
-					[AllFields]: ['financials.payslips.0.grossIncome'],
+					[All]: ['financials.payslips.0.grossIncome'],
 				},
 			},
 		};
@@ -553,7 +546,7 @@ describe('createTriggers', () => {
 		const deps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
-					[AllFields]: ['financials.payslips.0.grossIncome'],
+					[All]: ['financials.payslips.0.grossIncome'],
 				},
 			},
 			financials: {
@@ -601,7 +594,7 @@ describe('createTriggers', () => {
 		const formDeps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
-					[AllFields]: ['extra.roles.*.name'],
+					[All]: ['extra.roles.*.name'],
 					city: ['extra.*.coords.lat', 'extra.location.*.lng'],
 					postCode: ['extra.*.*.lat', 'extra.*.*.name', 'extra.*.*.0'],
 					unitNumber: ['extra.location.*.lat', 'extra.location.*.lng'],
@@ -611,7 +604,7 @@ describe('createTriggers', () => {
 					},
 				},
 				roles: {
-					[AllFields]: ['extra.location.*.lat'],
+					[All]: ['extra.location.*.lat'],
 					[Values]: [
 						{
 							name: ['extra.*.city'],

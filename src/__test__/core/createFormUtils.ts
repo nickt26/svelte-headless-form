@@ -1,31 +1,53 @@
 import { isObject } from '../../internal/util/isObject';
-import { DotPaths, Form as FormType, PartialValidatorFields } from '../../types/Form';
+import { DotPaths, Form as FormType, PartialValidatorFields, ValueOf } from '../../types/Form';
 import Form from '../components/Form.svelte';
 
 export type FormValues = {
 	name: string;
 	email: string;
 	roles: string[];
+	location: {
+		address: string;
+		coords: {
+			lat: number;
+			lng: number;
+		};
+	};
 };
 
 export const formValues: FormValues = {
 	name: '',
 	email: '',
 	roles: ['user'],
+	location: {
+		address: '123 Main St.',
+		coords: {
+			lat: 0,
+			lng: 0,
+		},
+	},
 };
 
 export const formValidators: PartialValidatorFields<FormValues> = {
-	name: (value) => value.length === 0 && 'Required',
-	email: (value) => value.length === 0 && 'Required',
+	name: (value) => !value.length && 'Required',
+	email: (value) => !value.length && 'Required',
 };
 
-export type ValueUpdate = Array<{ key: DotPaths<FormValues>; value: any }>;
+export type ValueUpdate = Array<ValueUpdat>;
+
+type ValueUpdat = {
+	[TKey in DotPaths<FormValues>]: {
+		key: TKey;
+		value: ValueOf<FormValues, TKey>;
+	};
+}[DotPaths<FormValues>];
 
 export function waitForAllFieldsToValidate(
 	valueUpdates: ValueUpdate | Array<DotPaths<FormValues>>,
 	form: FormType<FormValues>,
 ): Promise<void> {
 	const { latestFieldEvent } = form;
+	let counter = 0;
 	return new Promise<void>((resolve) => {
 		const fieldsThatHaveValidated: (string | (string | number | symbol)[])[] = [];
 		const unsub = latestFieldEvent.subscribe(async (x) => {
@@ -42,7 +64,8 @@ export function waitForAllFieldsToValidate(
 							return val === path;
 						}
 					},
-				)
+				) &&
+				counter != 0
 			) {
 				fieldsThatHaveValidated.push(x.field);
 				if (fieldsThatHaveValidated.length === valueUpdates.length) {
@@ -50,6 +73,7 @@ export function waitForAllFieldsToValidate(
 					resolve();
 				}
 			}
+			counter += 1;
 		});
 	});
 }

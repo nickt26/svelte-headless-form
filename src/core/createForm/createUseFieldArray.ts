@@ -51,11 +51,7 @@ export function createUseFieldArray<T extends object>(
 				values_store.update((x) => appendImpure(name, [noValidate, val], x));
 				const array = getInternal<any[]>(name, formState.values)!;
 				const path = `${name}.${array.length - 1}`;
-				if (validator) {
-					validators_store.update((x) => setImpure(path, validator, x));
-				} else {
-					validators_store.update((x) => setImpure(path, undefined, x));
-				}
+				validators_store.update((x) => appendImpure(name, validator, x));
 				deps_store.update((x) => appendImpure(name, clone(deps), x));
 				if (validator && validate) {
 					runValidation(path, [internalState[0]]);

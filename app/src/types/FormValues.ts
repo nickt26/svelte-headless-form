@@ -17,6 +17,7 @@ export type FormValues = {
 		| {
 				bananas: string[];
 		  };
+	testers: { banana: string; lemon: number }[];
 	rolesAreUnique: null;
 	files: FileList | null;
 };

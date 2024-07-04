@@ -138,21 +138,43 @@ export type Validators<O extends object, T extends object> = {
 		: Extract<T[key], Array<any>> extends never
 			?
 					| (Validators<O, Extract<T[key], object>> & {
-							[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
+							[Current]?: ValidatorFn<O, Extract<T[key], object>>;
 					  })
 					| ValidatorFn<O, Exclude<T[key], object>>
 			:
 					| Validators<O, Extract<T[key], object>>
 					| {
-							[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
-							[AllFields]?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+							[Current]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+							[All]?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
 							[Values]?: Validators<O, Extract<T[key], Array<any>>>;
 					  }
 					| ValidatorFn<O, Exclude<T[key], object>>;
 };
 
+export type Validatorss<O extends object, T extends object> = {
+	[key in keyof T]: Extract<T[key], object> extends never
+		? ValidatorFn<O, T[key]> | undefined
+		: Extract<T[key], Array<any>> extends never
+			?
+					| [
+							{ currentObject: ValidatorFn<O, Extract<T[key], object>> },
+							Validatorss<O, Extract<T[key], object>>,
+					  ]
+					| ValidatorFn<O, Exclude<T[key], object>>
+			:
+					| Validatorss<O, Extract<T[key], object>>
+					| [
+							{
+								current?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+								all?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+							},
+							[Validatorss<O, Extract<T[key], Array<any>>>],
+					  ]
+					| ValidatorFn<O, Exclude<T[key], object>>;
+};
+
 export const currentObjectKey = 'CurrentObject';
-export const CurrentObject = Symbol(currentObjectKey);
+export const Current = Symbol(currentObjectKey);
 
 export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
@@ -160,18 +182,126 @@ export type PartialValidators<O extends object, T extends object> = {
 		: Extract<T[key], Array<any>> extends never
 			?
 					| (Validators<O, Extract<T[key], object>> & {
-							[CurrentObject]?: ValidatorFn<O, Extract<T[key], object>>;
+							[Current]?: ValidatorFn<O, Extract<T[key], object>>;
 					  })
 					| ValidatorFn<O, Exclude<T[key], object>>
 			:
 					| Validators<O, Extract<T[key], object>>
 					| {
-							[CurrentObject]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
-							[AllFields]: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
+							[Current]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+							[All]: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
 							[Values]?: Validators<O, Extract<T[key], Array<any>>>;
 					  }
 					| ValidatorFn<O, Exclude<T[key], object>>;
 };
+
+export type PartialValidatorss<O extends object, T extends object> = {
+	[K in keyof T]?: Extract<T[K], object> extends never
+		? ValidatorFn<O, T[K]>
+		: Extract<T[K], Array<any>> extends never
+			?
+					| [ValidatorFn<O, Extract<T[K], object>>, PartialValidatorss<O, Extract<T[K], object>>]
+					| PartialValidatorss<O, Extract<T[K], object>>
+			:
+					| PartialValidatorss<O, Extract<T[K], Array<any>>>
+					| [
+							{
+								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
+								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
+							},
+					  ]
+					| [
+							{
+								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
+								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
+							},
+							PartialValidatorss<O, Extract<T[K], Array<any>>>,
+					  ];
+};
+
+type Obj = { banana?: string; lemon?: string } & { current: never; all: never };
+type Test1 = Array<Obj> | [<T extends Obj = Obj>(val: T) => string | false, Array<Obj>];
+
+type Test =
+	| [
+			{
+				current?: <T extends Obj = Obj>(val: T) => string | false;
+				all?: <T extends Obj = Obj>(val: T) => string | false;
+			},
+			Test1,
+	  ]
+	| Test1
+	| undefined;
+
+const test: Test = [{ current: (val) => 'err' }];
+
+type O = {
+	firstName: string;
+	tester: { banana: string; lemon: string }[];
+};
+
+type A<T extends object, O extends object> = {
+	[K in keyof T]?: Extract<T[K], object> extends never
+		? ValidatorFn<O, T[K]>
+		: Extract<T[K], Array<any>> extends never
+			?
+					| [ValidatorFn<O, T[K]>, A<Extract<T[K], object>, O>]
+					| [ValidatorFn<O, T[K]>, A<Extract<T[K], object>, O>, A<Extract<T[K], object>, O>]
+					| A<Extract<T[K], object>, O>
+			:
+					| [
+							{
+								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
+								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
+							},
+							A<Extract<T[K], Array<any>>, O>,
+					  ]
+					| [
+							{
+								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
+								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
+							},
+					  ]
+					| A<Extract<T[K], Array<any>>, O>;
+};
+
+const yes: PartialValidatorss<O, O> = {
+	firstName: (val) => 'err',
+	tester: [{ banana: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
+};
+
+type F<V extends object> = {
+	initialValues: V;
+	validators:
+		| PartialValidatorFields<V>
+		| ((values: PartialValidatorFields<V>) => PartialValidatorFields<V>);
+};
+
+const f: F<O> = {
+	initialValues: {
+		firstName: 'test',
+		tester: [],
+	},
+	validators: {
+		firstName: (val) => 'err',
+		tester: [{ banana: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
+	},
+};
+
+const fn = <T extends object>(f: F<T>): void => {
+	return;
+};
+
+fn<O>({
+	initialValues: {
+		firstName: 'test',
+		tester: [],
+	},
+	validators: (vals) => ({
+		firstName: () => 'err',
+		tester: [{ current: () => 'err' }, [{ banana: () => 'lemon' }]],
+	}),
+});
 
 type StarPaths<T extends string, R extends string = ''> = T extends `${infer First}.${infer Rest}`
 	? R extends ''
@@ -204,7 +334,7 @@ type CreateStarPaths4<
 			: Path;
 
 export const allFieldsKey = 'allFields';
-export const AllFields = Symbol(allFieldsKey);
+export const All = Symbol(allFieldsKey);
 type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath extends string> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
 		? (
@@ -225,15 +355,19 @@ type Dependencies<
 	TCurrentPath extends string = '',
 	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
 > = T extends any[]
-	? { [AllFields]: (S[number] | StarPaths<S[number]>)[]; [Values]?: TDepsOnObject } | TDepsOnObject
-	: TDepsOnObject & { [AllFields]?: S | (S[number] | StarPaths<S[number]>)[] };
+	? { [All]: (S[number] | StarPaths<S[number]>)[]; [Values]?: TDepsOnObject } | TDepsOnObject
+	: TDepsOnObject & { [All]?: S | (S[number] | StarPaths<S[number]>)[] };
+
+// type DependencyFieldss<T extends object> = {
+// 	[K in keyof T]?: T[K] extends object ? DependencyFieldss<T[K]> : [{ currentObject:  }];
+// };
 
 export type DependencyFields<T extends object = object> = Dependencies<T, DotPaths<T>[]>;
 export type DependencyFieldsInternal<T extends object = object> = PartialDeep<T, string[]>;
 export type BooleanFields<T extends object = object> = ObjectDeep<T, boolean>;
 export type ErrorFields<T extends object = object> = ObjectDeep<T, string | false>;
 export type PartialErrorFields<T extends object> = PartialDeep<T, string | false>;
-export type ValidatorFields<T extends object = object> = Validators<T, T>;
+export type ValidatorFields<T extends object = object> = Validatorss<T, T>;
 export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
 
 export const valuesKey = 'values';
@@ -262,6 +396,10 @@ export type TriggerFields<T extends object = object> = {
 		: TriggerFields<T[keyof T] & object>;
 };
 
+// export type TriggerFieldss<T extends object> = {
+// 	[K in keyof T]?: T[K] extends object ? TriggerFieldss<T[K]> : [{currentObject: ''}]
+// }
+
 export type ValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(
 	val: Value,
 	formState: ValidatorState<T>,
@@ -273,20 +411,19 @@ export type GlobalFormOptions<T extends object> = {
 	initialDeps?: Dependencies<T, DotPaths<T>[]>;
 	// revalidateMode: ValidateMode;
 };
-export type FormOptionsSchemaless<T extends object> = GlobalFormOptions<T> & {
+export type FormOptionsSchemaless<T extends object> = {
 	initialValidators?:
 		| PartialValidatorFields<T>
 		| ((values: ReadonlyDeep<T>) => PartialValidatorFields<T>);
+	validationResolver?: undefined;
 };
 
-export type FormOptionsSchema<T extends object> = GlobalFormOptions<T> & {
+export type FormOptionsSchema<T extends object> = {
 	validationResolver?: ValidationResolver<T>;
+	initialValidators?: undefined;
 };
 export type FormOptions<T extends object> = GlobalFormOptions<T> &
-	(
-		| Pick<FormOptionsSchemaless<T>, 'initialValidators'>
-		| Pick<FormOptionsSchema<T>, 'validationResolver'>
-	);
+	(FormOptionsSchemaless<T> | FormOptionsSchema<T>);
 export type SyncValidationResolver<T extends object> = (
 	values: ReadonlyDeep<T>,
 ) => PartialErrorFields<T>;
@@ -308,13 +445,20 @@ type ResetFieldValues<T extends object, TValue> = {
 	value: TValue;
 	deps?: DotPaths<T>[];
 	validator?: ValidatorFn<T, TValue>;
-	validate?: boolean;
 };
-export type ResetFieldOptions<T extends object, TValue> = ResetFieldValues<T, TValue> & {
-	keepTouched?: boolean;
-	keepDirty?: boolean;
-	keepError?: boolean;
-};
+export type ResetFieldOptions<T extends object, TValue> =
+	| (ResetFieldValues<T, TValue> & {
+			keepTouched?: boolean;
+			keepDirty?: boolean;
+			keepError?: boolean;
+			validate?: undefined;
+	  })
+	| (ResetFieldValues<T, TValue> & {
+			keepTouched?: boolean;
+			keepDirty?: boolean;
+			keepError?: undefined;
+			validate?: boolean;
+	  });
 
 export type FormUseFieldArray<T extends object, S = unknown> = {
 	remove: (index: number) => void;
@@ -415,6 +559,9 @@ export type Form<T extends object = object> = {
 	initialValues: ReadonlyDeep<T>;
 	initialValidators: ValidatorFields<T>;
 	initialDeps: DependencyFields<T>;
+	initialTouched: BooleanFields<T>;
+	initialDirty: BooleanFields<T>;
+	initialErrors: ErrorFields<T>;
 	validate: ValidateFn<T>;
 	latestFieldEvent: Readable<LatestFieldEvent | null>;
 	validators: Writable<ValidatorFields<T>>;

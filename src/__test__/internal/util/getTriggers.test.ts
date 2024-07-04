@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTriggers } from '../../../internal/util/createTriggers';
 import { getTriggers } from '../../../internal/util/getTriggers';
-import {
-	AllFields,
-	DependencyFields,
-	Star,
-	TriggerFields,
-	Triggers,
-	Values,
-} from '../../../types/Form';
+import { All, DependencyFields, Star, TriggerFields, Triggers, Values } from '../../../types/Form';
 
 type FormValues = {
 	firstName: string;
@@ -124,7 +117,7 @@ describe('getTriggers', () => {
 		const formDeps: DependencyFields<FormValues> = {
 			extra: {
 				location: {
-					[AllFields]: ['extra.roles.*.name'],
+					[All]: ['extra.roles.*.name'],
 					city: ['extra.*.coords.lat', 'extra.location.*.lng'],
 					unitNumber: ['extra.location.*.lat', 'extra.location.*.lng'],
 					coords: {
@@ -133,7 +126,7 @@ describe('getTriggers', () => {
 					},
 				},
 				roles: {
-					[AllFields]: ['extra.location.*.lat'],
+					[All]: ['extra.location.*.lat'],
 					[Values]: [
 						{
 							name: ['extra.*.city'],

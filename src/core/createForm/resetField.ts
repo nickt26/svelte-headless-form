@@ -37,6 +37,14 @@ export const createResetField = <TValues extends object>(
 		if (typeof name !== 'string')
 			throw new Error('resetField: The `name` argument must be a string');
 
+		if (options) {
+			if (!isObject(options))
+				throw new Error('resetField: The `options` argument must be an object');
+
+			if ('validate' in options && 'keepError' in options)
+				throw new Error('resetField: You cannot use `validate` and `keepError` options together');
+		}
+
 		latest_field_event_store.set({ field: name, event: 'beforeReset' });
 
 		const initialValue = getInternalSafe(name, initialValues);
