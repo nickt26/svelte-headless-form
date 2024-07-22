@@ -2,6 +2,7 @@ import { ObjectDeep } from '../../types/Form';
 import { clone } from './clone';
 import { empty } from './empty';
 import { isObject } from './isObject';
+import { setImpure } from './set';
 
 export const assignImpure = <T, S extends object, K extends object>(
 	val: T,
@@ -66,6 +67,102 @@ export const assign = <T, S extends object = object>(
 	// }
 	return toReturn as ObjectDeep<S, T>;
 };
+
+export function assignUsing<T extends object, S extends object>(
+	left: T,
+	right: S,
+	exceptedValues?: {
+		use?: symbol[];
+		compare?: symbol[];
+	},
+	result: object = {},
+	path: Array<string | number | symbol> = [],
+): T & S {
+	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right)))
+		return result as T & S;
+	const keys = Array.isArray(right)
+		? right
+		: [...Object.keys(right), ...Object.getOwnPropertySymbols(right)];
+	for (let i = 0; i < keys.length; i++) {
+		const key = keys[i];
+		const leftVal = left[key];
+		const rightVal = right[key];
+		if (key in left) {
+			if (
+				(Array.isArray(leftVal) && Array.isArray(rightVal)) ||
+				(isObject(leftVal) && isObject(rightVal))
+			) {
+				assignUsing(
+					leftVal,
+					rightVal,
+					exceptedValues,
+					result,
+					path.length ? [...path, key] : [key],
+				);
+			} else {
+				setImpure(path.length ? [...path, key] : [key], rightVal, result);
+			}
+		} else {
+			const usableKey = exceptedValues?.use?.find((x) => x === key);
+			const comparableKey = exceptedValues?.compare?.find((x) => x === key);
+
+			// const val = usableKey && right[usableKey];
+			if (usableKey) {
+				// const val = right[usableKey];
+				// if (!val) continue;
+				// if (Array.isArray(leftVal) || isObject(leftVal)) {
+				setImpure(path.length ? [...path, key] : [key], rightVal, result);
+				// }
+				continue;
+			}
+			if (comparableKey) {
+				// const val = right[comparableKey];
+				// if (!val) continue;
+				if (Array.isArray(rightVal) || isObject(rightVal)) {
+					assignUsing(left, rightVal, exceptedValues, result, path.length ? [...path, key] : [key]);
+				}
+				// else {
+				// 	setImpure(path.length ? [...path, comparableKey] : [comparableKey], rightVal, result);
+				// }
+			}
+		}
+	}
+
+	// const usableKey = Object.getOwnPropertySymbols(right).find((key) =>
+	// 	exceptedValues?.use?.includes(key),
+	// );
+	// const comparableKey = Object.getOwnPropertySymbols(right).find((key) =>
+	// 	exceptedValues?.compare?.includes(key),
+	// );
+
+	// // const val = usableKey && right[usableKey];
+	// if (usableKey) {
+	// 	const val = right[usableKey];
+
+	// 	if (Array.isArray(left) || isObject(left)) {
+	// 		setImpure(path.length ? [...path, usableKey] : [usableKey], val, result);
+	// 	}
+	// }
+
+	// if (comparableKey) {
+	// 	const val = right[comparableKey];
+
+	// 	if ((Array.isArray(left) && Array.isArray(val)) || (isObject(left) && isObject(val))) {
+	// 		assignUsing(
+	// 			left,
+	// 			val,
+	// 			exceptedValues,
+	// 			result,
+	// 			path.length ? [...path, comparableKey] : [comparableKey],
+	// 		);
+	// 	}
+	// 	// else {
+	// 	// 	setImpure(path.length ? [...path, comparableKey] : [comparableKey], val, result);
+	// 	// }
+	// }
+
+	return result as T & S;
+}
 
 export const assignWithReactivity = <T, S extends object = object>(
 	value: T,
