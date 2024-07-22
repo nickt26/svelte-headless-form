@@ -99,67 +99,26 @@ export function assignUsing<T extends object, S extends object>(
 					result,
 					path.length ? [...path, key] : [key],
 				);
-			} else {
+			} else if (typeof leftVal === typeof rightVal) {
 				setImpure(path.length ? [...path, key] : [key], rightVal, result);
 			}
-		} else {
-			const usableKey = exceptedValues?.use?.find((x) => x === key);
-			const comparableKey = exceptedValues?.compare?.find((x) => x === key);
+			continue;
+		}
 
-			// const val = usableKey && right[usableKey];
-			if (usableKey) {
-				// const val = right[usableKey];
-				// if (!val) continue;
-				// if (Array.isArray(leftVal) || isObject(leftVal)) {
-				setImpure(path.length ? [...path, key] : [key], rightVal, result);
-				// }
-				continue;
-			}
-			if (comparableKey) {
-				// const val = right[comparableKey];
-				// if (!val) continue;
-				if (Array.isArray(rightVal) || isObject(rightVal)) {
-					assignUsing(left, rightVal, exceptedValues, result, path.length ? [...path, key] : [key]);
-				}
-				// else {
-				// 	setImpure(path.length ? [...path, comparableKey] : [comparableKey], rightVal, result);
-				// }
+		const usableKey = exceptedValues?.use?.find((x) => x === key);
+		const comparableKey = exceptedValues?.compare?.find((x) => x === key);
+
+		if (usableKey) {
+			setImpure(path.length ? [...path, key] : [key], rightVal, result);
+			continue;
+		}
+
+		if (comparableKey) {
+			if (Array.isArray(rightVal) || isObject(rightVal)) {
+				assignUsing(left, rightVal, exceptedValues, result, path.length ? [...path, key] : [key]);
 			}
 		}
 	}
-
-	// const usableKey = Object.getOwnPropertySymbols(right).find((key) =>
-	// 	exceptedValues?.use?.includes(key),
-	// );
-	// const comparableKey = Object.getOwnPropertySymbols(right).find((key) =>
-	// 	exceptedValues?.compare?.includes(key),
-	// );
-
-	// // const val = usableKey && right[usableKey];
-	// if (usableKey) {
-	// 	const val = right[usableKey];
-
-	// 	if (Array.isArray(left) || isObject(left)) {
-	// 		setImpure(path.length ? [...path, usableKey] : [usableKey], val, result);
-	// 	}
-	// }
-
-	// if (comparableKey) {
-	// 	const val = right[comparableKey];
-
-	// 	if ((Array.isArray(left) && Array.isArray(val)) || (isObject(left) && isObject(val))) {
-	// 		assignUsing(
-	// 			left,
-	// 			val,
-	// 			exceptedValues,
-	// 			result,
-	// 			path.length ? [...path, comparableKey] : [comparableKey],
-	// 		);
-	// 	}
-	// 	// else {
-	// 	// 	setImpure(path.length ? [...path, comparableKey] : [comparableKey], val, result);
-	// 	// }
-	// }
 
 	return result as T & S;
 }

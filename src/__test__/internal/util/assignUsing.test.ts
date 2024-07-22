@@ -38,6 +38,7 @@ describe('assignUsing', () => {
 			},
 		};
 		const yes = Symbol('yes');
+		const no = Symbol('no');
 
 		const right = {
 			b: 3,
@@ -48,15 +49,17 @@ describe('assignUsing', () => {
 			[yes]: {
 				d: 4,
 			},
+			[no]: { a: 2, b: [1, 2, 3], c: { d: [4, 5] } },
 		};
 
-		const result = assignUsing(left, right, { compare: [yes] });
+		const result = assignUsing(left, right, { compare: [yes, no] });
 
 		expect(result).toEqual({
 			b: 3,
 			c: {
 				a: 2,
 			},
+			[no]: { a: 2 },
 			// a: 2,
 			// [yes]: {
 			// 	a: 2,
