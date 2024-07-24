@@ -1,10 +1,9 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
-import { assign } from '../../internal/util/assign';
+import { assign, assignUsing, assignUsingLeft } from '../../internal/util/assign';
 import { clone, noValidate } from '../../internal/util/clone';
 import { getInternal, getInternalSafe } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
-import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
 import { removePropertyImpure } from '../../internal/util/removeProperty';
 import { setImpure } from '../../internal/util/set';
 import {
@@ -62,55 +61,44 @@ export const createResetField = <TValues extends object>(
 		const newValueWithNoValidateRule = shouldValidate ? newValue : [noValidate, newValue];
 
 		if (isObject(newValue) || Array.isArray(newValue)) {
-			deps_store.update((x) => setImpure(name, newDeps, x));
+			if (newDeps) deps_store.update((x) => setImpure(name, newDeps, x));
+			else deps_store.update((x) => removePropertyImpure(name, x));
 			validators_store.update((x) => setImpure(name, newValidator, x));
 			if (options?.keepTouched) {
-				const currentTouched = getInternal<object>(name, internalState[0].touched);
-				const initlTouched = getInternal<object>(name, initialTouched);
-				const initialTouchedWithNewVal = mergeRightDeepImpure(
-					clone(initlTouched),
-					assign(false, newValue),
-					{
-						onlyNewKeys: true,
-					},
+				touched_store.update((x) =>
+					setImpure(
+						name,
+						assignUsingLeft(
+							false,
+							getInternal(name, newValue)!,
+							getInternal(name, internalState[0].touched)!,
+						),
+						x,
+					),
 				);
-				const newTouched = mergeRightDeepImpure(initialTouchedWithNewVal, clone(currentTouched), {
-					onlySameKeys: true,
-				});
-				touched_store.update((x) => setImpure(name, newTouched, x));
 			} else touched_store.update((x) => setImpure(name, assign(false, newValue), x));
 
 			if (options?.keepDirty) {
-				const currentDirty = getInternal<object>(name, internalState[0].dirty);
-				const initlDirty = getInternal<object>(name, initialDirty);
-				const initialDirtyWithNewVal = mergeRightDeepImpure(
-					clone(initlDirty),
-					assign(false, newValue),
-					{
-						onlyNewKeys: true,
-					},
+				dirty_store.update((x) =>
+					setImpure(
+						name,
+						assignUsingLeft(
+							false,
+							getInternal(name, newValue)!,
+							getInternal(name, internalState[0].dirty)!,
+						),
+						x,
+					),
 				);
-				const newDirty = mergeRightDeepImpure(initialDirtyWithNewVal, clone(currentDirty), {
-					onlySameKeys: true,
-				});
-				dirty_store.update((x) => setImpure(name, newDirty, x));
 			} else dirty_store.update((x) => setImpure(name, assign(false, newValue), x));
 
 			if (options?.keepError) {
 				const currentErr = getInternal<object>(name, internalState[0].errors);
-				const initialErr = getInternal<object>(name, initialErrors);
-				const initialErrWithNewVal = mergeRightDeepImpure(
-					clone(initialErr),
-					assign(false, newValue),
-					{
-						onlyNewKeys: true,
-					},
-				);
-				const newErr = mergeRightDeepImpure(initialErrWithNewVal, clone(currentErr), {
-					onlySameKeys: true,
-				});
-				if (newErr) errors_store.update((x) => setImpure(name, newErr, x));
-				else errors_store.update((x) => removePropertyImpure(name, x));
+				if (currentErr) {
+					errors_store.update((x) =>
+						setImpure(name, assignUsing(getInternal(name, newValue)!, currentErr), x),
+					);
+				}
 			} else errors_store.update((x) => removePropertyImpure(name, x));
 			values_store.update((x) => setImpure(name, newValueWithNoValidateRule, x));
 
@@ -121,7 +109,8 @@ export const createResetField = <TValues extends object>(
 
 		// const newValidator = options?.validator ?? getInternal(name, initialValidators);
 		// reset all the field values before setting the new value and triggering validation
-		deps_store.update((x) => setImpure(name, newDeps, x));
+		if (newDeps) deps_store.update((x) => setImpure(name, newDeps, x));
+		else deps_store.update((x) => removePropertyImpure(name, x));
 		validators_store.update((x) => setImpure(name, newValidator, x));
 		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
 		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));

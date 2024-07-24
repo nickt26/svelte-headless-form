@@ -1,13 +1,15 @@
-import { assign } from '../../internal/util/assign';
+import { assign, assignUsing } from '../../internal/util/assign';
 import { clone } from '../../internal/util/clone';
-import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
-import type {
-	BooleanFields,
-	DependencyFieldsInternal,
-	ErrorFields,
-	FormState,
-	ValidationResolver,
-	ValidatorFields,
+import {
+	All,
+	This,
+	Values,
+	type BooleanFields,
+	type DependencyFieldsInternal,
+	type ErrorFields,
+	type FormState,
+	type ValidationResolver,
+	type ValidatorFields,
 } from '../../types/Form';
 
 type InitialFormValues<T extends object> = {
@@ -33,19 +35,21 @@ export function createInitialValues<T extends object>(
 	const initialDirty = assign(false, formInitialValues);
 	const initialValues = clone(formInitialValues);
 	const initialValidators = isSchemaless
-		? mergeRightDeepImpure(
-				assign(undefined, formInitialValues),
+		? // TODO: think of unique validator symbols
+			assignUsing(
+				formInitialValues,
 				typeof formInitialValidators === 'function'
 					? formInitialValidators(formInitialValues)
 					: formInitialValidators!,
-		  )
+				{
+					use: [This, All],
+					compare: [Values],
+				},
+			)
 		: ({} as ValidatorFields<T>);
 	const validationResolver = isSchema ? formValidationResolver : undefined;
-	const initialErrors = assign(false as string | false, formInitialValues);
-	const initialDeps = mergeRightDeepImpure(
-		assign([] as string[], formInitialValues),
-		formInitialDeps ?? {},
-	);
+	const initialErrors = {};
+	const initialDeps = assignUsing(initialValues, formInitialDeps ?? {});
 	const initialState: FormState = {
 		isSubmitting: false,
 		isDirty: false,

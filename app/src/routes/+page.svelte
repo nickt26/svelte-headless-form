@@ -1,13 +1,7 @@
 <script lang="ts">
 	import { derived, writable } from 'svelte/store';
 	import { createForm } from '../../../src/core/createForm';
-	import {
-		AllFields,
-		CurrentObject,
-		PartialValidatorFields,
-		PartialValidatorss,
-		Values,
-	} from '../../../src/types/Form';
+	import { All, This, PartialValidatorFields, PartialValidatorss, Values } from '../../../src/types/Form';
 	import FieldArray from '../components/FieldArray.svelte';
 	import Input from '../components/Input.svelte';
 	import { roles, type FormValues } from '../types/FormValues';
@@ -21,27 +15,6 @@
 				resolve(fn());
 			}, ms ?? 3000),
 		);
-
-	type No<T extends object> = {
-		[K in keyof T]: () => string | false;
-	};
-	type Yes<O extends object> = {
-		a: <const T extends No<O> = No<O>>(val: any) => T;
-	};
-
-	const yes = { a: 3, b: '4' };
-	const fn = (ret: { a: number }, unused?: { a: number }): typeof unused => {
-		return ret;
-	};
-
-	type Fn = (values: { a: number }, unused?: { a: number }) => typeof unused;
-
-	const ffn: Fn = (values) => {
-		return {
-			a: 3,
-			b: '4',
-		};
-	};
 
 	const {
 		submitForm,
@@ -75,38 +48,31 @@
 			files: null,
 			testers: [],
 		},
-		initialValidators: (val) => ({
+		initialValidators: (initialValues) => ({
 			username: (value) => !value.length && 'Username is required',
 			password: (value) => !value.length && 'Password is required',
 			nested: {
-				// [CurrentObject]: (val) => !val && 'Nested is required',
+				[This]: (val) => !val && 'Nested is required',
 				age: (val) => (val === null && 'Age is required') || (val <= 0 && 'Age must be greater than 0'),
 				gender: (val) => !val && 'Gender must be true',
 			},
-			// roles: [
-			// 	{
-			// 		current: (val) => !val.length && 'Roles are required',
-			// 		all: (val) => !roles.includes(val) && 'Role is invalid',
-			// 	},
-			// 	[(val) => !roles.includes(val) && 'Role is invalid'],
-			// ],
-			testers: {
-				[CurrentObject]: (val) => val.length === 0 && 'Roles are required',
-				[AllFields]: (val) => !roles.includes(val) && 'Role is invalid',
+			roles: {
+				[This]: (val) => val.length === 0 && 'Roles are required',
+				[All]: (val) => !roles.includes(val) && 'Role is invalid',
 				[Values]: initialValues.roles.map((_) => (val) => !roles.includes(val) && 'Role is invalid'),
 			},
-			rolesAreUnique: (_, { values, errors }) => {
-				const allRolesAreNotUnique = values.roles.some((role, i) =>
-					values.roles.some((_role, j) => _role === role && i !== j),
-				);
-				const allRolesHaveNoErrors = !errors.roles.some((error) => error === false);
-				return allRolesAreNotUnique && allRolesHaveNoErrors && 'Roles must be unique';
-			},
+			// testers: 			rolesAreUnique: (_, { values, errors }) => {
+			// 	const allRolesAreNotUnique = values.roles.some((role, i) =>
+			// 		values.roles.some((_role, j) => _role === role && i !== j),
+			// 	);
+			// 	const allRolesHaveNoErrors = !errors.roles.some((error) => error === false);
+			// 	return allRolesAreNotUnique && allRolesHaveNoErrors && 'Roles must be unique';
+			// },
 		}),
 		initialDeps: {
 			rolesAreUnique: ['roles'],
 			roles: {
-				[AllFields]: ['username'],
+				[All]: ['username'],
 				[Values]: [['username']],
 			},
 		},
@@ -132,44 +98,6 @@
 
 	let showUsername = true;
 
-	type MyStore = {
-		values: {
-			username: string;
-			password: string;
-		};
-		touched: {
-			username: boolean;
-			password: boolean;
-		};
-	};
-
-	const myStore = writable<MyStore>({
-		values: {
-			username: '',
-			password: '',
-		},
-		touched: {
-			username: true,
-			password: true,
-		},
-	});
-
-	// const queueConcurrency = (fn: (val: any) => Promise<any>) => {
-	// 	const queue = [] as any[];
-
-	// 	const toReturn = async (arg: any) => {
-	// 		const val = clone(arg);
-	// 		queue.push(() => fn(val));
-	// 		await queue[0];
-	// 		queue.unshift();
-	// 		if (queue.length > 0) {
-	// 		}
-	// 		inprogressPromise = inprogressPromise.then(() => fn(val));
-
-	// 		return inprogressPromise;
-	// 	};
-	// };
-
 	const disallowConcurrency = (fn: (val: any) => Promise<any>) => {
 		let inprogressPromise = Promise.resolve();
 
@@ -181,61 +109,10 @@
 		};
 	};
 
-	// const myStoreUnsubFnSync = disallowConcurrency(async (val) => {
-	// if (val.username === 'banana') {
-	// 	await delay(() => null);
-	// } else if (val.username !== '') {
-	// 	await delay(() => null, 1000);
-	// }
-	// 	console.log(val);
-	// });
-
-	// const mystoreunsub = mystore.subscribe(async (val) => {
-	// 	await mystoreunsubfnsync(val);
-	// });
-
-	const myStoreUnsub = myStore.subscribe((val) => {
-		console.log(val);
-	});
-
-	// myStore.update((vals) => ({
-	// 	...vals,
-	// 	values: {
-	// 		...vals.values,
-	// 		username: 'banana',
-	// 	},
-	// }));
-
-	// myStore.update((vals) => ({
-	// 	...vals,
-	// 	values: {
-	// 		...vals.values,
-	// 		username: 'apple',
-	// 	},
-	// }));
-
-	onDestroy(() => {
-		myStoreUnsub();
-	});
-
 	// const rolesArray = useFieldArray('roles');
 	// rolesArray.append('omega', {
 	// 	validate: true,
 	// });
-
-	// const reset = () => {
-	// 	batch(({ values, clean, updateValue }) => {
-	// 		values.update((vals) => ({
-	// 			...vals,
-	// 			username: 'banana',
-	// 		}));
-
-	// 		clean('username');
-	// 		updateValue('username', $values.username, {
-	// 			validate: false,
-	// 		});
-	// 	});
-	// };
 
 	// $values.roles. = [...$values.roles]
 
@@ -280,7 +157,6 @@
 		<div style="color:red;">{$errors.nested.age}</div>
 	{/if} -->
 
-	<input type="text" bind:value={$myStore.values.username} />
 	<!-- <input type="checkbox" bind:checked={$values.nested.gender} /> -->
 	<button
 		type="button"

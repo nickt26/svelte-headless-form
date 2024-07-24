@@ -138,13 +138,13 @@ export type Validators<O extends object, T extends object> = {
 		: Extract<T[key], Array<any>> extends never
 			?
 					| (Validators<O, Extract<T[key], object>> & {
-							[Current]?: ValidatorFn<O, Extract<T[key], object>>;
+							[This]?: ValidatorFn<O, Extract<T[key], object>>;
 					  })
 					| ValidatorFn<O, Exclude<T[key], object>>
 			:
 					| Validators<O, Extract<T[key], object>>
 					| {
-							[Current]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+							[This]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
 							[All]?: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
 							[Values]?: Validators<O, Extract<T[key], Array<any>>>;
 					  }
@@ -173,8 +173,8 @@ export type Validatorss<O extends object, T extends object> = {
 					| ValidatorFn<O, Exclude<T[key], object>>;
 };
 
-export const currentObjectKey = 'CurrentObject';
-export const Current = Symbol(currentObjectKey);
+export const thisKey = 'this';
+export const This = Symbol(thisKey);
 
 export type PartialValidators<O extends object, T extends object> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
@@ -182,13 +182,13 @@ export type PartialValidators<O extends object, T extends object> = {
 		: Extract<T[key], Array<any>> extends never
 			?
 					| (Validators<O, Extract<T[key], object>> & {
-							[Current]?: ValidatorFn<O, Extract<T[key], object>>;
+							[This]?: ValidatorFn<O, Extract<T[key], object>>;
 					  })
 					| ValidatorFn<O, Exclude<T[key], object>>
 			:
 					| Validators<O, Extract<T[key], object>>
 					| {
-							[Current]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
+							[This]?: ValidatorFn<O, Extract<T[key], Array<any>>>;
 							[All]: ValidatorFn<O, Extract<T[key], Array<any>>[number]>;
 							[Values]?: Validators<O, Extract<T[key], Array<any>>>;
 					  }
@@ -299,7 +299,7 @@ fn<O>({
 	},
 	validators: (vals) => ({
 		firstName: () => 'err',
-		tester: [{ current: () => 'err' }, [{ banana: () => 'lemon' }]],
+		tester: [{ current: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
 	}),
 });
 
@@ -333,8 +333,8 @@ type CreateStarPaths4<
 				}
 			: Path;
 
-export const allFieldsKey = 'allFields';
-export const All = Symbol(allFieldsKey);
+export const allKey = 'allFields';
+export const All = Symbol(allKey);
 type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath extends string> = {
 	[key in keyof T]?: Extract<T[key], object> extends never
 		? (
@@ -365,7 +365,7 @@ type Dependencies<
 export type DependencyFields<T extends object = object> = Dependencies<T, DotPaths<T>[]>;
 export type DependencyFieldsInternal<T extends object = object> = PartialDeep<T, string[]>;
 export type BooleanFields<T extends object = object> = ObjectDeep<T, boolean>;
-export type ErrorFields<T extends object = object> = ObjectDeep<T, string | false>;
+export type ErrorFields<T extends object = object> = PartialDeep<T, string | false>;
 export type PartialErrorFields<T extends object> = PartialDeep<T, string | false>;
 export type ValidatorFields<T extends object = object> = Validatorss<T, T>;
 export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
@@ -503,9 +503,14 @@ export type ResetFieldFn<T extends object> = <TObject extends T, Path extends Do
 ) => void;
 
 export type ResetFormOptions<T extends object> = {
-	values: T | ReadonlyDeep<T>;
+	values?: T;
 	validators?: ValidatorFields<T>;
 	deps?: Dependencies<T, DotPaths<T>[]>;
+	keepTouched?: boolean;
+	keepDirty?: boolean;
+	keepErrors?: boolean;
+	keepValidators?: boolean;
+	keepDeps?: boolean;
 };
 
 export type ResetFormFn<T extends object = object> = <TValues extends T>(
@@ -556,7 +561,7 @@ export type Form<T extends object = object> = {
 	handleBlur: HandlerFn<T>;
 	handleFocus: HandlerFn<T>;
 	control: FormControl<T>;
-	initialValues: ReadonlyDeep<T>;
+	initialValues: T;
 	initialValidators: ValidatorFields<T>;
 	initialDeps: DependencyFields<T>;
 	initialTouched: BooleanFields<T>;

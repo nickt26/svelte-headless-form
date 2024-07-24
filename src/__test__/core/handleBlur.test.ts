@@ -103,7 +103,7 @@ describe('handleBlur', () => {
 	it("[Form handleBlur] should run validation on validateMode = 'onBlur'", async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
-		const { touched, handleBlur, validateMode, validators, errors } = form;
+		const { touched, handleBlur, validateMode, validators, errors, initialTouched } = form;
 
 		validateMode.set('onBlur');
 
@@ -112,32 +112,22 @@ describe('handleBlur', () => {
 		await handleBlur('roles.0');
 
 		expect(get(touched)).toEqual({
-			name: false,
-			email: false,
+			...initialTouched,
 			roles: [true],
-			location: { address: false, coords: { lat: false, lng: false } },
 		});
 		expect(get(errors)).toEqual({
-			name: false,
-			email: false,
 			roles: ['error'],
-			location: { address: false, coords: { lat: false, lng: false } },
 		});
 	});
 
 	it('[Incorrect path] should do nothing', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
-		const { touched, handleBlur } = form;
+		const { touched, handleBlur, initialTouched } = form;
 
 		// @ts-expect-error
 		await handleBlur('fake');
 
-		expect(get(touched)).toEqual({
-			name: false,
-			email: false,
-			roles: [false],
-			location: { address: false, coords: { lat: false, lng: false } },
-		});
+		expect(get(touched)).toEqual(initialTouched);
 	});
 });

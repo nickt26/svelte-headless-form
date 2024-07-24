@@ -1,41 +1,7 @@
-import { TriggerFields, allFieldsKey, valuesKey } from './../../types/Form';
+import { TriggerFields, allKey, valuesKey } from './../../types/Form';
 import { getInternal } from './get';
 import { isObject } from './isObject';
 import { setTriggerImpure } from './set';
-
-function path(
-	p: Array<string | number | symbol>,
-	key: string | number | symbol,
-): Array<string | number | symbol> {
-	return p.length ? [...p, key] : [key];
-}
-
-export function createTrigger<T extends object>(
-	values: T,
-	deps: any,
-	currentKey: Array<string | number | symbol> = [],
-	triggers: TriggerFields<T> = {},
-): TriggerFields<T> {
-	if (isObject(deps)) {
-		const keys = Object.keys(deps);
-
-		for (const key of keys) {
-			createTrigger(values, deps[key], path(currentKey, key), triggers);
-		}
-	} else if (Array.isArray(deps)) {
-		if (deps.length === 2) {
-			if (isObject(deps[0])) {
-				for (const key of Object.keys(deps[0])) {
-					setTriggerImpure(currentKey.join('.'), key, triggers);
-				}
-			}
-		}
-		for (let i = 0; i < deps.length; i++) {
-			createTrigger(values, deps[i], path(currentKey, i), triggers);
-		}
-	}
-	return triggers;
-}
 
 export const createTriggers = <T extends object>(
 	values: T,
@@ -76,13 +42,13 @@ export const createTriggers = <T extends object>(
 		// TODO: update createTriggers to potentially work without depsValue checks in case they are null or undefined at form inception or even a union with primitives and they start as primitive
 		// ! The above has been thought of, this problem will be solved with trigger recomputation checks
 		if (isObject(depsValue) || Array.isArray(depsValue)) {
-			if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol(allFieldsKey).toString())
+			if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol(allKey).toString())
 				return setTriggerImpure(deps, fieldPath.slice(0, -1).join('.'), triggers, true);
 
 			return setTriggerImpure(deps, fieldPath.join('.'), triggers, true);
 		}
 
-		if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol(allFieldsKey).toString())
+		if (typeof lastKey === 'symbol' && lastKey.toString() === Symbol(allKey).toString())
 			return setTriggerImpure(deps, fieldPath.slice(0, -1).join('.'), triggers);
 
 		return setTriggerImpure(deps, fieldPath.join('.'), triggers);

@@ -340,7 +340,10 @@ describe('createForm', async () => {
 			preSwapRolesTouched[toIndex],
 			preSwapRolesTouched[fromIndex],
 		]);
-		expect(get(errors).roles).toEqual([preSwapRolesErrors[toIndex], preSwapRolesErrors[fromIndex]]);
+		expect(get(errors).roles).toEqual([
+			preSwapRolesErrors?.[toIndex],
+			preSwapRolesErrors?.[fromIndex],
+		]);
 		expect(get(dirty).roles).toEqual([preSwapRolesDirty[toIndex], preSwapRolesDirty[fromIndex]]);
 		expect(get(validators).roles).toEqual([
 			preSwapRolesValidators[toIndex],

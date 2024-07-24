@@ -1,13 +1,18 @@
 import { Writable } from 'svelte/store';
-import { assign } from '../../internal/util/assign';
-import { clone } from '../../internal/util/clone';
+import { InternalFormState } from '../../internal/types/Form';
+import { assign, assignUsing } from '../../internal/util/assign';
+import { clone, cloneWithStoreReactivity } from '../../internal/util/clone';
 import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
 import {
+	All,
+	BooleanFields,
 	DependencyFieldsInternal,
 	ErrorFields,
 	FormState,
 	ResetFormFn,
+	This,
 	ValidatorFields,
+	Values,
 } from '../../types/Form';
 
 export const createResetForm = <T extends object>(
@@ -18,28 +23,46 @@ export const createResetForm = <T extends object>(
 	validators_store: Writable<ValidatorFields<T>>,
 	errors_store: Writable<ErrorFields<T>>,
 	deps_store: Writable<DependencyFieldsInternal<T>>,
+	touched_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
-): ResetFormFn => {
+	internalState: [InternalFormState<T>],
+	value_change_store: Writable<[Array<string | number | symbol>, unknown, boolean] | null> | null,
+): ResetFormFn<T> => {
 	return (options) => {
-		const newValues = !options?.values
-			? clone(initialValues)
-			: (clone(options.values) as unknown as T);
-		const newValidators = !options?.validators
-			? clone(initialValidators)
-			: clone(options.validators);
-		const newDeps = !options?.deps
-			? clone(initialDeps)
-			: mergeRightDeepImpure(assign([], newValues), clone(options.deps));
+		const hasNewValues = !!options && 'values' in options && !!options.values;
+		const newValues = hasNewValues ? clone(options.values!) : clone(initialValues);
+		const reactiveNewValues = cloneWithStoreReactivity(newValues, value_change_store);
 
-		values_store.set(newValues);
-		validators_store.set(newValidators as ValidatorFields<T>);
-		errors_store.set(assign(false as string | false, newValues) as ErrorFields<T>);
-		deps_store.set(newDeps);
+		values_store.set(reactiveNewValues);
+		if (options?.keepValidators) {
+			validators_store.set(
+				assignUsing(newValues, internalState[0].validators, {
+					use: [This, All],
+					compare: [Values],
+				}),
+			);
+		} else {
+			validators_store.set(
+				assignUsing(newValues, options?.validators ?? initialValidators, {
+					use: [This, All],
+					compare: [Values],
+				}) as ValidatorFields<T>,
+			);
+		}
+		if (options?.keepErrors) errors_store.set(assignUsing(newValues, internalState[0].errors));
+		else errors_store.set({});
+
+		if (options?.keepDeps) deps_store.set(assignUsing(newValues, internalState[0].deps));
+		else deps_store.set(assignUsing(newValues, options?.deps ?? initialDeps));
+
+		if (options?.keepTouched) touched_store.set(assignUsing(newValues, internalState[0].touched));
+		else touched_store.set(assign(false, newValues));
+
 		state_store.update((x) =>
 			mergeRightDeepImpure(x, {
-				isDirty: false,
-				isTouched: false,
-				hasErrors: false,
+				isDirty: options?.keepDirty,
+				isTouched: options?.keepTouched,
+				hasErrors: options?.keepErrors,
 				submitCount: 0,
 				resetCount: x.resetCount + 1,
 			} satisfies Partial<FormState>),

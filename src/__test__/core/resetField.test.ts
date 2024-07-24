@@ -63,7 +63,7 @@ describe('resetField', () => {
 			expect(getInternalSafe('name', get(errors))).toBeInstanceOf(FieldNotFoundError);
 			expect(get(dirty)).toEqual({ ...initialDirty, name: false });
 			expect(get(validators).name).toEqual(formValidators.name);
-			expect(get(deps)).toEqual({ ...initialDeps, name: [] });
+			expect(get(deps)).toEqual(initialDeps);
 		});
 
 		it('should reset values, deps & validators with { value } option', async () => {
@@ -116,7 +116,7 @@ describe('resetField', () => {
 			expect(getInternalSafe('name', get(errors))).toBeInstanceOf(FieldNotFoundError);
 			expect(get(dirty)).toEqual({ ...initialDirty, name: false });
 			expect(get(validators).name).toEqual(formValidators.name);
-			expect(get(deps)).toEqual({ ...initialDeps, name: [] });
+			expect(get(deps)).toEqual(initialDeps);
 		});
 
 		it('should reset values, deps & validators with { value, deps } option', async () => {
@@ -472,7 +472,17 @@ describe('resetField', () => {
 	it('[Array] should reset values, deps & validators', async () => {
 		const { component } = render(Form);
 		const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
-		const { resetField, values, deps, errors, dirty, touched, validators } = form;
+		const {
+			resetField,
+			values,
+			deps,
+			errors,
+			dirty,
+			touched,
+			validators,
+			initialValidators,
+			initialDeps,
+		} = form;
 
 		const valueUpdate = [
 			{ key: 'roles', value: ['user', 'admin', 'tester'] },
@@ -511,7 +521,7 @@ describe('resetField', () => {
 		expect(get(touched).roles).toEqual([false]);
 		expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
 		expect(get(dirty).roles).toEqual([false]);
-		expect(get(validators).roles).toEqual([undefined]);
-		expect(get(deps).roles).toEqual([[]]);
+		expect(get(validators)).toEqual(initialValidators);
+		expect(get(deps)).toEqual(initialDeps);
 	});
 });
