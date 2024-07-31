@@ -11,7 +11,7 @@ export function createHandleBlur<T extends object>(
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	touched_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
-	runValidation: (name: string, formState: [InternalFormState<T>]) => Promise<void>,
+	runValidation: (name: string) => Promise<void>,
 ): (name: string) => Promise<void> {
 	return async function (name) {
 		const formState = internalState[0];
@@ -19,11 +19,9 @@ export function createHandleBlur<T extends object>(
 		latest_field_event_store.update(() => ({ field: name, event: 'beforeBlur' }));
 
 		const fieldTouched = getInternal(name, formState.touched);
-		if (fieldTouched === undefined) {
-			return;
-		}
+		if (fieldTouched === undefined) return;
 
-		const fieldValue = getInternal(name, formState.values);
+		const fieldValue = getInternal(name, internalState[0].values);
 
 		if (isObject(fieldValue) || Array.isArray(fieldValue)) {
 			touched_store.update((x) => setImpure(name, assign(true, fieldValue), x));

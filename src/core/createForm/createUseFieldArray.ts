@@ -23,7 +23,7 @@ export function createUseFieldArray<T extends object>(
 	deps_store: Writable<DependencyFields>,
 	internalState: [InternalFormState<T>],
 	checkFormForStateReset: () => void,
-	runValidation: (name: string, internalFormState: [InternalFormState<T>]) => Promise<void>,
+	runValidation: (name: string) => Promise<void>,
 ): UseFieldArrayFnInternal {
 	return (name) => {
 		const formState = internalState[0];

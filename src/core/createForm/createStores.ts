@@ -44,7 +44,9 @@ export function createStores<T extends object>(
 
 	const touched_store = writable(clone(initialTouched));
 	const dirty_store = writable(clone(initialDirty));
-	const values_store = writable(cloneWithStoreReactivity(initialValues, value_change_store));
+	const values_store = writable(
+		cloneWithStoreReactivity(initialValues, value_change_store, touched_store, dirty_store),
+	);
 	const validators_store = writable(clone(initialValidators));
 	const errors_store = writable(clone(initialErrors));
 	const deps_store = writable(clone(initialDeps));

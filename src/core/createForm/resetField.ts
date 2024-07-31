@@ -1,7 +1,7 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
 import { assign, assignUsing, assignUsingLeft } from '../../internal/util/assign';
-import { clone, noValidate } from '../../internal/util/clone';
+import { clone, noFormUpdate, noValidate } from '../../internal/util/clone';
 import { getInternal, getInternalSafe } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
 import { removePropertyImpure } from '../../internal/util/removeProperty';
@@ -58,7 +58,7 @@ export const createResetField = <TValues extends object>(
 		const newDeps = clone(options?.deps) ?? clone(getInternal(name, initialDeps));
 		const newValidator = clone(options?.validator) ?? clone(getInternal(name, initialValidators));
 		const shouldValidate = options?.validate ?? false;
-		const newValueWithNoValidateRule = shouldValidate ? newValue : [noValidate, newValue];
+		const newValueWithFlags = [{ [noValidate]: !shouldValidate, [noFormUpdate]: true }, newValue];
 
 		if (isObject(newValue) || Array.isArray(newValue)) {
 			if (newDeps) deps_store.update((x) => setImpure(name, newDeps, x));
@@ -66,41 +66,23 @@ export const createResetField = <TValues extends object>(
 			validators_store.update((x) => setImpure(name, newValidator, x));
 			if (options?.keepTouched) {
 				touched_store.update((x) =>
-					setImpure(
-						name,
-						assignUsingLeft(
-							false,
-							getInternal(name, newValue)!,
-							getInternal(name, internalState[0].touched)!,
-						),
-						x,
-					),
+					setImpure(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
 				);
 			} else touched_store.update((x) => setImpure(name, assign(false, newValue), x));
 
 			if (options?.keepDirty) {
 				dirty_store.update((x) =>
-					setImpure(
-						name,
-						assignUsingLeft(
-							false,
-							getInternal(name, newValue)!,
-							getInternal(name, internalState[0].dirty)!,
-						),
-						x,
-					),
+					setImpure(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
 				);
 			} else dirty_store.update((x) => setImpure(name, assign(false, newValue), x));
 
 			if (options?.keepError) {
 				const currentErr = getInternal<object>(name, internalState[0].errors);
 				if (currentErr) {
-					errors_store.update((x) =>
-						setImpure(name, assignUsing(getInternal(name, newValue)!, currentErr), x),
-					);
+					errors_store.update((x) => setImpure(name, assignUsing(newValue, currentErr), x));
 				}
 			} else errors_store.update((x) => removePropertyImpure(name, x));
-			values_store.update((x) => setImpure(name, newValueWithNoValidateRule, x));
+			values_store.update((x) => setImpure(name, newValueWithFlags, x));
 
 			latest_field_event_store.set({ field: name, event: 'afterReset' });
 			checkFormForStateReset();
@@ -113,9 +95,10 @@ export const createResetField = <TValues extends object>(
 		else deps_store.update((x) => removePropertyImpure(name, x));
 		validators_store.update((x) => setImpure(name, newValidator, x));
 		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
+		else touched_store.update((x) => setImpure(name, getInternal(name, x), x));
 		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
 		if (!options?.keepError) errors_store.update((x) => removePropertyImpure(name, x));
-		values_store.update((x) => setImpure(name, newValueWithNoValidateRule, x));
+		values_store.update((x) => setImpure(name, newValueWithFlags, x));
 
 		latest_field_event_store.set({ field: name, event: 'afterReset' });
 		checkFormForStateReset();

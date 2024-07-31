@@ -8,6 +8,7 @@
 	import * as yup from 'yup';
 	import { onDestroy } from 'svelte';
 	import { clone } from '../../../src/internal/util/clone';
+	import { isObject } from '../../../src/internal/util/isObject';
 
 	const delay = <T>(fn: () => T, ms?: number): Promise<T> =>
 		new Promise((resolve) =>
@@ -72,8 +73,7 @@
 		initialDeps: {
 			rolesAreUnique: ['roles'],
 			roles: {
-				[All]: ['username'],
-				[Values]: [['username']],
+				[All]: ['roles'],
 			},
 		},
 		// validationResolver: (values) => {
@@ -168,7 +168,7 @@
 	>
 	<div>Gender: {'gender' in $values.nested ? $values.nested.gender : 'No gender selected'}</div>
 
-	{#if 'gender' in $errors.nested && $errors?.nested?.gender}
+	{#if $errors.nested && 'gender' in $errors.nested && $errors?.nested?.gender}
 		<div style="color:red">
 			{$errors.nested.gender}
 		</div>

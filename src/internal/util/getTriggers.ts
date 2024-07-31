@@ -11,7 +11,7 @@ const performObjTreeTraversal = <T extends object>(
 ) => {
 	const value = obj[key];
 	for (const trigger of value[Triggers] ?? []) triggers.add(trigger);
-	if (Array.isArray(value))
+	if (Array.isArray(value)) {
 		for (let i = 0; i < value.length; i++) {
 			const trigger = value[i];
 			if (typeof trigger === 'string') triggers.add(trigger);
@@ -22,6 +22,7 @@ const performObjTreeTraversal = <T extends object>(
 				triggers,
 			);
 		}
+	}
 
 	const newPath = Array.isArray(fullPath) ? [...fullPath, key] : `${fullPath}.${key}`;
 	getChildTriggers(value, formValues, newPath, triggers);
@@ -40,16 +41,17 @@ const getChildTriggers = <T extends object>(
 	const val = getInternal(fullPath, formValues);
 	if (!isObject(val) && !Array.isArray(val)) return;
 
-	if (isObject(val))
+	if (isObject(val)) {
 		for (const key of Object.keys(val)) {
 			if (!(key in obj)) continue;
 			performObjTreeTraversal(key, obj, formValues, fullPath, triggers);
 		}
-	else if (Array.isArray(val))
+	} else if (Array.isArray(val)) {
 		for (let i = 0; i < val.length; i++) {
 			if (!(i in obj)) continue;
 			performObjTreeTraversal(i, obj, formValues, fullPath, triggers);
 		}
+	}
 	getChildTriggers(val[Values], formValues, fullPath, triggers);
 };
 
@@ -62,25 +64,20 @@ export const getTriggers = <T extends object>(
 	triggers: Set<string> = new Set(),
 ): Array<string> => {
 	if (path.length === 0) {
-		if (shouldFetchChildTriggers) {
-			getChildTriggers(obj, values, fullPath, triggers);
-		}
+		if (shouldFetchChildTriggers) getChildTriggers(obj, values, fullPath, triggers);
+
 		return Array.from(triggers);
 	}
 	const splitPath = Array.isArray(path) ? [...path] : path.split(/\./g).reverse();
 
 	const key = splitPath.pop()!;
 
-	if (!(key in obj)) {
-		return [];
-	}
+	if (!(key in obj)) return [];
+
 	const current = (obj as any)[key];
 
-	if (Array.isArray(current?.[Triggers])) {
-		for (const trigger of current[Triggers]) {
-			triggers.add(trigger);
-		}
-	}
+	if (Array.isArray(current?.[Triggers]))
+		for (const trigger of current[Triggers]) triggers.add(trigger);
 
 	if (isObject(current) && !(Values in current) && !(Star in current)) {
 		getTriggers(

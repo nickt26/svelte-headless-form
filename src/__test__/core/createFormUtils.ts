@@ -15,7 +15,7 @@ export type FormValues = {
 	};
 };
 
-export const formValues: FormValues = {
+export const initialFormValues: FormValues = {
 	name: '',
 	email: '',
 	roles: ['user'],

@@ -35,8 +35,7 @@ export function createInitialValues<T extends object>(
 	const initialDirty = assign(false, formInitialValues);
 	const initialValues = clone(formInitialValues);
 	const initialValidators = isSchemaless
-		? // TODO: think of unique validator symbols
-			assignUsing(
+		? assignUsing(
 				formInitialValues,
 				typeof formInitialValidators === 'function'
 					? formInitialValidators(formInitialValues)

@@ -28,10 +28,11 @@ export const assignImpure = <T, S extends object, K extends object>(
 	return objectToAssignTo;
 };
 
-export const assign = <T, S extends object = object>(
-	value: T,
-	objStructure: S,
-): ObjectDeep<S, T> => {
+export const assign = <T, S>(value: T, objStructure: S): ObjectDeep<S, T> => {
+	if (!isObject(objStructure) && !Array.isArray(objStructure)) {
+		return value as ReturnType<typeof assign<T, S>>;
+	}
+
 	const toReturn = empty(objStructure);
 	if (isObject(objStructure)) {
 		for (const key of Object.keys(objStructure)) {
@@ -55,7 +56,7 @@ export const assign = <T, S extends object = object>(
 			toReturn[i] = clone(value);
 		}
 	}
-	return toReturn as ObjectDeep<S, T>;
+	return toReturn as ReturnType<typeof assign<T, S>>;
 };
 
 export function assignUsing<T extends object, S extends object>(
@@ -88,7 +89,7 @@ export function assignUsing<T extends object, S extends object>(
 					result,
 					path.length ? [...path, key] : [key],
 				);
-			} else if (!Array.isArray(rightVal) && !isObject(rightVal)) {
+			} else {
 				setImpure(path.length ? [...path, key] : [key], rightVal, result);
 			}
 			continue;
@@ -199,6 +200,10 @@ export function assignUsingLeft(
 	toReturn: object = Array.isArray(left) ? [] : {},
 	path: Array<string | number | symbol> = [],
 ): object {
+	if (!isObject(left) && !Array.isArray(left) && !isObject(right) && !Array.isArray(right)) {
+		return right;
+	}
+
 	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right))) {
 		return toReturn;
 	}
@@ -214,10 +219,19 @@ export function assignUsingLeft(
 				(isObject(leftVal) && isObject(rightVal))
 			) {
 				assignUsingLeft(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
-			} else if (typeof leftVal === typeof rightVal) {
-				setImpure(path.length ? [...path, key] : [key], value, toReturn);
+			} else {
+				setImpure(path.length ? [...path, key] : [key], rightVal, toReturn);
 			}
 			continue;
+		} else {
+			if (
+				(Array.isArray(leftVal) && Array.isArray(rightVal)) ||
+				(isObject(leftVal) && isObject(rightVal))
+			) {
+				assignUsingLeft(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
+			} else {
+				setImpure(path.length ? [...path, key] : [key], value, toReturn);
+			}
 		}
 
 		setImpure(path.length ? [...path, key] : [key], value, toReturn);

@@ -3,7 +3,7 @@ import { get } from 'svelte/store';
 import { describe, expect, it } from 'vitest';
 import { FieldNotFoundError, getInternalSafe } from '../../internal/util/get';
 import { setImpure } from '../../internal/util/set';
-import { type Form as FormType } from '../../types/Form';
+import { All, ResetFieldOptions, This, Values, type Form as FormType } from '../../types/Form';
 import Form from '../components/Form.svelte';
 import {
 	FormValues,
@@ -469,59 +469,497 @@ describe('resetField', () => {
 		});
 	});
 
-	it('[Array] should reset values, deps & validators', async () => {
-		const { component } = render(Form);
-		const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
-		const {
-			resetField,
-			values,
-			deps,
-			errors,
-			dirty,
-			touched,
-			validators,
-			initialValidators,
-			initialDeps,
-		} = form;
+	describe('Array', () => {
+		describe('No values, deps & validator', () => {
+			it('should reset', async () => {
+				const { component } = render(Form);
+				const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+				const {
+					resetField,
+					values,
+					deps,
+					errors,
+					dirty,
+					touched,
+					validators,
+					initialValidators,
+					initialDeps,
+					initialValues,
+					initialTouched,
+					initialDirty,
+					initialErrors,
+				} = form;
 
-		const valueUpdate = [
-			{ key: 'roles', value: ['user', 'admin', 'tester'] },
-		] as const satisfies ValueUpdate;
-		const wait = waitForAllFieldsToValidate(valueUpdate, form);
+				const valueUpdate = [
+					{ key: 'roles', value: ['user', 'admin', 'tester'] },
+				] as const satisfies ValueUpdate;
+				const wait = waitForAllFieldsToValidate(valueUpdate, form);
 
-		validators.update((x) => {
-			for (const { key, value } of valueUpdate) {
-				setImpure(
-					key,
-					value.map(() => () => 'error'),
-					x,
-				);
-			}
-			return x;
+				validators.update((x) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(
+							key,
+							value.map(() => () => 'error'),
+							x,
+						);
+					}
+					return x;
+				});
+				deps.update((deps) => {
+					for (const { key } of valueUpdate) {
+						// TODO: user is able to update deps for fields and set them to be invalid with the rest of the form state
+						setImpure(key, ['email', 'email', 'email'], deps);
+					}
+					return deps;
+				});
+				values.update((vals) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(key, value, vals);
+					}
+					return vals;
+				});
+
+				await wait;
+
+				resetField('roles');
+
+				expect(get(values)).toEqual(initialValues);
+				expect(get(touched)).toEqual(initialTouched);
+				expect(get(errors)).toEqual(initialErrors);
+				expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+				expect(get(dirty)).toEqual(initialDirty);
+				expect(get(validators)).toEqual(initialValidators);
+				expect(get(deps)).toEqual(initialDeps);
+			});
+
+			it('should reset with { keepTouched }', async () => {
+				const { component } = render(Form);
+				const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+				const {
+					resetField,
+					values,
+					deps,
+					errors,
+					dirty,
+					touched,
+					validators,
+					initialValidators,
+					initialDeps,
+					initialValues,
+					initialTouched,
+					initialDirty,
+					initialErrors,
+				} = form;
+
+				const valueUpdate = [
+					{ key: 'roles', value: ['user', 'admin', 'tester'] },
+				] as const satisfies ValueUpdate;
+				const wait = waitForAllFieldsToValidate(valueUpdate, form);
+
+				validators.update((x) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(
+							key,
+							value.map(() => () => 'error'),
+							x,
+						);
+					}
+					return x;
+				});
+				deps.update((deps) => {
+					for (const { key } of valueUpdate) {
+						setImpure(key, ['email', 'email', 'email'], deps);
+					}
+					return deps;
+				});
+				values.update((vals) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(key, value, vals);
+					}
+					return vals;
+				});
+				form.handleBlur('roles');
+
+				await wait;
+
+				resetField('roles', {
+					keepTouched: true,
+				});
+
+				expect(get(values)).toEqual(initialValues);
+				expect(get(touched)).toEqual({ ...initialTouched, roles: [true] });
+				expect(get(errors)).toEqual(initialErrors);
+				expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+				expect(get(dirty)).toEqual(initialDirty);
+				expect(get(validators)).toEqual(initialValidators);
+				expect(get(deps)).toEqual(initialDeps);
+			});
+
+			it('should reset with { keepTouched, keepDirty }', async () => {
+				const { component } = render(Form);
+				const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+				const {
+					resetField,
+					values,
+					deps,
+					errors,
+					dirty,
+					touched,
+					validators,
+					initialValidators,
+					initialDeps,
+					initialValues,
+					initialTouched,
+					initialDirty,
+					initialErrors,
+				} = form;
+
+				const valueUpdate = [
+					{ key: 'roles', value: ['user', 'admin', 'tester'] },
+				] as const satisfies ValueUpdate;
+				const wait = waitForAllFieldsToValidate(valueUpdate, form);
+
+				function newValidator() {
+					return 'error';
+				}
+				validators.update((x) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(key, value.map(newValidator), x);
+					}
+					return x;
+				});
+				deps.update((deps) => {
+					for (const { key } of valueUpdate) {
+						setImpure(key, ['email', 'email', 'email'], deps);
+					}
+					return deps;
+				});
+				values.update((vals) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(key, value, vals);
+					}
+					return vals;
+				});
+				form.handleBlur('roles');
+
+				await wait;
+
+				expect(get(values)).toEqual({ ...initialValues, roles: valueUpdate[0].value });
+				expect(get(dirty)).toEqual({ ...initialDirty, roles: [true, true, true] });
+				expect(get(touched)).toEqual({ ...initialDirty, roles: [true, true, true] });
+				// TODO: FIX
+				expect(get(errors)).toEqual({ ...initialErrors, roles: ['error', 'error', 'error'] });
+				expect(get(validators)).toEqual({
+					...initialValidators,
+					roles: [newValidator, newValidator, newValidator],
+				});
+				expect(get(deps)).toEqual({ ...initialDeps, roles: ['email', 'email', 'email'] });
+
+				resetField('roles', {
+					keepTouched: true,
+					keepDirty: true,
+				});
+
+				expect(get(values)).toEqual(initialValues);
+				expect(get(deps)).toEqual(initialDeps);
+				expect(get(validators)).toEqual(initialValidators);
+				expect(get(touched)).toEqual({ ...initialTouched, roles: [true] });
+				expect(get(dirty)).toEqual({ ...initialDirty, roles: [true] });
+				expect(get(errors)).toEqual(initialErrors);
+				expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+			});
+
+			it('should reset with { keepTouched, keepDirty }', async () => {
+				const { component } = render(Form);
+				const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+				const {
+					resetField,
+					values,
+					deps,
+					errors,
+					dirty,
+					touched,
+					validators,
+					initialValidators,
+					initialDeps,
+					initialValues,
+					initialTouched,
+					initialDirty,
+					initialErrors,
+				} = form;
+
+				const valueUpdate = [
+					{ key: 'roles', value: ['user', 'admin', 'tester'] },
+				] as const satisfies ValueUpdate;
+				const wait = waitForAllFieldsToValidate(valueUpdate, form);
+
+				function newValidator() {
+					return 'error';
+				}
+				validators.update((x) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(
+							key,
+							value.map(() => newValidator),
+							x,
+						);
+					}
+					return x;
+				});
+				deps.update((deps) => {
+					for (const { key } of valueUpdate) {
+						setImpure(key, ['email', 'email', 'email'], deps);
+					}
+					return deps;
+				});
+				values.update((vals) => {
+					for (const { key, value } of valueUpdate) {
+						setImpure(key, value, vals);
+					}
+					return vals;
+				});
+				form.handleBlur('roles');
+
+				await wait;
+
+				expect(get(values)).toEqual({ ...initialValues, roles: valueUpdate[0].value });
+				expect(get(dirty)).toEqual({ ...initialDirty, roles: [true, true, true] });
+				expect(get(touched)).toEqual({ ...initialDirty, roles: [true, true, true] });
+				// TODO: Fix
+				// expect(get(errors)).toEqual({ ...initialErrors, roles: ['error', 'error', 'error'] });
+				expect(get(validators)).toEqual({
+					...initialValidators,
+					roles: [newValidator, newValidator, newValidator],
+				});
+				expect(get(deps)).toEqual({ ...initialDeps, roles: ['email', 'email', 'email'] });
+
+				resetField('roles', {
+					keepTouched: true,
+					keepDirty: true,
+				});
+
+				expect(get(values)).toEqual(initialValues);
+				expect(get(deps)).toEqual(initialDeps);
+				expect(get(validators)).toEqual(initialValidators);
+				expect(get(touched)).toEqual({ ...initialTouched, roles: [true] });
+				expect(get(dirty)).toEqual({ ...initialDirty, roles: [true] });
+				expect(get(errors)).toEqual(initialErrors);
+				expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+			});
 		});
-		deps.update((deps) => {
-			for (const { key } of valueUpdate) {
-				// TODO: user is able to update deps for fields and set them to be invalid with the rest of the form state
-				setImpure(key, ['email', 'email', 'email'], deps);
-			}
-			return deps;
+
+		it('should reset with { value }', async () => {
+			const { component } = render(Form);
+			const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+			const {
+				resetField,
+				values,
+				deps,
+				errors,
+				dirty,
+				touched,
+				validators,
+				initialValidators,
+				initialDeps,
+				initialValues,
+				initialTouched,
+				initialDirty,
+				initialErrors,
+			} = form;
+
+			const valueUpdate = [
+				{ key: 'roles', value: ['user', 'admin', 'tester'] },
+			] as const satisfies ValueUpdate;
+			const wait = waitForAllFieldsToValidate(valueUpdate, form);
+
+			validators.update((x) => {
+				for (const { key, value } of valueUpdate) {
+					setImpure(
+						key,
+						value.map(() => () => 'error'),
+						x,
+					);
+				}
+				return x;
+			});
+			deps.update((deps) => {
+				for (const { key } of valueUpdate) {
+					setImpure(key, ['email', 'email', 'email'], deps);
+				}
+				return deps;
+			});
+			values.update((vals) => {
+				for (const { key, value } of valueUpdate) {
+					setImpure(key, value, vals);
+				}
+				return vals;
+			});
+
+			await wait;
+
+			resetField('roles', { value: ['test'] });
+
+			expect(get(values)).toEqual({ ...initialValues, roles: ['test'] });
+			expect(get(touched)).toEqual(initialTouched);
+			expect(get(errors)).toEqual(initialErrors);
+			expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+			expect(get(dirty)).toEqual(initialDirty);
+			expect(get(validators)).toEqual(initialValidators);
+			expect(get(deps)).toEqual(initialDeps);
 		});
-		values.update((vals) => {
-			for (const { key, value } of valueUpdate) {
-				setImpure(key, value, vals);
-			}
-			return vals;
+
+		it('should reset with { value, deps }', async () => {
+			const { component } = render(Form);
+			const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+			const {
+				resetField,
+				values,
+				deps,
+				errors,
+				dirty,
+				touched,
+				validators,
+				initialValidators,
+				initialDeps,
+				initialValues,
+				initialTouched,
+				initialDirty,
+				initialErrors,
+			} = form;
+
+			const valueUpdate = [
+				{ key: 'roles', value: ['user', 'admin', 'tester'] },
+			] as const satisfies ValueUpdate;
+			const wait = waitForAllFieldsToValidate(valueUpdate, form);
+
+			validators.update((x) => {
+				for (const { key, value } of valueUpdate) {
+					setImpure(
+						key,
+						value.map(() => () => 'error'),
+						x,
+					);
+				}
+				return x;
+			});
+			deps.update((deps) => {
+				for (const { key } of valueUpdate) {
+					setImpure(key, ['email', 'email', 'email'], deps);
+				}
+				return deps;
+			});
+			values.update((vals) => {
+				for (const { key, value } of valueUpdate) {
+					setImpure(key, value, vals);
+				}
+				return vals;
+			});
+
+			await wait;
+
+			resetField('roles', { value: ['test'], deps: [['email', 'name']] });
+
+			expect(get(values)).toEqual({ ...initialValues, roles: ['test'] });
+			expect(get(deps)).toEqual({ ...initialDeps, roles: [['email', 'name']] });
+			expect(get(touched)).toEqual(initialTouched);
+			expect(get(errors)).toEqual(initialErrors);
+			expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+			expect(get(dirty)).toEqual(initialDirty);
+			expect(get(validators)).toEqual(initialValidators);
 		});
 
-		await wait;
+		it('should reset with { value, deps, validator }', async () => {
+			const { component } = render(Form);
+			const { form } = component.$capture_state() as unknown as { form: FormType<FormValues> };
+			const {
+				resetField,
+				values,
+				deps,
+				errors,
+				dirty,
+				touched,
+				validators,
+				initialValidators,
+				initialDeps,
+				initialValues,
+				initialTouched,
+				initialDirty,
+				initialErrors,
+			} = form;
 
-		resetField('roles');
+			const valueUpdate = [
+				{ key: 'roles', value: ['user', 'admin', 'tester'] },
+			] as const satisfies ValueUpdate;
+			const wait = waitForAllFieldsToValidate(valueUpdate, form);
 
-		expect(get(values).roles).toEqual(['user']);
-		expect(get(touched).roles).toEqual([false]);
-		expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
-		expect(get(dirty).roles).toEqual([false]);
-		expect(get(validators)).toEqual(initialValidators);
-		expect(get(deps)).toEqual(initialDeps);
+			validators.update((x) => {
+				for (const { key, value } of valueUpdate) {
+					setImpure(
+						key,
+						value.map(() => () => 'error'),
+						x,
+					);
+				}
+				return x;
+			});
+			deps.update((deps) => {
+				for (const { key } of valueUpdate) {
+					setImpure(key, ['email', 'email', 'email'], deps);
+				}
+				return deps;
+			});
+			values.update((vals) => {
+				for (const { key, value } of valueUpdate) {
+					setImpure(key, value, vals);
+				}
+				return vals;
+			});
+
+			await wait;
+
+			const newValidator: ResetFieldOptions<FormValues, 'roles'>['validator'] = {
+				[This]: (val) => 'error',
+				[All]: (val) => 'error',
+				[Values]: [(val) => 'error'],
+			};
+			resetField('roles', {
+				value: ['test'],
+				deps: [['email', 'name']],
+				validator: newValidator,
+			});
+
+			expect(get(values)).toEqual({ ...initialValues, roles: ['test'] });
+			expect(get(deps)).toEqual({ ...initialDeps, roles: [['email', 'name']] });
+			expect(get(validators)).toEqual({ ...initialValidators, roles: newValidator });
+			expect(get(touched)).toEqual(initialTouched);
+			expect(get(errors)).toEqual(initialErrors);
+			expect(getInternalSafe('roles', get(errors))).toBeInstanceOf(FieldNotFoundError);
+			expect(get(dirty)).toEqual(initialDirty);
+		});
 	});
+});
+
+it('testing proxies', () => {
+	const values = {
+		name: '',
+	};
+
+	const touched = {
+		name: false,
+	};
+
+	const valuesProxy = new Proxy(values, {
+		set(target, prop, value) {
+			console.log('set', prop, value);
+			if (prop === 'name') {
+				touched.name = true;
+				return true;
+			}
+			return Reflect.set(target, prop, value);
+		},
+	});
+
+	valuesProxy.name = 'test';
+	expect(values.name).toEqual('');
+	expect(touched.name).toEqual(true);
 });

@@ -23,10 +23,7 @@ export function createUpdateValue<T extends object>(
 	state_store: Writable<FormState>,
 	initialValidators: ValidatorFields<T>,
 	initialDeps: DependencyFieldsInternal<T>,
-	runValidation: (
-		name: string | Array<string | number | symbol>,
-		formState: [InternalFormState<T>],
-	) => Promise<void>,
+	runValidation: (name: string | Array<string | number | symbol>) => Promise<void>,
 ): (name: string | Array<string | number | symbol>, value: unknown) => Promise<void> {
 	return async (name, incomingValue) => {
 		const formState = internalState[0];
@@ -175,7 +172,7 @@ export function createUpdateValue<T extends object>(
 			state_store.update((x) => setImpure('isDirty', true, x));
 		}
 		if (formState.validateMode === 'onChange' || formState.validateMode === 'all') {
-			await runValidation(name, internalState);
+			await runValidation(name);
 		}
 		latest_field_event_store.set({ field: name, event: 'afterChange' });
 	};

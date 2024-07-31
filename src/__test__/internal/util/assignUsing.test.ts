@@ -59,7 +59,7 @@ describe('assignUsing', () => {
 			c: {
 				a: 2,
 			},
-			[no]: { a: 2 },
+			[no]: { a: 2, b: [1, 2, 3] },
 			// a: 2,
 			// [yes]: {
 			// 	a: 2,

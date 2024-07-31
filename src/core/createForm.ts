@@ -90,6 +90,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		state_store,
 		isSchemaless,
 		isSchema,
+		internalState,
 		validationResolver,
 	);
 
@@ -141,6 +142,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		errors_store,
 		deps_store,
 		touched_store,
+		dirty_store,
 		state_store,
 		internalState,
 		value_change_store,
@@ -188,7 +190,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 
 	const handleFocus = createHandleFocus(latest_field_event_store, internalState, runValidation);
 
-	const validate = (name: string) => runValidation(name, internalState);
+	const validate = runValidation;
 
 	const clean: Form['clean'] = (path) => {
 		const val = getInternal(path, internalState[0].values);

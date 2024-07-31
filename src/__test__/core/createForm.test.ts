@@ -8,8 +8,8 @@ import Form from '../components/Form.svelte';
 import {
 	FormValues,
 	formValidators,
-	formValues,
 	getComponentState,
+	initialFormValues,
 	waitForAllFieldsToValidate,
 } from './createFormUtils';
 
@@ -18,7 +18,7 @@ describe('createForm', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
 
-		expect(get(form.values)).toEqual(formValues);
+		expect(get(form.values)).toEqual(initialFormValues);
 		expect(get(form.touched)).toEqual({ name: false, email: false, roles: [false] });
 		expect(get(form.errors)).toEqual({ name: false, email: false, roles: [false] });
 		expect(get(form.dirty)).toEqual({ name: false, email: false, roles: [false] });
@@ -38,6 +38,7 @@ describe('createForm', async () => {
 	it('[Form value-change] should not have any errors present', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
+		const { initialErrors } = form;
 
 		const valueUpdates: Array<{ key: DotPaths<FormValues>; value: any }> = [
 			{ key: 'name', value: 'Test Test' },
@@ -56,8 +57,13 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(form.errors)).toEqual({ name: false, email: false, roles: [false] });
-		expect(get(form.dirty)).toEqual({ name: true, email: true, roles: [true] });
+		expect(get(form.errors)).toEqual({ name: false, email: false });
+		expect(get(form.dirty)).toEqual({
+			...form.initialDirty,
+			name: true,
+			email: true,
+			roles: [true],
+		});
 	});
 
 	it('[Form value-change] should have error for name', async () => {
@@ -142,7 +148,7 @@ describe('createForm', async () => {
 
 		rolesHelpers.append('admin');
 
-		expect(get(values).roles).toEqual([...formValues.roles, 'admin']);
+		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual([false, false]);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -160,7 +166,7 @@ describe('createForm', async () => {
 
 		rolesHelpers.append('admin', { deps: ['email'] });
 
-		expect(get(values).roles).toEqual([...formValues.roles, 'admin']);
+		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual([false, false]);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -183,7 +189,7 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(values).roles).toEqual([...formValues.roles, 'admin']);
+		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual([false, 'error']);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -206,7 +212,7 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(values).roles).toEqual([...formValues.roles, 'admin']);
+		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual([false, 'error']);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -243,7 +249,7 @@ describe('createForm', async () => {
 
 		rolesHelpers.prepend('admin');
 
-		expect(get(values).roles).toEqual(['admin', ...formValues.roles]);
+		expect(get(values).roles).toEqual(['admin', ...initialFormValues.roles]);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual([false, false]);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -261,7 +267,7 @@ describe('createForm', async () => {
 
 		rolesHelpers.prepend('admin', { deps: ['email'] });
 
-		expect(get(values).roles).toEqual(['admin', ...formValues.roles]);
+		expect(get(values).roles).toEqual(['admin', ...initialFormValues.roles]);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual([false, false]);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -284,7 +290,7 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(values).roles).toEqual(['admin', ...formValues.roles]);
+		expect(get(values).roles).toEqual(['admin', ...initialFormValues.roles]);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual(['error']);
 		expect(get(dirty).roles).toEqual([false, false]);
@@ -307,7 +313,7 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(values).roles).toEqual(['admin', ...formValues.roles]);
+		expect(get(values).roles).toEqual(['admin', ...initialFormValues.roles]);
 		expect(get(touched).roles).toEqual([false, false]);
 		expect(get(errors).roles).toEqual(['error']);
 		expect(get(dirty).roles).toEqual([false, false]);

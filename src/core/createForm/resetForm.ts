@@ -24,22 +24,34 @@ export const createResetForm = <T extends object>(
 	errors_store: Writable<ErrorFields<T>>,
 	deps_store: Writable<DependencyFieldsInternal<T>>,
 	touched_store: Writable<BooleanFields<T>>,
+	dirty_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
 	internalState: [InternalFormState<T>],
 	value_change_store: Writable<[Array<string | number | symbol>, unknown, boolean] | null> | null,
 ): ResetFormFn<T> => {
 	return (options) => {
-		const hasNewValues = !!options && 'values' in options && !!options.values;
-		const newValues = hasNewValues ? clone(options.values!) : clone(initialValues);
-		const reactiveNewValues = cloneWithStoreReactivity(newValues, value_change_store);
+		const hasNewValues = !!options && 'values' in options;
+		const newValues = hasNewValues
+			? clone(mergeRightDeepImpure(clone(initialValues), options.values))
+			: clone(initialValues);
+		const reactiveNewValues = cloneWithStoreReactivity(
+			newValues,
+			value_change_store,
+			touched_store,
+			dirty_store,
+		);
 
 		values_store.set(reactiveNewValues);
 		if (options?.keepValidators) {
 			validators_store.set(
-				assignUsing(newValues, internalState[0].validators, {
-					use: [This, All],
-					compare: [Values],
-				}),
+				assignUsing(
+					newValues,
+					mergeRightDeepImpure(internalState[0].validators, options?.validators),
+					{
+						use: [This, All],
+						compare: [Values],
+					},
+				),
 			);
 		} else {
 			validators_store.set(
@@ -52,11 +64,17 @@ export const createResetForm = <T extends object>(
 		if (options?.keepErrors) errors_store.set(assignUsing(newValues, internalState[0].errors));
 		else errors_store.set({});
 
-		if (options?.keepDeps) deps_store.set(assignUsing(newValues, internalState[0].deps));
+		if (options?.keepDeps)
+			deps_store.set(
+				assignUsing(newValues, mergeRightDeepImpure(internalState[0].deps, options?.deps)),
+			);
 		else deps_store.set(assignUsing(newValues, options?.deps ?? initialDeps));
 
 		if (options?.keepTouched) touched_store.set(assignUsing(newValues, internalState[0].touched));
 		else touched_store.set(assign(false, newValues));
+
+		if (options?.keepDirty) dirty_store.set(assignUsing(newValues, internalState[0].dirty));
+		else dirty_store.set(assign(false, newValues));
 
 		state_store.update((x) =>
 			mergeRightDeepImpure(x, {

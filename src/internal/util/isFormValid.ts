@@ -9,7 +9,6 @@ import {
 } from '../../types/Form';
 import { getInternal } from './get';
 import { getTriggers } from './getTriggers';
-import { isFunction } from './isFunction';
 import { isObject } from './isObject';
 import { setImpure } from './set';
 
@@ -33,13 +32,7 @@ export const isFormValidSchemaless = async <T extends object>(
 		if (currentFormDep?.length > 0) return [isFormValid[0], errors];
 
 		const validator = currentFormValidator;
-		if (
-			isFunction(validator)
-			// !isNil(validator) &&
-			// !isObject(validator) &&
-			// !Array.isArray(validator) &&
-			// typeof validator === 'function'
-		) {
+		if (typeof validator === 'function') {
 			const validatorResult = (await validator(currentFormValue, {
 				values: allFormValues,
 				dirty: allFormDirty,
@@ -67,7 +60,7 @@ export const isFormValidSchemaless = async <T extends object>(
 
 		const fieldTriggers = getTriggers(keyToPush, allFormTriggers, allFormValues, false);
 
-		for (const triggerPath of fieldTriggers)
+		for (const triggerPath of fieldTriggers) {
 			await isFormValidSchemaless(
 				allFormValues,
 				allFormValidators,
@@ -84,6 +77,7 @@ export const isFormValidSchemaless = async <T extends object>(
 				isFormValid,
 				validatedFields,
 			);
+		}
 
 		await isFormValidSchemaless(
 			allFormValues,

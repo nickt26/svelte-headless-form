@@ -28,8 +28,8 @@ export function mergeRightDeepImpure<T extends object, S extends object>(
 	options?: MergeRightDeepOptions,
 ): T & S {
 	const keys =
-		(Array.isArray(left) && Array.isArray(right) && left) ||
-		(isObject(left) && isObject(right) && Object.keys(left));
+		(Array.isArray(left) && Array.isArray(right) && Object.keys(right)) ||
+		(isObject(left) && isObject(right) && Object.keys(right));
 	if (!keys) return left as T & S;
 
 	const {

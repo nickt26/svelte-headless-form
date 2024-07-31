@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { useField } from '../../../src/core/useField';
-	import type { FormControl } from '../../../src/types/Form';
+	import type { DotPaths, FormControl } from '../../../src/types/Form';
 
-	export let name: string;
-	export let control: FormControl;
+	type TValues = $$Generic;
+	export let name: DotPaths<TValues>;
+	export let control: FormControl<TValues & object>;
 	export let type = 'text';
 
 	const {
 		field: { value, handleBlur },
 		fieldState: { error, isTouched },
-	} = useField<string | number | null>({ name, control });
+	} = useField({ name, control });
 </script>
 
-<input {...{ type }} bind:value={$value} on:blur={handleBlur}  />
-{#if ($error && $isTouched)}
+<input {...{ type }} bind:value={$value} on:blur={handleBlur} />
+{#if $error && $isTouched}
 	<span style="color:red;">{$error}</span>
 {/if}
