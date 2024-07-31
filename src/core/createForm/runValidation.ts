@@ -1,8 +1,6 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
 import { getInternal } from '../../internal/util/get';
-import { getTriggerField } from '../../internal/util/getTriggerField';
-import { getTriggers } from '../../internal/util/getTriggers';
 import { isFormValidSchemaless } from '../../internal/util/isFormValid';
 import { isNil } from '../../internal/util/isNil';
 import { isObject } from '../../internal/util/isObject';
@@ -44,17 +42,13 @@ export function createRunValidation<T extends object>(
 						);
 					}
 
-					const fieldDeps = getInternal(name, formState.deps);
 					const [_, errors] = await isFormValidSchemaless(
 						fieldValue,
 						fieldValidator as any,
-						fieldDeps as any,
-						getTriggerField(name, formState.triggers) as any,
 						getInternal(name, formState.touched)! as any,
 						getInternal(name, formState.dirty)! as any,
 						fieldValue,
 						fieldValidator,
-						fieldDeps,
 					);
 					errors_store.update((x) => mergeRightDeepImpure(x, errors as PartialErrorFields<T>));
 
@@ -78,30 +72,6 @@ export function createRunValidation<T extends object>(
 							state_store.update((x) => setImpure('hasErrors', true, x));
 					}
 				}
-
-				const triggers = getTriggers(name, formState.triggers, formState.values);
-
-				for (const triggerName of triggers) {
-					runValidation(triggerName);
-					// const triggerValue = getInternal(triggerName, formState.values);
-					// const triggerValidators = getValidators(triggerName, formState.validators);
-					// for (const triggerValidator of triggerValidators) {
-					// 	const path = triggerValidator[0];
-					// 	const validator = triggerValidator[1];
-					// 	console.log(path, validator);
-					// 	if (isFunction(validator)) {
-					// 		const triggerValidatorResult = await validator(triggerValue, {
-					// 			...formState,
-					// 			path,
-					// 		});
-					// 		if (getInternal(path, formState.errors) !== triggerValidatorResult) {
-					// 			errors_store.update((x) => setImpure(path, triggerValidatorResult, x));
-					// 			if (!formState.state.hasErrors)
-					// 				state_store.update((x) => setImpure('hasErrors', true, x));
-					// 		}
-					// 	}
-					// }
-				}
 			}
 
 			if (isSchema) {
@@ -115,13 +85,6 @@ export function createRunValidation<T extends object>(
 				if (isObject(fieldError) || Array.isArray(fieldError))
 					errors_store.update((x) => mergeRightDeepImpure(x, fieldError));
 				else errors_store.update((x) => setImpure(name, fieldError, x));
-
-				const triggers = getTriggers(name, formState.triggers, formState.values);
-				for (const trigger of triggers) {
-					errors_store.update((x) =>
-						setImpure(trigger, getInternal<string | false>(trigger, formErrors) ?? false, x),
-					);
-				}
 			}
 		} finally {
 			internal_counter_store.update((x) => setImpure('validations', x.validations - 1, x));

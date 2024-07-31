@@ -1,14 +1,13 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
 import { appendImpure } from '../../internal/util/append';
-import { clone, noValidate } from '../../internal/util/clone';
+import { noValidate } from '../../internal/util/clone';
 import { getInternal } from '../../internal/util/get';
 import { prependImpure } from '../../internal/util/prepend';
 import { removePropertyImpure } from '../../internal/util/removeProperty';
 import { setImpure } from '../../internal/util/set';
 import {
 	BooleanFields,
-	DependencyFields,
 	ErrorFields,
 	UseFieldArrayFnInternal,
 	ValidatorFields,
@@ -20,7 +19,6 @@ export function createUseFieldArray<T extends object>(
 	dirty_store: Writable<BooleanFields<T>>,
 	validators_store: Writable<ValidatorFields<T>>,
 	errors_store: Writable<ErrorFields<T>>,
-	deps_store: Writable<DependencyFields>,
 	internalState: [InternalFormState<T>],
 	checkFormForStateReset: () => void,
 	runValidation: (name: string) => Promise<void>,
@@ -42,30 +40,27 @@ export function createUseFieldArray<T extends object>(
 				values_store.update((x) => removePropertyImpure(path, x));
 				validators_store.update((x) => removePropertyImpure(path, x));
 				errors_store.update((x) => removePropertyImpure(path, x));
-				deps_store.update((x) => removePropertyImpure(path, x));
 				checkFormForStateReset();
 			},
-			append: (val, { deps = [], validate = false, validator } = {}) => {
+			append: (val, { validate = false, validator } = {}) => {
 				touched_store.update((x) => appendImpure(name, false, x));
 				dirty_store.update((x) => appendImpure(name, false, x));
 				values_store.update((x) => appendImpure(name, [noValidate, val], x));
 				const array = getInternal<any[]>(name, formState.values)!;
 				const path = `${name}.${array.length - 1}`;
 				validators_store.update((x) => appendImpure(name, validator, x));
-				deps_store.update((x) => appendImpure(name, clone(deps), x));
 				if (validator && validate) {
 					runValidation(path, [internalState[0]]);
 				} else {
 					errors_store.update((x) => setImpure(path, false, x));
 				}
 			},
-			prepend: (val, { deps = [], validate = false, validator } = {}) => {
+			prepend: (val, { validate = false, validator } = {}) => {
 				touched_store.update((x) => prependImpure(name, false, x));
 				dirty_store.update((x) => prependImpure(name, false, x));
 				values_store.update((x) => prependImpure(name, [noValidate, val], x));
 				if (validator) validators_store.update((x) => prependImpure(name, validator, x));
 				else validators_store.update((x) => prependImpure(name, undefined, x));
-				deps_store.update((x) => prependImpure(name, clone(deps), x));
 				if (validator && validate) runValidation(`${name}.0`, internalState);
 				else errors_store.update((x) => prependImpure(name, false, x));
 			},
@@ -83,7 +78,6 @@ export function createUseFieldArray<T extends object>(
 					value: getInternal(index1Path, formState.values),
 					validators: getInternal(index1Path, formState.validators),
 					error: getInternal(index1Path, formState.errors),
-					deps: getInternal(index1Path, formState.deps),
 				};
 
 				const index2Path = `${name}.${to}`;
@@ -93,7 +87,6 @@ export function createUseFieldArray<T extends object>(
 					value: getInternal(index2Path, formState.values),
 					validators: getInternal(index2Path, formState.validators),
 					error: getInternal(index2Path, formState.errors),
-					deps: getInternal(index2Path, formState.deps),
 				};
 
 				touched_store.update((x) => {
@@ -107,10 +100,6 @@ export function createUseFieldArray<T extends object>(
 				dirty_store.update((x) => {
 					setImpure(index1Path, toItems.dirty, x);
 					return setImpure(index2Path, fromItems.dirty, x);
-				});
-				deps_store.update((x) => {
-					setImpure(index1Path, toItems.deps, x);
-					return setImpure(index2Path, fromItems.deps, x);
 				});
 				values_store.update((x) => {
 					setImpure(index1Path, [noValidate, toItems.value], x);

@@ -5,7 +5,6 @@ import {
 	This,
 	Values,
 	type BooleanFields,
-	type DependencyFieldsInternal,
 	type ErrorFields,
 	type FormState,
 	type ValidationResolver,
@@ -18,7 +17,6 @@ type InitialFormValues<T extends object> = {
 	initialErrors: ErrorFields<T>;
 	initialValues: T;
 	initialValidators: ValidatorFields<T>;
-	initialDeps: DependencyFieldsInternal<T>;
 	initialState: FormState;
 	validationResolver?: ValidationResolver<T>;
 };
@@ -29,7 +27,6 @@ export function createInitialValues<T extends object>(
 	isSchema: boolean,
 	formInitialValidators?: ValidatorFields<T> | ((values: T) => ValidatorFields<T>),
 	formValidationResolver?: ValidationResolver<T>,
-	formInitialDeps?: DependencyFieldsInternal<T>,
 ): InitialFormValues<T> {
 	const initialTouched = assign(false, formInitialValues);
 	const initialDirty = assign(false, formInitialValues);
@@ -48,7 +45,6 @@ export function createInitialValues<T extends object>(
 		: ({} as ValidatorFields<T>);
 	const validationResolver = isSchema ? formValidationResolver : undefined;
 	const initialErrors = {};
-	const initialDeps = assignUsing(initialValues, formInitialDeps ?? {});
 	const initialState: FormState = {
 		isSubmitting: false,
 		isDirty: false,
@@ -62,7 +58,6 @@ export function createInitialValues<T extends object>(
 	return {
 		initialValues,
 		initialValidators,
-		initialDeps,
 		initialTouched,
 		initialDirty,
 		initialErrors,

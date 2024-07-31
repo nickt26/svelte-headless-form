@@ -28,13 +28,11 @@
 		touched,
 		handleBlur,
 		initialValues,
-		initialDeps,
 		initialValidators,
 		validators,
 		latestFieldEvent,
 		validate,
 		updateValue,
-		deps,
 		useFieldArray,
 	} = createForm<FormValues>({
 		initialValues: {
@@ -70,12 +68,6 @@
 			// 	return allRolesAreNotUnique && allRolesHaveNoErrors && 'Roles must be unique';
 			// },
 		}),
-		initialDeps: {
-			rolesAreUnique: ['roles'],
-			roles: {
-				[All]: ['roles'],
-			},
-		},
 		// validationResolver: (values) => {
 		// 	const errors = {} as PartialDeep<ObjectDeep<FormValues, string | false>>;
 
@@ -118,7 +110,6 @@
 
 	// updateValue('nested', $values.nested, {
 	// 	validate: false,
-	// 	newDeps: ['nested.*.3'],
 	// 	newValidator: (val) => Object.keys(val).length <= 0 && 'Nested is required',
 	// });
 
@@ -146,7 +137,7 @@
 	{#if showUsername}
 		<input type="text" bind:value={$values.username} on:blur={() => handleBlur('username')} />
 		<div>Touched username:{$touched.username}</div>
-		<button type="button" on:click={() => resetField('username', { value: 'banana', deps: [], validator: () => false })}
+		<button type="button" on:click={() => resetField('username', { value: 'banana', validator: () => false })}
 			>Reset Username</button
 		>
 	{/if}
@@ -189,10 +180,7 @@
 	{/if}
 
 	<button type="submit">Submit</button>
-	<button
-		type="button"
-		on:click={() => resetForm({ values: initialValues, validators: initialValidators, deps: initialDeps })}
-	>
+	<button type="button" on:click={() => resetForm({ values: initialValues, validators: initialValidators })}>
 		Reset</button
 	>
 

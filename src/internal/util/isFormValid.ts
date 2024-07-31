@@ -1,27 +1,21 @@
 import {
 	BooleanFields,
-	DependencyFieldsInternal,
 	PartialErrorFields,
-	TriggerFields,
 	ValidationResolver,
 	ValidatorFields,
 	ValidatorState,
 } from '../../types/Form';
 import { getInternal } from './get';
-import { getTriggers } from './getTriggers';
 import { isObject } from './isObject';
 import { setImpure } from './set';
 
 export const isFormValidSchemaless = async <T extends object>(
 	allFormValues: T,
 	allFormValidators: ValidatorFields<T>,
-	allFormDeps: DependencyFieldsInternal<T>,
-	allFormTriggers: TriggerFields<T>,
 	allFormTouched: BooleanFields<T>,
 	allFormDirty: BooleanFields<T>,
 	currentFormValue: any,
 	currentFormValidator: any | undefined,
-	currentFormDep: any | undefined,
 	errors: any = {},
 	currentKey = '',
 	isFormValid: [boolean] = [true],
@@ -29,15 +23,11 @@ export const isFormValidSchemaless = async <T extends object>(
 ): Promise<[boolean, PartialErrorFields<object> | string | boolean]> => {
 	if (!isObject(currentFormValue) && !Array.isArray(currentFormValue)) {
 		if (validatedFields.has(currentKey)) return [isFormValid[0], errors];
-		if (currentFormDep?.length > 0) return [isFormValid[0], errors];
 
 		const validator = currentFormValidator;
 		if (typeof validator === 'function') {
 			const validatorResult = (await validator(currentFormValue, {
 				values: allFormValues,
-				dirty: allFormDirty,
-				errors,
-				touched: allFormTouched,
 				path: currentKey,
 			} satisfies ValidatorState<T>)) as string | false;
 
@@ -54,42 +44,16 @@ export const isFormValidSchemaless = async <T extends object>(
 	for (const key of Object.keys(currentFormValue)) {
 		const keyToPush = currentKey ? `${currentKey}.${key}` : key;
 		if (validatedFields.has(keyToPush)) continue;
-		if (currentFormDep?.[key]?.length > 0) continue;
 
 		const fieldVal = currentFormValue[key as any];
-
-		const fieldTriggers = getTriggers(keyToPush, allFormTriggers, allFormValues, false);
-
-		for (const triggerPath of fieldTriggers) {
-			await isFormValidSchemaless(
-				allFormValues,
-				allFormValidators,
-				allFormDeps,
-				allFormTriggers,
-				allFormTouched,
-				allFormDirty,
-				getInternal(triggerPath, allFormValues),
-				getInternal(triggerPath, allFormValidators),
-				getInternal(triggerPath, allFormDeps),
-				// undefined,
-				errors,
-				triggerPath,
-				isFormValid,
-				validatedFields,
-			);
-		}
 
 		await isFormValidSchemaless(
 			allFormValues,
 			allFormValidators,
-			allFormDeps,
-			allFormTriggers,
 			allFormTouched,
 			allFormDirty,
 			fieldVal,
 			getInternal(keyToPush, allFormValidators),
-			getInternal(keyToPush, allFormDeps),
-			// getTriggers(keyToPush, allFormTriggers, allFormValues),
 			errors,
 			keyToPush,
 			isFormValid,

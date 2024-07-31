@@ -6,7 +6,6 @@ import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
 import {
 	All,
 	BooleanFields,
-	DependencyFieldsInternal,
 	ErrorFields,
 	FormState,
 	ResetFormFn,
@@ -18,11 +17,9 @@ import {
 export const createResetForm = <T extends object>(
 	initialValues: T,
 	initialValidators: ValidatorFields<T>,
-	initialDeps: DependencyFieldsInternal<T>,
 	values_store: Writable<T>,
 	validators_store: Writable<ValidatorFields<T>>,
 	errors_store: Writable<ErrorFields<T>>,
-	deps_store: Writable<DependencyFieldsInternal<T>>,
 	touched_store: Writable<BooleanFields<T>>,
 	dirty_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
@@ -63,12 +60,6 @@ export const createResetForm = <T extends object>(
 		}
 		if (options?.keepErrors) errors_store.set(assignUsing(newValues, internalState[0].errors));
 		else errors_store.set({});
-
-		if (options?.keepDeps)
-			deps_store.set(
-				assignUsing(newValues, mergeRightDeepImpure(internalState[0].deps, options?.deps)),
-			);
-		else deps_store.set(assignUsing(newValues, options?.deps ?? initialDeps));
 
 		if (options?.keepTouched) touched_store.set(assignUsing(newValues, internalState[0].touched));
 		else touched_store.set(assign(false, newValues));

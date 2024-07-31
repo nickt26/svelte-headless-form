@@ -8,7 +8,6 @@ import { removePropertyImpure } from '../../internal/util/removeProperty';
 import { setImpure } from '../../internal/util/set';
 import {
 	BooleanFields,
-	DependencyFieldsInternal,
 	ErrorFields,
 	LatestFieldEvent,
 	ResetFieldFn,
@@ -21,7 +20,6 @@ export const createResetField = <TValues extends object>(
 	initialDirty: BooleanFields<TValues>,
 	initialErrors: ErrorFields<TValues>,
 	initialValidators: ValidatorFields<TValues>,
-	initialDeps: DependencyFieldsInternal<TValues>,
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	internalState: [InternalFormState<TValues>],
 	values_store: Writable<TValues>,
@@ -29,7 +27,6 @@ export const createResetField = <TValues extends object>(
 	dirty_store: Writable<BooleanFields<TValues>>,
 	errors_store: Writable<ErrorFields<TValues>>,
 	validators_store: Writable<ValidatorFields<TValues>>,
-	deps_store: Writable<DependencyFieldsInternal<TValues>>,
 	checkFormForStateReset: () => void,
 ): ResetFieldFn<object> => {
 	return (name, options): void => {
@@ -55,14 +52,11 @@ export const createResetField = <TValues extends object>(
 
 		const hasNewValue = options && 'value' in options;
 		const newValue = hasNewValue ? clone(options.value) : clone(initialValue);
-		const newDeps = clone(options?.deps) ?? clone(getInternal(name, initialDeps));
 		const newValidator = clone(options?.validator) ?? clone(getInternal(name, initialValidators));
 		const shouldValidate = options?.validate ?? false;
 		const newValueWithFlags = [{ [noValidate]: !shouldValidate, [noFormUpdate]: true }, newValue];
 
 		if (isObject(newValue) || Array.isArray(newValue)) {
-			if (newDeps) deps_store.update((x) => setImpure(name, newDeps, x));
-			else deps_store.update((x) => removePropertyImpure(name, x));
 			validators_store.update((x) => setImpure(name, newValidator, x));
 			if (options?.keepTouched) {
 				touched_store.update((x) =>
@@ -91,8 +85,6 @@ export const createResetField = <TValues extends object>(
 
 		// const newValidator = options?.validator ?? getInternal(name, initialValidators);
 		// reset all the field values before setting the new value and triggering validation
-		if (newDeps) deps_store.update((x) => setImpure(name, newDeps, x));
-		else deps_store.update((x) => removePropertyImpure(name, x));
 		validators_store.update((x) => setImpure(name, newValidator, x));
 		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
 		else touched_store.update((x) => setImpure(name, getInternal(name, x), x));

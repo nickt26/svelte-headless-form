@@ -4,7 +4,6 @@ import { getInternal } from '../../internal/util/get';
 import { setImpure } from '../../internal/util/set';
 import {
 	BooleanFields,
-	DependencyFieldsInternal,
 	ErrorFields,
 	FormState,
 	LatestFieldEvent,
@@ -19,10 +18,8 @@ export function createUpdateValue<T extends object>(
 	touched_store: Writable<BooleanFields<T>>,
 	errors_store: Writable<ErrorFields<T>>,
 	validators_store: Writable<ValidatorFields<T>>,
-	deps_store: Writable<DependencyFieldsInternal<T>>,
 	state_store: Writable<FormState>,
 	initialValidators: ValidatorFields<T>,
-	initialDeps: DependencyFieldsInternal<T>,
 	runValidation: (name: string | Array<string | number | symbol>) => Promise<void>,
 ): (name: string | Array<string | number | symbol>, value: unknown) => Promise<void> {
 	return async (name, incomingValue) => {

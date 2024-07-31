@@ -11,7 +11,7 @@ export function createHandleBlur<T extends object>(
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	touched_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
-	runValidation: (name: string) => Promise<void>,
+	runValidation: (name: string, state: { values: T; path: string }) => Promise<void>,
 ): (name: string) => Promise<void> {
 	return async function (name) {
 		const formState = internalState[0];
@@ -33,7 +33,7 @@ export function createHandleBlur<T extends object>(
 			state_store.update((x) => setImpure('isTouched', true, x));
 		}
 		if (formState.validateMode === 'onBlur' || formState.validateMode === 'all') {
-			await runValidation(name, internalState);
+			await runValidation(name, { values: internalState[0].values, path: name });
 		}
 		latest_field_event_store.update(() => ({ field: name, event: 'afterBlur' }));
 	};

@@ -1,17 +1,14 @@
-import { Readable, Writable, derived, get, writable } from 'svelte/store';
+import { Readable, Writable, derived, writable } from 'svelte/store';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
 import { clone, cloneWithStoreReactivity } from '../../internal/util/clone';
-import { createTriggers } from '../../internal/util/createTriggers';
 import {
 	BooleanFields,
-	DependencyFieldsInternal,
 	ErrorFields,
 	FormState,
 	LatestFieldEvent,
 	ValidateMode,
 	ValidatorFields,
 } from '../../types/Form';
-import { TriggerFields } from './../../types/Form';
 
 type Stores<T extends object> = {
 	touched_store: Writable<BooleanFields<T>>;
@@ -19,8 +16,6 @@ type Stores<T extends object> = {
 	values_store: Writable<T>;
 	validators_store: Writable<ValidatorFields<T>>;
 	errors_store: Writable<ErrorFields<T>>;
-	deps_store: Writable<DependencyFieldsInternal<T>>;
-	triggers_store: Readable<TriggerFields<T>>;
 	state_store: Writable<FormState>;
 	validate_mode_store: Writable<ValidateMode>;
 	latest_field_event_store: Writable<LatestFieldEvent | null>;
@@ -35,7 +30,6 @@ export function createStores<T extends object>(
 	initialValues: T,
 	initialValidators: ValidatorFields<T>,
 	initialErrors: ErrorFields<T>,
-	initialDeps: DependencyFieldsInternal<T>,
 	initialState: FormState,
 	validateMode: ValidateMode,
 ): Stores<T> {
@@ -49,8 +43,6 @@ export function createStores<T extends object>(
 	);
 	const validators_store = writable(clone(initialValidators));
 	const errors_store = writable(clone(initialErrors));
-	const deps_store = writable(clone(initialDeps));
-	const triggers_store = derived(deps_store, ($deps) => createTriggers(get(values_store), $deps));
 
 	const state_store = writable(clone(initialState));
 	const validate_mode_store = writable(validateMode);
@@ -68,8 +60,6 @@ export function createStores<T extends object>(
 			dirty_store,
 			validators_store,
 			errors_store,
-			deps_store,
-			triggers_store,
 			state_store,
 			validate_mode_store,
 		],
@@ -79,8 +69,6 @@ export function createStores<T extends object>(
 			$dirty,
 			$validators,
 			$errors,
-			$deps,
-			$triggers,
 			$state,
 			$validateMode,
 		]): InternalFormState<T> => ({
@@ -89,8 +77,6 @@ export function createStores<T extends object>(
 			dirty: $dirty,
 			validators: $validators,
 			errors: $errors,
-			deps: $deps,
-			triggers: $triggers,
 			state: $state,
 			validateMode: $validateMode,
 		}),
@@ -102,8 +88,6 @@ export function createStores<T extends object>(
 		values_store,
 		validators_store,
 		errors_store,
-		deps_store,
-		triggers_store,
 		state_store,
 		validate_mode_store,
 		latest_field_event_store,

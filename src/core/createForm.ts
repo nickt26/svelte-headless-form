@@ -1,5 +1,4 @@
 import { onDestroy } from 'svelte';
-import { Writable } from 'svelte/store';
 import { InternalFormState } from '../internal/types/Form';
 import { assign } from '../internal/util/assign';
 import { clone } from '../internal/util/clone';
@@ -7,8 +6,6 @@ import { getInternal } from '../internal/util/get';
 import { isObject } from '../internal/util/isObject';
 import { setImpure } from '../internal/util/set';
 import {
-	DependencyFields,
-	DependencyFieldsInternal,
 	Form,
 	FormControl,
 	FormOptions,
@@ -40,7 +37,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		initialValues,
 		initialDirty,
 		initialTouched,
-		initialDeps,
 		initialErrors,
 		initialState,
 		initialValidators,
@@ -51,7 +47,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		isSchema,
 		(formOptions as any).initialValidators,
 		(formOptions as any).validationResolver,
-		formOptions.initialDeps as DependencyFieldsInternal<T>,
 	);
 
 	const {
@@ -60,7 +55,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		values_store,
 		validators_store,
 		errors_store,
-		deps_store,
 		state_store,
 		validate_mode_store,
 		internal_counter_store,
@@ -73,7 +67,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		initialValues,
 		initialValidators,
 		initialErrors,
-		initialDeps,
 		initialState,
 		validateMode,
 	);
@@ -102,10 +95,8 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		touched_store,
 		errors_store,
 		validators_store,
-		deps_store,
 		state_store,
 		initialValidators,
-		initialDeps,
 		runValidation,
 	);
 
@@ -136,11 +127,9 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 	const resetForm = createResetForm(
 		initialValues,
 		initialValidators,
-		initialDeps,
 		values_store,
 		validators_store,
 		errors_store,
-		deps_store,
 		touched_store,
 		dirty_store,
 		state_store,
@@ -156,7 +145,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		initialDirty,
 		initialErrors,
 		initialValidators,
-		initialDeps,
 		latest_field_event_store,
 		internalState,
 		values_store,
@@ -164,7 +152,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		dirty_store,
 		errors_store,
 		validators_store,
-		deps_store,
 		checkFormForStateReset,
 	);
 
@@ -174,7 +161,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		dirty_store,
 		validators_store,
 		errors_store,
-		deps_store,
 		internalState,
 		checkFormForStateReset,
 		runValidation,
@@ -232,7 +218,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		errors: {
 			subscribe: errors_store.subscribe,
 		},
-		deps: deps_store as Writable<DependencyFields<T>>,
 		state: {
 			subscribe: state_store.subscribe,
 		},
@@ -246,7 +231,6 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		resetField,
 		initialValues: clone(initialValues),
 		initialValidators: clone(initialValidators),
-		initialDeps: clone(initialDeps) as DependencyFields<T>,
 		initialTouched: clone(initialTouched),
 		initialDirty: clone(initialDirty),
 		initialErrors: clone(initialErrors),

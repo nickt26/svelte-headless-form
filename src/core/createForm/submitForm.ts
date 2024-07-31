@@ -23,13 +23,10 @@ const isFormValid = async <T extends object>(
 			return (await isFormValidSchemaless(
 				formState.values,
 				formState.validators,
-				formState.deps,
-				formState.triggers,
 				formState.touched,
 				formState.dirty,
 				formState.values,
 				formState.validators,
-				formState.deps,
 			)) as [boolean, PartialErrorFields<T>];
 		if (isSchema) return await isFormValidSchema(formState.values, validationResolver!);
 		return [true, {}];

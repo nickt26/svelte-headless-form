@@ -305,14 +305,6 @@ fn<O>({
 	}),
 });
 
-type StarPaths<T extends string, R extends string = ''> = T extends `${infer First}.${infer Rest}`
-	? R extends ''
-		? StarPaths<Rest, First>
-		: StarPaths<Rest, `${R}.${First | '*'}`>
-	: R extends ''
-		? never
-		: `${R}.${T}`;
-
 type Paths<T extends string, S extends string> = T extends '' ? S : `${T}.${S}`;
 
 // DotPaths replacement
@@ -337,32 +329,7 @@ type CreateStarPaths4<
 
 export const allKey = 'allFields';
 export const All = Symbol(allKey);
-type DependenciesOnObject<T extends object, S extends Array<any>, TCurrentPath extends string> = {
-	[K in keyof T]?: Extract<T[K], object> extends never
-		? (S[number] | StarPaths<S[number]>)[]
-		:
-				| Dependencies<
-						Extract<T[K], object>,
-						S,
-						TCurrentPath extends '' ? K & string : `${TCurrentPath}.${K & string}`
-				  >
-				| Exclude<T[K], object>;
-};
-type Dependencies<
-	T extends object,
-	S extends Array<any>,
-	TCurrentPath extends string = '',
-	TDepsOnObject = DependenciesOnObject<T, S, TCurrentPath>,
-> = T extends any[]
-	? { [All]: (S[number] | StarPaths<S[number]>)[]; [Values]?: TDepsOnObject } | TDepsOnObject
-	: TDepsOnObject & { [All]?: S | (S[number] | StarPaths<S[number]>)[] };
 
-// type DependencyFieldss<T extends object> = {
-// 	[K in keyof T]?: T[K] extends object ? DependencyFieldss<T[K]> : [{ currentObject:  }];
-// };
-
-export type DependencyFields<T extends object = object> = Dependencies<T, DotPaths<T>[]>;
-export type DependencyFieldsInternal<T extends object = object> = PartialDeep<T, string[]>;
 export type BooleanFields<T extends object = object> = ObjectDeep<T, boolean>;
 export type ErrorFields<T extends object = object> = PartialDeep<T, string | false>;
 export type PartialErrorFields<T extends object> = PartialDeep<T, string | false>;
@@ -371,33 +338,6 @@ export type PartialValidatorFields<T extends object> = PartialValidators<T, T>;
 
 export const valuesKey = 'values';
 export const Values = Symbol('values');
-export const Star = Symbol('*');
-export type TriggerObject<T extends object = object> = {
-	[Triggers]?: string[];
-	[Values]?: T;
-	// [Star]?: TriggerFields<T[keyof T]>;
-};
-
-export const Triggers = Symbol('triggers');
-export type TriggerFields<T extends object = object> = {
-	[K in keyof T]?: T[K] extends Array<any>
-		? TriggerObject<TriggerFields<T[K]>> & {
-				[Star]?: TriggerFields<T[K][number] & object>;
-			}
-		: T[K] extends object
-			? TriggerObject<TriggerFields<T[K]>> & {
-					[Star]?: TriggerFields<T[K][keyof T[K]] & object>;
-				}
-			: string[];
-} & {
-	[Star]?: T extends Array<any>
-		? TriggerFields<T[number] & object>
-		: TriggerFields<T[keyof T] & object>;
-};
-
-// export type TriggerFieldss<T extends object> = {
-// 	[K in keyof T]?: T[K] extends object ? TriggerFieldss<T[K]> : [{currentObject: ''}]
-// }
 
 export type ValidatorFn<T extends object = object, V = unknown> = <Value extends V = V>(
 	val: Value,
@@ -407,7 +347,6 @@ export type ValidatorFn<T extends object = object, V = unknown> = <Value extends
 export type GlobalFormOptions<T extends object> = {
 	initialValues: T;
 	validateMode?: ValidateMode;
-	initialDeps?: Dependencies<T, DotPaths<T>[]>;
 	// revalidateMode: ValidateMode;
 };
 export type FormOptionsSchemaless<T extends object> = {
@@ -435,14 +374,12 @@ export type ValidationResolver<T extends object> = (
 ) => PartialErrorFields<T> | Promise<PartialErrorFields<T>>;
 
 export type ArrayFieldAddOptions<T extends object> = {
-	deps?: DotPaths<T>[];
 	validate?: boolean;
 	validator?: ValidatorFn<T>;
 };
 
 type ResetFieldValues<T extends object, TPath extends string> = {
 	value?: ValueOf<T, TPath>;
-	deps?: ValueOf<DependencyFields<T>, TPath>;
 	validator?: ValueOf<PartialValidatorFields<T>, TPath>;
 };
 export type ResetFieldOptions<T extends object, TPath extends string> = ResetFieldValues<
@@ -490,7 +427,6 @@ export type UpdateValueFn<T extends object> = <TObject extends T, TPath extends 
 	value: ValueOf<TObject, TPath & string>,
 	options?: {
 		validate?: boolean;
-		newDeps?: ValueOf<DependencyFields<T>, TPath>;
 		newValidator?: ValueOf<PartialValidatorFields<T>, TPath>;
 	},
 ) => Promise<void>;
@@ -519,12 +455,10 @@ export type ResetFieldFn<T extends object> = <TObject extends T, Path extends Do
 export type ResetFormOptions<T extends object> = {
 	values?: PartialDeep<T>;
 	validators?: PartialValidatorFields<T>;
-	deps?: DependencyFields<T>;
 	keepTouched?: boolean;
 	keepDirty?: boolean;
 	keepErrors?: boolean;
 	keepValidators?: boolean;
-	keepDeps?: boolean;
 };
 
 export type ResetFormFn<T extends object = object> = <TValues extends T>(
@@ -564,7 +498,6 @@ export type Form<T extends object = object> = {
 	values: Writable<T>;
 	dirty: Readable<BooleanFields<T>>;
 	errors: Readable<ErrorFields<T>>;
-	deps: Writable<DependencyFields<T>>;
 	state: Readable<FormState>;
 	submitForm: SubmitFormFn<T>;
 	resetForm: ResetFormFn<T>;
@@ -577,7 +510,6 @@ export type Form<T extends object = object> = {
 	control: FormControl<T>;
 	initialValues: T;
 	initialValidators: ValidatorFields<T>;
-	initialDeps: DependencyFields<T>;
 	initialTouched: BooleanFields<T>;
 	initialDirty: BooleanFields<T>;
 	initialErrors: ErrorFields<T>;
