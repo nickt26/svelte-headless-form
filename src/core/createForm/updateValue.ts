@@ -53,26 +53,6 @@ export function createUpdateValue<T extends object>(
 		// 				),
 		// 			);
 		// 		else validators_store.update((x) => setImpure(name, assign(undefined, incomingValue), x));
-
-		// 		const initialFieldDeps = getInternal<string[] | DependencyFieldsInternal>(
-		// 			name,
-		// 			initialDeps,
-		// 		);
-		// 		if (
-		// 			isObject(initialFieldDeps) ||
-		// 			(Array.isArray(initialFieldDeps) &&
-		// 				initialFieldDeps.some((x) => isObject(x) || Array.isArray(x))) // TODO: this logic has a flaw in it that will make this if statement true for 2d array values
-		// 		)
-		// 			deps_store.update((x) =>
-		// 				setImpure(
-		// 					name,
-		// 					mergeRightDeepImpure(assign([], initialFieldDeps), clone(initialFieldDeps), {
-		// 						onlySameKeys: true,
-		// 					}),
-		// 					x,
-		// 				),
-		// 			);
-		// 		else deps_store.update((x) => setImpure(name, assign([], incomingValue), x));
 		// 	} else {
 		// 		//TODO: Potentially move value changes to the end so that listeners can update their values after clean up has been done
 		// 		values_store.update((x) => setImpure(name, clone(incomingValue), x));
@@ -106,23 +86,6 @@ export function createUpdateValue<T extends object>(
 		// 				x,
 		// 			),
 		// 		);
-		// 		deps_store.update((x) =>
-		// 			setImpure(
-		// 				name,
-		// 				mergeRightDeepImpure(
-		// 					mergeRightDeepImpure(
-		// 						assign([], incomingValue),
-		// 						clone(getInternal<DependencyFieldsInternal>(name, initialDeps))!,
-		// 						{
-		// 							onlySameKeys: true,
-		// 						},
-		// 					),
-		// 					formState.deps,
-		// 					{ onlySameKeys: true, noUndefinedMerges: true },
-		// 				),
-		// 				x,
-		// 			),
-		// 		);
 		// 	}
 		// } else {
 		// 	const fieldValue = getInternal(name, formState.values);
@@ -140,22 +103,6 @@ export function createUpdateValue<T extends object>(
 		// 		if (!(isObject(initialFieldValidator) || Array.isArray(initialFieldValidator)))
 		// 			validators_store.update((x) => setImpure(name, initialFieldValidator, x));
 		// 		else validators_store.update((x) => setImpure(name, undefined, x));
-
-		// 		const initialFieldDeps = getInternal<string[] | DependencyFieldsInternal>(
-		// 			name,
-		// 			initialDeps,
-		// 		);
-		// 		if (
-		// 			!(
-		// 				(
-		// 					isObject(initialFieldDeps) ||
-		// 					(Array.isArray(initialFieldDeps) &&
-		// 						initialFieldDeps.some((x) => isObject(x) || Array.isArray(x)))
-		// 				) // TODO: Will fail for 2d array values
-		// 			)
-		// 		)
-		// 			deps_store.update((x) => setImpure(name, initialFieldDeps, x));
-		// 		else deps_store.update((x) => setImpure(name, [], x));
 		// 	} else {
 		// values_store.update((x) => setImpure(name, incomingValue, x));
 
