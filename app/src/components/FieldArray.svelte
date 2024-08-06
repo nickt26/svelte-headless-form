@@ -2,11 +2,11 @@
 	import type { FormValues, Roles } from '../types/FormValues';
 
 	import { useFieldArray } from '../../../src/core/useFieldArray';
-	import type { FormControl } from '../../../src/types/Form';
+	import type { DotPaths, FormControl } from '../../../src/types/Form';
 	import Input from './Input.svelte';
 
 	export let control: FormControl<FormValues>;
-	export let name: string;
+	export let name: DotPaths<FormValues>;
 	// export let onInput: () => void = () => {};
 	const {
 		fields,

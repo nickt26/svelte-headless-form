@@ -153,6 +153,7 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 		errors_store,
 		validators_store,
 		checkFormForStateReset,
+		runValidation,
 	);
 
 	const useFieldArray = createUseFieldArray(

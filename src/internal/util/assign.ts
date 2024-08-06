@@ -66,7 +66,7 @@ export function assignUsing<T extends object, S extends object>(
 		use?: symbol[];
 		compare?: symbol[];
 	},
-	result: object = {},
+	result: object = Array.isArray(right) ? [] : {},
 	path: Array<string | number | symbol> = [],
 ): T & S {
 	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right))) {

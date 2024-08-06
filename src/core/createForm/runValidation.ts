@@ -1,6 +1,8 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
+import { applyValidatorImpure } from '../../internal/util/applyValidators';
 import { getInternal } from '../../internal/util/get';
+import { getValidators } from '../../internal/util/getValidators';
 import { isFormValidSchemaless } from '../../internal/util/isFormValid';
 import { isNil } from '../../internal/util/isNil';
 import { isObject } from '../../internal/util/isObject';
@@ -13,7 +15,6 @@ import {
 	LatestFieldEvent,
 	PartialErrorFields,
 	ValidationResolver,
-	ValidatorFn,
 } from '../../types/Form';
 
 export function createRunValidation<T extends object>(
@@ -34,14 +35,14 @@ export function createRunValidation<T extends object>(
 		try {
 			const fieldValue = getInternal(name, formState.values);
 			if (isSchemaless) {
-				const fieldValidator = getInternal<ValidatorFn<T>>(name, formState.validators);
 				if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-					if (!isObject(fieldValidator) && !Array.isArray(fieldValidator)) {
-						throw new Error(
-							`Validator must be an object or array when value is an object or array for field: ${name}`,
-						);
-					}
+					// if (!isObject(fieldValidator) && !Array.isArray(fieldValidator)) {
+					// 	throw new Error(
+					// 		`Validator must be an object or array when value is an object or array for field: ${name}`,
+					// 	);
+					// }
 
+					const fieldValidator = getInternal(name, formState.validators);
 					const [_, errors] = await isFormValidSchemaless(
 						fieldValue,
 						fieldValidator as any,
@@ -50,25 +51,26 @@ export function createRunValidation<T extends object>(
 						fieldValue,
 						fieldValidator,
 					);
-					errors_store.update((x) => mergeRightDeepImpure(x, errors as PartialErrorFields<T>));
+					errors_store.update((x) => setImpure(name, errors as PartialErrorFields<T>, x));
 
 					if (Object.keys(errors).length > 0 && !formState.state.hasErrors)
 						state_store.update((x) => setImpure('hasErrors', true, x));
-				} else if (fieldValidator) {
-					if (isObject(fieldValidator) || Array.isArray(fieldValidator)) {
-						throw new Error(
-							`Validator must be a function when value is a primitive or nullish for field: ${name}`,
+				} else {
+					// if (isObject(fieldValidator) || Array.isArray(fieldValidator)) {
+					// 	throw new Error(
+					// 		`Validator must be a function when value is a primitive or nullish for field: ${name}`,
+					// 	);
+					// }
+
+					const validators = getValidators(name, formState.validators);
+					for (let i = 0; i < validators.length; i++) {
+						const res = await applyValidatorImpure(
+							validators[i],
+							formState.values,
+							formState.errors,
 						);
-					}
 
-					const validatorResult = await fieldValidator(fieldValue, {
-						...formState,
-						path: Array.isArray(name) ? name.join('.') : name,
-					});
-
-					if (getInternal(name, formState.errors) !== validatorResult) {
-						errors_store.update((x) => setImpure(name, validatorResult, x));
-						if (!formState.state.hasErrors)
+						if (typeof res === 'string' && !formState.state.hasErrors)
 							state_store.update((x) => setImpure('hasErrors', true, x));
 					}
 				}

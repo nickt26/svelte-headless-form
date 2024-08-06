@@ -450,7 +450,7 @@ export type SubmitFormFn<T extends object> = (
 export type ResetFieldFn<T extends object> = <TObject extends T, Path extends DotPaths<TObject>>(
 	name: Path,
 	options?: ResetFieldOptions<TObject, Path>,
-) => void;
+) => Promise<void>;
 
 export type ResetFormOptions<T extends object> = {
 	values?: PartialDeep<T>;

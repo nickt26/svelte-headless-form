@@ -28,8 +28,9 @@ export const createResetField = <TValues extends object>(
 	errors_store: Writable<ErrorFields<TValues>>,
 	validators_store: Writable<ValidatorFields<TValues>>,
 	checkFormForStateReset: () => void,
+	validate: (name: string | Array<string | number | symbol>) => Promise<void>,
 ): ResetFieldFn<object> => {
-	return (name, options): void => {
+	return async (name, options): Promise<void> => {
 		if (typeof name !== 'string')
 			throw new Error('resetField: The `name` argument must be a string');
 
@@ -70,13 +71,18 @@ export const createResetField = <TValues extends object>(
 				);
 			} else dirty_store.update((x) => setImpure(name, assign(false, newValue), x));
 
+			values_store.update((x) => setImpure(name, newValueWithFlags, x));
 			if (options?.keepError) {
 				const currentErr = getInternal<object>(name, internalState[0].errors);
 				if (currentErr) {
 					errors_store.update((x) => setImpure(name, assignUsing(newValue, currentErr), x));
 				}
-			} else errors_store.update((x) => removePropertyImpure(name, x));
-			values_store.update((x) => setImpure(name, newValueWithFlags, x));
+			} else if (options?.validate && newValidator) {
+				await validate(name);
+				// errors_store.update((x) => removePropertyImpure(name, x));
+			} else {
+				errors_store.update((x) => removePropertyImpure(name, x));
+			}
 
 			latest_field_event_store.set({ field: name, event: 'afterReset' });
 			checkFormForStateReset();
@@ -89,8 +95,8 @@ export const createResetField = <TValues extends object>(
 		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
 		else touched_store.update((x) => setImpure(name, getInternal(name, x), x));
 		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
-		if (!options?.keepError) errors_store.update((x) => removePropertyImpure(name, x));
 		values_store.update((x) => setImpure(name, newValueWithFlags, x));
+		if (!options?.keepError) errors_store.update((x) => removePropertyImpure(name, x));
 
 		latest_field_event_store.set({ field: name, event: 'afterReset' });
 		checkFormForStateReset();

@@ -4,15 +4,15 @@ import { UseField, UseFieldOptions } from '../internal/types/UseField';
 import { getInternal } from '../internal/util/get';
 import { isObject } from '../internal/util/isObject';
 import { setImpure } from '../internal/util/set';
+import { DotPaths, ValueOf } from '../types/Form';
 
-export const useField = <S = unknown, T extends object = object>({
+export const useField = <T extends object, TPath extends DotPaths<T>>({
 	name,
 	control,
-}: UseFieldOptions<T>): UseField<S, T> => {
-	const value_store = derived(
-		control.values,
-		($values) => getInternal<S>(name as string, $values) as S,
-	);
+}: UseFieldOptions<T, TPath>): UseField<T, TPath> => {
+	const value_store = derived(control.values, ($values) =>
+		getInternal<ValueOf<T, TPath>>(name, $values),
+	)!;
 
 	const valueUnsubscribe = value_store.subscribe((value) => {
 		if (isObject(value) || Array.isArray(value))
@@ -40,9 +40,8 @@ export const useField = <S = unknown, T extends object = object>({
 		field: {
 			value: {
 				subscribe: value_store.subscribe,
-				set: (value: S) => control.values.update((x) => setImpure(name as string, value, x)),
-				update: (fn: (value: S) => S) =>
-					control.values.update((x) => setImpure(name as string, fn(get(value_store)), x)),
+				set: (value) => control.values.update((x) => setImpure(name, value, x)),
+				update: (fn) => control.values.update((x) => setImpure(name, fn(get(value_store)), x)),
 			},
 			handleBlur,
 			handleFocus,

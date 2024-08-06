@@ -3,7 +3,7 @@
 	import type { DotPaths, FormControl } from '../../../src/types/Form';
 
 	type TValues = $$Generic;
-	export let name: DotPaths<TValues>;
+	export let name: DotPaths<TValues & object>;
 	export let control: FormControl<TValues & object>;
 	export let type = 'text';
 

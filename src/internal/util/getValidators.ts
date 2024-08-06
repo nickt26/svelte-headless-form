@@ -44,9 +44,8 @@ export const getValidators = (
 		// 	validators.push([[...currentPath, AllFields], last[AllFields]]);
 
 		// for (const key of Object.keys(last)) getValidators(key, last, validators);
-	}
-	// else if (Array.isArray(last))
-	// for (let i = 0; i < last.length; i++) getValidators(`${i}`, last, validators);
+	} else if (Array.isArray(last))
+		for (let i = 0; i < last.length; i++) validators.push([[...currentPath, i], last[i]]);
 	else if (isFunction(last)) validators.push([currentPath, last]);
 
 	return validators;

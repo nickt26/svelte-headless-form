@@ -1,14 +1,10 @@
 <script lang="ts">
-	import { derived, writable } from 'svelte/store';
 	import { createForm } from '../../../src/core/createForm';
-	import { All, This, PartialValidatorFields, PartialValidatorss, Values } from '../../../src/types/Form';
+	import { All, This, Values } from '../../../src/types/Form';
 	import FieldArray from '../components/FieldArray.svelte';
 	import Input from '../components/Input.svelte';
 	import { roles, type FormValues } from '../types/FormValues';
-	import * as yup from 'yup';
-	import { onDestroy } from 'svelte';
 	import { clone } from '../../../src/internal/util/clone';
-	import { isObject } from '../../../src/internal/util/isObject';
 
 	const delay = <T>(fn: () => T, ms?: number): Promise<T> =>
 		new Promise((resolve) =>
@@ -136,12 +132,15 @@
 	<button type="button" on:click={() => (showUsername = !showUsername)}>Toggle Username</button>
 	{#if showUsername}
 		<input type="text" bind:value={$values.username} on:blur={() => handleBlur('username')} />
+		{#if $errors.username}
+			<div style="color:red;">{$errors.username}</div>
+		{/if}
 		<div>Touched username:{$touched.username}</div>
 		<button type="button" on:click={() => resetField('username', { value: 'banana', validator: () => false })}
 			>Reset Username</button
 		>
 	{/if}
-	<!-- <Input {control} name="password" type="password" /> -->
+	<Input {control} name="password" type="password" />
 	<Input {control} name="nested.age" type="number" />
 	<!-- <input type="number" bind:value={$values.nested.age} on:blur={() => handleBlur('nested.age')} />
 	{#if $errors?.nested?.age}
