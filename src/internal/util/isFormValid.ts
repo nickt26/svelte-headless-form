@@ -1,11 +1,5 @@
-import {
-	BooleanFields,
-	PartialErrorFields,
-	ValidationResolver,
-	ValidatorFields,
-} from '../../types/Form';
+import { PartialErrorFields, ValidationResolver, ValidatorFields } from '../../types/Form';
 import { applyValidatorImpure } from './applyValidators';
-import { getInternal } from './get';
 import { getValidators } from './getValidators';
 import { isObject } from './isObject';
 import { setImpure } from './set';
@@ -13,16 +7,13 @@ import { setImpure } from './set';
 export const isFormValidSchemaless = async <T extends object>(
 	allFormValues: T,
 	allFormValidators: ValidatorFields<T>,
-	allFormTouched: BooleanFields<T>,
-	allFormDirty: BooleanFields<T>,
 	currentFormValue: any,
-	currentFormValidators: any,
 	currentKey: string = '',
 	errors: object = Array.isArray(allFormValues) ? [] : {},
 	isFormValid: [boolean] = [true],
 ): Promise<[boolean, PartialErrorFields<object> | string | boolean]> => {
 	if (!isObject(currentFormValue) && !Array.isArray(currentFormValue)) {
-		const validators = getValidators(currentKey, currentFormValidators);
+		const validators = getValidators(currentKey, allFormValidators);
 		if (validators.length === 0) {
 			setImpure(currentKey, false, errors);
 			return [isFormValid[0], errors];
@@ -30,6 +21,7 @@ export const isFormValidSchemaless = async <T extends object>(
 
 		for (let i = 0; i < validators.length; i++) {
 			const res = await applyValidatorImpure(validators[i], allFormValues, errors);
+			// setImpure(validators[i][0], res, errors);
 			if (isFormValid[0]) isFormValid[0] = !res;
 		}
 		return [isFormValid[0], errors];
@@ -44,10 +36,7 @@ export const isFormValidSchemaless = async <T extends object>(
 		await isFormValidSchemaless(
 			allFormValues,
 			allFormValidators,
-			allFormTouched,
-			allFormDirty,
 			fieldVal,
-			getInternal(key, currentFormValidators),
 			keyToPush,
 			errors,
 			isFormValid,

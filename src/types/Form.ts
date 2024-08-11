@@ -183,12 +183,12 @@ export type PartialValidators<O extends object, T extends object> = {
 		? ValidatorFn<O, T[K]> | undefined
 		: Extract<T[K], Array<any>> extends never
 			?
-					| (Validators<O, Extract<T[K], object>> & {
+					| (PartialValidators<O, Extract<T[K], object>> & {
 							[This]?: ValidatorFn<O, Extract<T[K], object>>;
 					  })
 					| (Exclude<T[K], object> extends never ? never : ValidatorFn<O, Exclude<T[K], object>>)
 			:
-					| Validators<O, Extract<T[K], object>>
+					| PartialValidators<O, Extract<T[K], object>>
 					| {
 							[This]?: ValidatorFn<O, Extract<T[K], Array<any>>>;
 							[All]?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;

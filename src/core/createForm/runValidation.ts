@@ -49,7 +49,6 @@ export function createRunValidation<T extends object>(
 						getInternal(name, formState.touched)! as any,
 						getInternal(name, formState.dirty)! as any,
 						fieldValue,
-						fieldValidator,
 					);
 					errors_store.update((x) => setImpure(name, errors as PartialErrorFields<T>, x));
 
