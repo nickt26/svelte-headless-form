@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assign, assignImpure } from '../../../internal/util/assign';
+import { assign, assignI } from '../../../internal/util/assign';
 
 describe('assignImpure', () => {
 	it('should have exact same object structure and same value', () => {
@@ -12,7 +12,7 @@ describe('assignImpure', () => {
 		};
 
 		const tester = {};
-		assignImpure('', obj, tester);
+		assignI('', obj, tester);
 
 		expect(tester).toEqual({
 			isCorrect: '',
@@ -38,7 +38,7 @@ describe('assignImpure', () => {
 			isIncorrect: {};
 		};
 		const test = {};
-		const tester = assignImpure({}, obj, test as Tester);
+		const tester = assignI({}, obj, test as Tester);
 
 		expect(test).to.equal(tester);
 		expect(tester.isCorrect).not.to.equal(tester.isIncorrect);

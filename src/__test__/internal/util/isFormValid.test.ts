@@ -1,8 +1,7 @@
 import { describe, it } from 'vitest';
 import { assign } from '../../../internal/util/assign';
-import { createTriggers } from '../../../internal/util/createTriggers';
 import { isFormValidSchemaless } from '../../../internal/util/isFormValid';
-import { DependencyFields, DependencyFieldsInternal, ValidatorFields } from '../../../types/Form';
+import { ValidatorFields } from '../../../types/Form';
 
 const allowedRoles = ['admin', 'developer'];
 
@@ -32,23 +31,16 @@ describe('isFormValidSchemaless', () => {
 				() => (value) => (allowedRoles.includes(value) ? false : 'Invalid role'),
 			),
 		};
-		const depFields: DependencyFields<typeof formValues> = {
-			email: ['location.lat'],
-		};
-		const triggerFields = createTriggers(formValues, depFields);
 		const touchedFields = assign(false, formValues);
 		const dirtyFields = assign(false, formValues);
 
 		const [isValid, errors] = await isFormValidSchemaless(
 			formValues,
 			formValidators,
-			depFields as DependencyFieldsInternal<typeof formValues>,
-			triggerFields,
 			touchedFields,
 			dirtyFields,
 			formValues,
 			formValidators,
-			depFields,
 			// triggerFields,
 		);
 
@@ -253,3 +245,34 @@ describe('isFormValidSchemaless', () => {
 // 		]);
 // 	});
 // });
+
+it('test', () => {
+	const arr = [1, 2, 3];
+
+	const obj = {};
+
+	const proxyState: 'unshift' | 'append' = 'unshift';
+	const proxy = new Proxy(arr, {
+		get(target, prop) {
+			console.log('getting', target, prop);
+
+			return Reflect.get(target, prop);
+		},
+		set(target, prop, val) {
+			if (proxyState === 'unshift') return Reflect.set(target, prop, val);
+			console.log('setting', target, prop, val);
+
+			setTimeout(() => {
+				target[prop] = val;
+			}, 2000);
+
+			return true;
+
+			// return Reflect.set(target, prop, val);
+		},
+	});
+
+	proxy[0] = 10;
+	proxy.unshift(0);
+	console.log(obj);
+});

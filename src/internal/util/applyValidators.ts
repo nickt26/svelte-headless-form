@@ -1,25 +1,64 @@
 import { type ValidatorState } from '../../types/Form';
-import { getInternal } from './get';
+import { getError, getInternal } from './get';
 import { isObject } from './isObject';
-import { setImpure } from './set';
+import { isPromise } from './isPromise';
+import { setI } from './set';
 
-export async function applyValidatorImpure<T extends object>(
-	validator: [Array<string | number | symbol>, Function],
+export function applyValidatorI<T extends object>(
+	validator: [Array<PropertyKey>, Function],
 	values: T,
 	errors: object,
-): Promise<string | false> {
+): string | false | Promise<string | false> {
 	const [path, fn] = validator;
 	const value = getInternal(path, values);
 
-	const validatorResult = (await fn(value, {
+	const validatorMethodResult = fn(value, {
 		values,
 		path: path.join('.'),
-	} satisfies ValidatorState<T>)) as string | false;
+	} satisfies ValidatorState<T>);
 
-	const error = getInternal(path, errors);
-	if (!((isObject(value) || Array.isArray(value)) && typeof error === 'string')) {
-		setImpure(path, validatorResult, errors);
+	const onComplete = (res: string | false): string | false => {
+		const error = getError(path, errors);
+		if (!(error && typeof error === 'string' && typeof res === 'string')) {
+			setI(path, res, errors);
+		} else if ((isObject(value) && isObject(res)) || (Array.isArray(value) && Array.isArray(res))) {
+			setI(path, res, errors);
+		}
+
+		return res;
+	};
+
+	if (isPromise(validatorMethodResult)) {
+		return (async () => {
+			const validatorResult = await validatorMethodResult;
+			return onComplete(validatorResult);
+		})();
+	} else {
+		return (() => {
+			const validatorResult = validatorMethodResult;
+			return onComplete(validatorResult);
+		})();
 	}
+	// const validatorResult = isPromise(validatorMethodResult)
+	// 	? await validatorMethodResult
+	// 	: validatorMethodResult;
 
-	return validatorResult;
+	// // const onComplete = (res: string | false): void => {
+	// const error = getError(path, errors);
+	// if (!(error && typeof error === 'string' && typeof validatorResult === 'string')) {
+	// 	setImpure(path, validatorResult, errors);
+	// } else if (
+	// 	(isObject(value) && isObject(validatorResult)) ||
+	// 	(Array.isArray(value) && Array.isArray(validatorResult))
+	// ) {
+	// 	setImpure(path, validatorResult, errors);
+	// }
+
+	// return validatorResult;
+	// };
+
+	// if (isPromise(validatorMethodResult)) return validatorMethodResult.then(onComplete);
+	// else return onComplete(validatorMethodResult);
+
+	// 	onComplete();
 }

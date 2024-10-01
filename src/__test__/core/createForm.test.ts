@@ -1,9 +1,10 @@
 import { render } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { describe, expect, it } from 'vitest';
+import { assign } from '../../internal/util/assign';
 import { clone } from '../../internal/util/clone';
-import { setImpure } from '../../internal/util/set';
-import { DotPaths } from '../../types/Form';
+import { setI } from '../../internal/util/set';
+import { ArrayDotPaths, DotPaths } from '../../types/Form';
 import Form from '../components/Form.svelte';
 import {
 	FormValues,
@@ -19,11 +20,10 @@ describe('createForm', async () => {
 		const { form } = getComponentState(component);
 
 		expect(get(form.values)).toEqual(initialFormValues);
-		expect(get(form.touched)).toEqual({ name: false, email: false, roles: [false] });
-		expect(get(form.errors)).toEqual({ name: false, email: false, roles: [false] });
-		expect(get(form.dirty)).toEqual({ name: false, email: false, roles: [false] });
-		expect(get(form.deps)).toEqual({ name: [], email: [], roles: [[]] });
-		expect(get(form.validators)).toEqual({ ...formValidators, roles: [undefined] });
+		expect(get(form.touched)).toEqual(assign(false, initialFormValues));
+		expect(get(form.errors)).toEqual({});
+		expect(get(form.dirty)).toEqual(assign(false, initialFormValues));
+		expect(get(form.validators)).toEqual(formValidators);
 		expect(get(form.state)).toEqual({
 			isSubmitting: false,
 			isValidating: false,
@@ -38,7 +38,6 @@ describe('createForm', async () => {
 	it('[Form value-change] should not have any errors present', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
-		const { initialErrors } = form;
 
 		const valueUpdates: Array<{ key: DotPaths<FormValues>; value: any }> = [
 			{ key: 'name', value: 'Test Test' },
@@ -50,7 +49,7 @@ describe('createForm', async () => {
 
 		form.values.update((values) => {
 			for (const { key, value } of valueUpdates) {
-				setImpure(key, value, values);
+				setI(key, value, values);
 			}
 			return values;
 		});
@@ -79,7 +78,7 @@ describe('createForm', async () => {
 
 		form.values.update((values) => {
 			for (const { key, value } of valueUpdates) {
-				setImpure(key, value, values);
+				setI(key, value, values);
 			}
 			return values;
 		});
@@ -103,7 +102,7 @@ describe('createForm', async () => {
 
 		form.values.update((values) => {
 			for (const { key, value } of valueUpdates) {
-				setImpure(key, value, values);
+				setI(key, value, values);
 			}
 			return values;
 		});
@@ -127,7 +126,7 @@ describe('createForm', async () => {
 
 		form.values.update((values) => {
 			for (const { key, value } of valueUpdates) {
-				setImpure(key, value, values);
+				setI(key, value, values);
 			}
 			return values;
 		});
@@ -138,47 +137,101 @@ describe('createForm', async () => {
 		expect(get(form.dirty)).toEqual({ name: true, email: true, roles: [false] });
 	});
 
-	it('[Form useFieldArray] should append correctly with no options', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
+	describe('useFieldArray', () => {
+		describe('primitive', () => {
+			describe('append', () => {
+				it('should append correctly', async () => {
+					const { component } = render(Form);
+					const { form } = getComponentState(component);
 
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
+					const arrayPath = 'roles' as const satisfies ArrayDotPaths<FormValues>;
+					const rolesHelpers = form.useFieldArray(arrayPath);
 
-		const rolesHelpers = useFieldArray('roles');
+					const appendValue = 'admin' satisfies FormValues[typeof arrayPath][number];
+					rolesHelpers.append(appendValue);
 
-		rolesHelpers.append('admin');
+					expect(get(form.values)).toEqual({
+						...form.initialValues,
+						roles: [...initialFormValues.roles, 'admin'],
+					});
+					expect(get(form.touched)).toEqual({ ...form.initialTouched, roles: [false, false] });
+					expect(get(form.errors)).toEqual(form.initialErrors);
+					expect(get(form.dirty)).toEqual({ ...form.initialDirty, roles: [false, false] });
+					expect(get(form.validators)).toEqual(form.initialValidators);
+				});
 
-		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
-		expect(get(touched).roles).toEqual([false, false]);
-		expect(get(errors).roles).toEqual([false, false]);
-		expect(get(dirty).roles).toEqual([false, false]);
-		expect(get(validators).roles).toEqual([undefined, undefined]);
-		expect(get(deps).roles).toEqual([[], []]);
+				it('should append with { validator }', async () => {
+					const { component } = render(Form);
+					const { form } = getComponentState(component);
+
+					const arrayPath = 'roles' as const satisfies ArrayDotPaths<FormValues>;
+					const rolesHelpers = form.useFieldArray(arrayPath);
+
+					const appendValue = 'admin' satisfies FormValues[typeof arrayPath][number];
+					function newValidator() {
+						return 'error';
+					}
+					rolesHelpers.append(appendValue, {
+						validator: newValidator,
+					});
+
+					expect(get(form.values)).toEqual({
+						...form.initialValues,
+						roles: [...initialFormValues.roles, 'admin'],
+					});
+					expect(get(form.touched)).toEqual({ ...form.initialTouched, roles: [false, false] });
+					expect(get(form.errors)).toEqual(form.initialErrors);
+					expect(get(form.dirty)).toEqual({ ...form.initialDirty, roles: [false, false] });
+					expect(get(form.validators)).toEqual({
+						...form.initialValidators,
+						roles: [undefined, newValidator],
+					});
+				});
+
+				it('should append with { validator, validate }', async () => {
+					const { component } = render(Form);
+					const { form } = getComponentState(component);
+
+					const arrayPath = 'roles' as const satisfies ArrayDotPaths<FormValues>;
+					const rolesHelpers = form.useFieldArray(arrayPath);
+
+					const appendValue = 'admin' satisfies FormValues[typeof arrayPath][number];
+					function newValidator() {
+						return 'error';
+					}
+					const wait = waitForAllFieldsToValidate(['roles.1'], form);
+
+					rolesHelpers.append(appendValue, {
+						validator: newValidator,
+						validate: true,
+					});
+
+					await wait;
+
+					expect(get(form.values)).toEqual({
+						...form.initialValues,
+						roles: [...initialFormValues.roles, 'admin'],
+					});
+					expect(get(form.touched)).toEqual({ ...form.initialTouched, roles: [false, false] });
+					expect(get(form.errors)).toEqual({
+						...form.initialErrors,
+						roles: [, newValidator()],
+					});
+					expect(get(form.dirty)).toEqual({ ...form.initialDirty, roles: [false, false] });
+					expect(get(form.validators)).toEqual({
+						...form.initialValidators,
+						roles: [undefined, newValidator],
+					});
+				});
+			});
+		});
 	});
 
-	it('[Form useFieldArray] should append correctly with deps option', async () => {
+	it('[Form useFieldArray] should append correctly with all options', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
 
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
-
-		const rolesHelpers = useFieldArray('roles');
-
-		rolesHelpers.append('admin', { deps: ['email'] });
-
-		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
-		expect(get(touched).roles).toEqual([false, false]);
-		expect(get(errors).roles).toEqual([false, false]);
-		expect(get(dirty).roles).toEqual([false, false]);
-		expect(get(validators).roles).toEqual([undefined, undefined]);
-		expect(get(deps).roles).toEqual([[], ['email']]);
-	});
-
-	it('[Form useFieldArray] should append correctly with validate & validator option', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
-
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
+		const { values, touched, errors, dirty, validators, useFieldArray } = form;
 
 		const rolesHelpers = useFieldArray('roles');
 
@@ -194,30 +247,6 @@ describe('createForm', async () => {
 		expect(get(errors).roles).toEqual([false, 'error']);
 		expect(get(dirty).roles).toEqual([false, false]);
 		expect(get(validators).roles).toEqual([undefined, validator]);
-		expect(get(deps).roles).toEqual([[], []]);
-	});
-
-	it('[Form useFieldArray] should append correctly with all options', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
-
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
-
-		const rolesHelpers = useFieldArray('roles');
-
-		const wait = waitForAllFieldsToValidate(['roles.1'], form);
-
-		const validator = () => 'error';
-		rolesHelpers.append('admin', { validate: true, validator, deps: ['email'] });
-
-		await wait;
-
-		expect(get(values).roles).toEqual([...initialFormValues.roles, 'admin']);
-		expect(get(touched).roles).toEqual([false, false]);
-		expect(get(errors).roles).toEqual([false, 'error']);
-		expect(get(dirty).roles).toEqual([false, false]);
-		expect(get(validators).roles).toEqual([undefined, validator]);
-		expect(get(deps).roles).toEqual([[], ['email']]);
 	});
 
 	it('[Form useFieldArray] should throw error on non-array field', () => {
@@ -243,7 +272,7 @@ describe('createForm', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
 
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
+		const { values, touched, errors, dirty, validators, useFieldArray } = form;
 
 		const rolesHelpers = useFieldArray('roles');
 
@@ -254,32 +283,13 @@ describe('createForm', async () => {
 		expect(get(errors).roles).toEqual([false, false]);
 		expect(get(dirty).roles).toEqual([false, false]);
 		expect(get(validators).roles).toEqual([undefined, undefined]);
-		expect(get(deps).roles).toEqual([[], []]);
-	});
-
-	it('[Form useFieldArray] should prepend correctly with deps option', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
-
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
-
-		const rolesHelpers = useFieldArray('roles');
-
-		rolesHelpers.prepend('admin', { deps: ['email'] });
-
-		expect(get(values).roles).toEqual(['admin', ...initialFormValues.roles]);
-		expect(get(touched).roles).toEqual([false, false]);
-		expect(get(errors).roles).toEqual([false, false]);
-		expect(get(dirty).roles).toEqual([false, false]);
-		expect(get(validators).roles).toEqual([undefined, undefined]);
-		expect(get(deps).roles).toEqual([['email'], []]);
 	});
 
 	it('[Form useFieldArray] should prepend correctly with validate & validator option', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
 
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
+		const { values, touched, errors, dirty, validators, useFieldArray } = form;
 
 		const rolesHelpers = useFieldArray('roles');
 
@@ -295,37 +305,13 @@ describe('createForm', async () => {
 		expect(get(errors).roles).toEqual(['error']);
 		expect(get(dirty).roles).toEqual([false, false]);
 		expect(get(validators).roles).toEqual([validator, undefined]);
-		expect(get(deps).roles).toEqual([[], []]);
-	});
-
-	it('[Form useFieldArray] should prepend correctly with all options', async () => {
-		const { component } = render(Form);
-		const { form } = getComponentState(component);
-
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
-
-		const rolesHelpers = useFieldArray('roles');
-
-		const wait = waitForAllFieldsToValidate(['roles.0'], form);
-
-		const validator = () => 'error';
-		rolesHelpers.prepend('admin', { deps: ['email'], validate: true, validator });
-
-		await wait;
-
-		expect(get(values).roles).toEqual(['admin', ...initialFormValues.roles]);
-		expect(get(touched).roles).toEqual([false, false]);
-		expect(get(errors).roles).toEqual(['error']);
-		expect(get(dirty).roles).toEqual([false, false]);
-		expect(get(validators).roles).toEqual([validator, undefined]);
-		expect(get(deps).roles).toEqual([['email'], []]);
 	});
 
 	it('[Form useFieldArray] should swap correctly', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
 
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
+		const { values, touched, errors, dirty, validators, useFieldArray } = form;
 
 		const rolesHelpers = useFieldArray('roles');
 		rolesHelpers.append('admin');
@@ -335,7 +321,6 @@ describe('createForm', async () => {
 		const preSwapRolesErrors = clone(get(errors).roles);
 		const preSwapRolesDirty = clone(get(dirty).roles);
 		const preSwapRolesValidators = clone(get(validators).roles);
-		const preSwapRolesDeps = clone(get(deps).roles!);
 
 		const fromIndex = 0;
 		const toIndex = 1;
@@ -355,7 +340,6 @@ describe('createForm', async () => {
 			preSwapRolesValidators[toIndex],
 			preSwapRolesValidators[fromIndex],
 		]);
-		expect(get(deps).roles).toEqual([preSwapRolesDeps[toIndex], preSwapRolesDeps[fromIndex]]);
 	});
 
 	it('[Form useFieldArray] swap should throw error on incorrect indices', () => {
@@ -377,7 +361,7 @@ describe('createForm', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
 
-		const { values, touched, errors, dirty, validators, deps, useFieldArray } = form;
+		const { values, touched, errors, dirty, validators, useFieldArray } = form;
 
 		const rolesHelpers = useFieldArray('roles');
 		rolesHelpers.remove(0);
@@ -387,7 +371,6 @@ describe('createForm', async () => {
 		expect(get(errors).roles).toEqual([]);
 		expect(get(dirty).roles).toEqual([]);
 		expect(get(validators).roles).toEqual([]);
-		expect(get(deps).roles).toEqual([]);
 	});
 
 	it('[Form useFieldArray] remove should throw error on incorrect indices', async () => {
@@ -454,7 +437,7 @@ describe('createForm', async () => {
 
 		await form.submitForm(() => {})(new Event('submit'));
 
-		expect(get(form.touched)).toEqual({ name: true, email: true, roles: [true] });
+		expect(get(form.touched)).toEqual(assign(true, get(form.values)));
 		expect(get(form.errors)).toEqual({ name: 'Required', email: 'Required', roles: [false] });
 	});
 

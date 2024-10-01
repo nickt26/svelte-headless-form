@@ -15,7 +15,7 @@ export type FormValues = {
 	};
 };
 
-export const initialFormValues: FormValues = {
+export const initialFormValues = {
 	name: '',
 	email: '',
 	roles: ['user'],
@@ -26,12 +26,19 @@ export const initialFormValues: FormValues = {
 			lng: 0,
 		},
 	},
-};
+} satisfies FormValues;
 
-export const formValidators: PartialValidatorFields<FormValues> = {
+export const initialFormValidators = {
 	name: (value) => !value.length && 'Required',
 	email: (value) => !value.length && 'Required',
-};
+	location: {
+		address: () => 'error',
+		coords: {
+			lat: () => 'error',
+			lng: () => 'error',
+		},
+	},
+} satisfies PartialValidatorFields<FormValues>;
 
 export type ValueUpdate = Array<ValueUpdat>;
 
@@ -49,7 +56,7 @@ export function waitForAllFieldsToValidate(
 	const { latestFieldEvent } = form;
 	let counter = 0;
 	return new Promise<void>((resolve) => {
-		const fieldsThatHaveValidated: (string | (string | number | symbol)[])[] = [];
+		const fieldsThatHaveValidated: (string | PropertyKey[])[] = [];
 		const unsub = latestFieldEvent.subscribe(async (x) => {
 			if (
 				x?.event === 'afterValidate' &&

@@ -1,21 +1,15 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
-import { applyValidatorImpure } from '../../internal/util/applyValidators';
+import { applyValidatorI } from '../../internal/util/applyValidators';
 import { getInternal } from '../../internal/util/get';
 import { getValidators } from '../../internal/util/getValidators';
-import { isFormValidSchemaless } from '../../internal/util/isFormValid';
 import { isNil } from '../../internal/util/isNil';
 import { isObject } from '../../internal/util/isObject';
-import { mergeRightDeepImpure } from '../../internal/util/mergeRightDeep';
-import { setImpure } from '../../internal/util/set';
+import { isPromise } from '../../internal/util/isPromise';
+import { mergeRightI } from '../../internal/util/mergeRightDeep';
+import { setI } from '../../internal/util/set';
 import { someDeep } from '../../internal/util/someDeep';
-import {
-	ErrorFields,
-	FormState,
-	LatestFieldEvent,
-	PartialErrorFields,
-	ValidationResolver,
-} from '../../types/Form';
+import { ErrorFields, FormState, LatestFieldEvent, ValidationResolver } from '../../types/Form';
 
 export function createRunValidation<T extends object>(
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
@@ -26,51 +20,35 @@ export function createRunValidation<T extends object>(
 	isSchema: boolean,
 	internalState: [InternalFormState<T>],
 	validationResolver?: ValidationResolver<T>,
-): (name: string | Array<string | number | symbol>) => Promise<void> {
-	async function runValidation(name: string | Array<string | number | symbol>): Promise<void> {
+): (name: string | Array<PropertyKey>) => Promise<void> {
+	async function runValidation(name: string | Array<PropertyKey>): Promise<void> {
 		latest_field_event_store.set({ field: name, event: 'beforeValidate' });
-		internal_counter_store.update((x) => setImpure('validations', x.validations + 1, x));
+		internal_counter_store.update((x) => setI('validations', x.validations + 1, x));
 
 		const formState = internalState[0];
 		try {
 			const fieldValue = getInternal(name, formState.values);
 			if (isSchemaless) {
 				if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-					// if (!isObject(fieldValidator) && !Array.isArray(fieldValidator)) {
-					// 	throw new Error(
-					// 		`Validator must be an object or array when value is an object or array for field: ${name}`,
-					// 	);
-					// }
+					const validators = getValidators(name, formState.validators, formState.values);
+					const errors = {};
+					for (let i = 0; i < validators.length; i++) {
+						const res = applyValidatorI(validators[i], formState.values, errors);
+						if (isPromise(res)) await res;
+					}
 
-					const fieldValidator = getInternal(name, formState.validators);
-					const [_, errors] = await isFormValidSchemaless(
-						fieldValue,
-						fieldValidator as any,
-						getInternal(name, formState.touched)! as any,
-						getInternal(name, formState.dirty)! as any,
-						fieldValue,
-					);
-					errors_store.update((x) => setImpure(name, errors as PartialErrorFields<T>, x));
+					errors_store.update((x) => setI(name, getInternal(name, errors), x));
 
 					if (Object.keys(errors).length > 0 && !formState.state.hasErrors)
-						state_store.update((x) => setImpure('hasErrors', true, x));
+						state_store.update((x) => setI('hasErrors', true, x));
 				} else {
-					// if (isObject(fieldValidator) || Array.isArray(fieldValidator)) {
-					// 	throw new Error(
-					// 		`Validator must be a function when value is a primitive or nullish for field: ${name}`,
-					// 	);
-					// }
-
-					const validators = getValidators(name, formState.validators);
+					const validators = getValidators(name, formState.validators, formState.values);
 					for (let i = 0; i < validators.length; i++) {
-						const res = await applyValidatorImpure(
-							validators[i],
-							formState.values,
-							formState.errors,
-						);
+						const applyRes = applyValidatorI(validators[i], formState.values, formState.errors);
+						const res = isPromise(applyRes) ? await applyRes : applyRes;
 
 						if (typeof res === 'string' && !formState.state.hasErrors)
-							state_store.update((x) => setImpure('hasErrors', true, x));
+							state_store.update((x) => setI('hasErrors', true, x));
 					}
 				}
 			}
@@ -84,13 +62,13 @@ export function createRunValidation<T extends object>(
 					(isObject(fieldValue) || Array.isArray(fieldValue) ? {} : false);
 
 				if (isObject(fieldError) || Array.isArray(fieldError))
-					errors_store.update((x) => mergeRightDeepImpure(x, fieldError));
-				else errors_store.update((x) => setImpure(name, fieldError, x));
+					errors_store.update((x) => mergeRightI(x, fieldError));
+				else errors_store.update((x) => setI(name, fieldError, x));
 			}
 		} finally {
-			internal_counter_store.update((x) => setImpure('validations', x.validations - 1, x));
+			internal_counter_store.update((x) => setI('validations', x.validations - 1, x));
 			if (!someDeep((x) => typeof x === 'string', formState.errors) && formState.state.hasErrors)
-				state_store.update((x) => setImpure('hasErrors', false, x));
+				state_store.update((x) => setI('hasErrors', false, x));
 			latest_field_event_store.set({ field: name, event: 'afterValidate' });
 		}
 	}

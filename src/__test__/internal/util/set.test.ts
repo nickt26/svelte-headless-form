@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { setImpure } from '../../../internal/util/set';
+import { setI } from '../../../internal/util/set';
 
 describe('setImpure', () => {
 	it('should change the property value', () => {
@@ -9,7 +9,7 @@ describe('setImpure', () => {
 			},
 		};
 
-		setImpure('nested.banana', 'apple', obj);
+		setI('nested.banana', 'apple', obj);
 
 		expect(obj.nested.banana).toEqual('apple');
 	});
@@ -21,7 +21,7 @@ describe('setImpure', () => {
 			},
 		};
 
-		setImpure('nested.apple', 'banana', obj);
+		setI('nested.apple', 'banana', obj);
 
 		expect(obj.nested.banana).toEqual('lemon');
 	});
@@ -30,7 +30,7 @@ describe('setImpure', () => {
 		const obj = null;
 
 		// @ts-expect-error
-		setImpure('nested.apple', 'banana', obj);
+		setI('nested.apple', 'banana', obj);
 
 		expect(obj).toEqual(null);
 	});
@@ -39,7 +39,7 @@ describe('setImpure', () => {
 		const obj = 123;
 
 		// @ts-expect-error
-		setImpure('nested.apple', 'banana', obj);
+		setI('nested.apple', 'banana', obj);
 
 		expect(obj).toEqual(123);
 	});
@@ -51,7 +51,7 @@ describe('setImpure', () => {
 			},
 		};
 
-		const tester = setImpure('nested.banana', 'apple', obj);
+		const tester = setI('nested.banana', 'apple', obj);
 
 		expect(obj).toBe(tester);
 	});
@@ -61,7 +61,7 @@ describe('setImpure', () => {
 			nested: {},
 		};
 
-		setImpure('nested.apple.0', 3, obj);
+		setI('nested.apple.0', 3, obj);
 
 		expect(obj).toEqual({ nested: { apple: [3] } });
 	});

@@ -5,6 +5,7 @@
 	import Input from '../components/Input.svelte';
 	import { roles, type FormValues } from '../types/FormValues';
 	import { clone } from '../../../src/internal/util/clone';
+	import { getInternal } from '../../../src/internal/util/get';
 
 	const delay = <T>(fn: () => T, ms?: number): Promise<T> =>
 		new Promise((resolve) =>
@@ -83,6 +84,13 @@
 		// 	return errors;
 		// },
 	});
+
+	const obj = {
+		firstName: 'John',
+		lastName: 'Doe',
+		middleName: ['a', 'b', 'c', 1],
+	};
+	const yes = getInternal('firstName', obj);
 
 	let showUsername = true;
 

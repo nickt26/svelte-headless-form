@@ -1,7 +1,7 @@
 import { derived } from 'svelte/store';
 import { UseFieldArray, UseFieldArrayOptions } from '../internal/types/UseFieldArray';
 import { getInternal } from '../internal/util/get';
-import { setImpure } from '../internal/util/set';
+import { setI } from '../internal/util/set';
 
 export const useFieldArray = <S, T extends object = object>({
 	name,
@@ -17,10 +17,10 @@ export const useFieldArray = <S, T extends object = object>({
 	return {
 		fields: {
 			subscribe: fields_store.subscribe,
-			set: (value: S[]) => control.values.update((x) => setImpure(name as string, value, x)),
+			set: (value: S[]) => control.values.update((x) => setI(name as string, value, x)),
 			update: (fn: (value: S[]) => S[]) =>
 				control.values.update((x) =>
-					setImpure(name as string, fn(getInternal<S[]>(name as string, x)!), x),
+					setI(name as string, fn(getInternal<S[]>(name as string, x)!), x),
 				),
 		},
 		...functions,

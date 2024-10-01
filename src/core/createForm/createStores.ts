@@ -1,4 +1,5 @@
-import { Readable, Writable, derived, writable } from 'svelte/store';
+import { derived, Readable, Writable, writable } from 'svelte/store';
+import { ignorableW, IWritable } from '../../__test__/internal/stores/ignorableW';
 import { InternalFormState, InternalFormStateCounter } from '../../internal/types/Form';
 import { clone, cloneWithStoreReactivity } from '../../internal/util/clone';
 import {
@@ -18,10 +19,10 @@ type Stores<T extends object> = {
 	errors_store: Writable<ErrorFields<T>>;
 	state_store: Writable<FormState>;
 	validate_mode_store: Writable<ValidateMode>;
-	latest_field_event_store: Writable<LatestFieldEvent | null>;
+	latest_field_event_store: IWritable<LatestFieldEvent | null, null>;
 	internal_counter_store: Writable<InternalFormStateCounter>;
 	internal_state_store: Readable<InternalFormState<T>>;
-	value_change_store: Writable<[Array<string | number | symbol>, unknown, boolean] | null>;
+	value_change_store: Writable<[Array<PropertyKey>, unknown, boolean] | null>;
 };
 
 export function createStores<T extends object>(
@@ -33,7 +34,7 @@ export function createStores<T extends object>(
 	initialState: FormState,
 	validateMode: ValidateMode,
 ): Stores<T> {
-	const value_change_store: Writable<[Array<string | number | symbol>, unknown, boolean] | null> =
+	const value_change_store: Writable<[Array<PropertyKey>, unknown, boolean] | null> =
 		writable(null);
 
 	const touched_store = writable(clone(initialTouched));
@@ -46,7 +47,7 @@ export function createStores<T extends object>(
 
 	const state_store = writable(clone(initialState));
 	const validate_mode_store = writable(validateMode);
-	const latest_field_event_store = writable<LatestFieldEvent | null>(null);
+	const latest_field_event_store = ignorableW<LatestFieldEvent | null, null>(null, [null]);
 
 	const internal_counter_store = writable<InternalFormStateCounter>({
 		validations: 0,

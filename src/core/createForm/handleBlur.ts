@@ -3,7 +3,7 @@ import { InternalFormState } from '../../internal/types/Form';
 import { assign } from '../../internal/util/assign';
 import { getInternal } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
-import { setImpure } from '../../internal/util/set';
+import { setI } from '../../internal/util/set';
 import { BooleanFields, FormState, LatestFieldEvent } from '../../types/Form';
 
 export function createHandleBlur<T extends object>(
@@ -24,13 +24,13 @@ export function createHandleBlur<T extends object>(
 		const fieldValue = getInternal(name, internalState[0].values);
 
 		if (isObject(fieldValue) || Array.isArray(fieldValue)) {
-			touched_store.update((x) => setImpure(name, assign(true, fieldValue), x));
+			touched_store.update((x) => setI(name, assign(true, fieldValue), x));
 		} else if (fieldTouched === false) {
-			touched_store.update((x) => setImpure(name, true, x));
+			touched_store.update((x) => setI(name, true, x));
 		}
 
 		if (!formState.state.isTouched) {
-			state_store.update((x) => setImpure('isTouched', true, x));
+			state_store.update((x) => setI('isTouched', true, x));
 		}
 		if (formState.validateMode === 'onBlur' || formState.validateMode === 'all') {
 			await runValidation(name, { values: internalState[0].values, path: name });

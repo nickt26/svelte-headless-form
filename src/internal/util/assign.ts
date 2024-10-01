@@ -2,9 +2,9 @@ import { ObjectDeep } from '../../types/Form';
 import { clone } from './clone';
 import { empty } from './empty';
 import { isObject } from './isObject';
-import { setImpure } from './set';
+import { setI } from './set';
 
-export const assignImpure = <T, S extends object, K extends object>(
+export const assignI = <T, S extends object, K extends object>(
 	val: T,
 	objStructure: S,
 	objectToAssignTo: K,
@@ -16,7 +16,7 @@ export const assignImpure = <T, S extends object, K extends object>(
 
 		if (isObject(value) || Array.isArray(value)) {
 			Object.assign(objectToAssignTo, {
-				[key]: assignImpure(val, value, empty(value)),
+				[key]: assignI(val, value, empty(value)),
 			});
 			continue;
 		}
@@ -33,10 +33,12 @@ export const assign = <T, S>(value: T, objStructure: S): ObjectDeep<S, T> => {
 		return value as ReturnType<typeof assign<T, S>>;
 	}
 
-	const toReturn = empty(objStructure);
+	const toReturn = Array.isArray(objStructure) ? [] : {};
 	if (isObject(objStructure)) {
-		for (const key of Object.keys(objStructure)) {
-			let val = objStructure[key];
+		const keys = Object.keys(objStructure);
+		for (let i = 0; i < keys.length; i++) {
+			const key = keys[i];
+			const val = objStructure[key];
 
 			if (isObject(val) || Array.isArray(val)) {
 				toReturn[key] = assign(value, val);
@@ -47,7 +49,7 @@ export const assign = <T, S>(value: T, objStructure: S): ObjectDeep<S, T> => {
 		}
 	} else if (Array.isArray(objStructure)) {
 		for (let i = 0; i < objStructure.length; i++) {
-			let val = objStructure[i];
+			const val = objStructure[i];
 
 			if (isObject(val) || Array.isArray(val)) {
 				toReturn[i] = assign(value, val);
@@ -67,7 +69,7 @@ export function assignUsing<T extends object, S extends object>(
 		compare?: symbol[];
 	},
 	result: object = Array.isArray(right) ? [] : {},
-	path: Array<string | number | symbol> = [],
+	path: Array<PropertyKey> = [],
 ): T & S {
 	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right))) {
 		return result as T & S;
@@ -90,7 +92,7 @@ export function assignUsing<T extends object, S extends object>(
 					path.length ? [...path, key] : [key],
 				);
 			} else {
-				setImpure(path.length ? [...path, key] : [key], rightVal, result);
+				setI(path.length ? [...path, key] : [key], rightVal, result);
 			}
 			continue;
 		}
@@ -99,7 +101,7 @@ export function assignUsing<T extends object, S extends object>(
 		const comparableKey = exceptedValues?.compare?.find((x) => x === key);
 
 		if (usableKey) {
-			setImpure(path.length ? [...path, key] : [key], rightVal, result);
+			setI(path.length ? [...path, key] : [key], rightVal, result);
 			continue;
 		}
 
@@ -119,7 +121,7 @@ export const assignWithReactivity = <T, S extends object = object>(
 ): ObjectDeep<S, T> => {
 	const toReturn = empty(objStructure);
 	for (const key in objStructure) {
-		let val = objStructure[key];
+		const val = objStructure[key];
 
 		if (isObject(val)) {
 			let yes = assignWithReactivity(value, val);
@@ -138,19 +140,17 @@ export const assignWithReactivity = <T, S extends object = object>(
 		} else if (Array.isArray(val)) {
 			let yes = assignWithReactivity(value, val);
 			yes = new Proxy(yes, {
-				get(_, prop) {
+				get(...args) {
 					// if (typeof prop === 'string' && !Number.isNaN(parseInt(prop))) {
 					// 	// console.log('getting', prop, target[prop]);
 					// }
-					// @ts-ignore
-					return Reflect.get(...arguments);
+					return Reflect.get(...args);
 				},
-				set(target, prop, val) {
+				set(...args) {
 					// if (typeof prop === 'string' && !Number.isNaN(parseInt(prop))) {
 					// 	console.log('setting', prop);
 					// }
-					// @ts-ignore
-					return Reflect.set(...arguments);
+					return Reflect.set(...args);
 				},
 			});
 			Object.defineProperty(toReturn, key, {
@@ -193,15 +193,15 @@ export const assignWithReactivity = <T, S extends object = object>(
 	return toReturn as ObjectDeep<S, T>;
 };
 
-export function assignUsingLeft(
+export function assignUsingLeft<T, S>(
 	value: unknown,
-	left: object,
-	right: object,
+	left: T,
+	right: S,
 	toReturn: object = Array.isArray(left) ? [] : {},
-	path: Array<string | number | symbol> = [],
+	path: Array<PropertyKey> = [],
 ): object {
 	if (!isObject(left) && !Array.isArray(left) && !isObject(right) && !Array.isArray(right)) {
-		return right;
+		return right as object;
 	}
 
 	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right))) {
@@ -220,7 +220,7 @@ export function assignUsingLeft(
 			) {
 				assignUsingLeft(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
 			} else {
-				setImpure(path.length ? [...path, key] : [key], rightVal, toReturn);
+				setI(path.length ? [...path, key] : [key], rightVal, toReturn);
 			}
 			continue;
 		} else {
@@ -230,11 +230,11 @@ export function assignUsingLeft(
 			) {
 				assignUsingLeft(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
 			} else {
-				setImpure(path.length ? [...path, key] : [key], value, toReturn);
+				setI(path.length ? [...path, key] : [key], value, toReturn);
 			}
 		}
 
-		setImpure(path.length ? [...path, key] : [key], value, toReturn);
+		setI(path.length ? [...path, key] : [key], value, toReturn);
 	}
 	return toReturn;
 }

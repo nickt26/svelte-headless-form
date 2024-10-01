@@ -1,8 +1,7 @@
-import { canParseToInt } from './canParseToInt';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
-export const removePropertyImpure = <T extends object>(path: string, obj: T): T => {
+export const removePropertyI = <T extends object>(path: string, obj: T): T => {
 	if (isNil(obj) || (!isObject(obj) && !Array.isArray(obj))) {
 		return obj;
 	}
@@ -18,12 +17,10 @@ export const removePropertyImpure = <T extends object>(path: string, obj: T): T 
 
 	const lastKey = splitPath[splitPath.length - 1];
 
-	if (Array.isArray(val) && canParseToInt(lastKey)) {
-		val.splice(parseInt(lastKey), 1);
-	} else if (Array.isArray(val) && !canParseToInt(lastKey)) {
-		return obj;
-	} else {
-		delete val[lastKey];
-	}
+	// if (Array.isArray(val) && canParseToInt(lastKey)) val.splice(parseInt(lastKey), 1);
+	// else if (Array.isArray(val) && !canParseToInt(lastKey)) return obj;
+	// else
+	delete val[lastKey];
+
 	return obj;
 };

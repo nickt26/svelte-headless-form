@@ -2,11 +2,7 @@ import { canParseToInt } from './canParseToInt';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
-export const setImpure = <V, T extends object>(
-	path: string | Array<string | number | symbol>,
-	val: V,
-	obj: T,
-): T => {
+export const setI = <V, T extends object>(path: string | Array<PropertyKey>, val: V, obj: T): T => {
 	if (
 		isNil(obj) ||
 		(!isObject(obj) && !Array.isArray(obj)) ||

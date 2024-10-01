@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeRightDeepImpure } from '../../../internal/util/mergeRightDeep';
+import { mergeRightI } from '../../../internal/util/mergeRightDeep';
 
 describe('mergeRightImpure', () => {
 	it('should merge properties from the right object onto the left object and override any matching keys', () => {
@@ -19,7 +19,7 @@ describe('mergeRightImpure', () => {
 			},
 		};
 
-		mergeRightDeepImpure(left, right);
+		mergeRightI(left, right);
 
 		expect(left).toEqual({
 			firstName: 'Jane',
@@ -45,7 +45,7 @@ describe('mergeRightImpure', () => {
 			roles: ['user'],
 		};
 
-		mergeRightDeepImpure(left, right, { replaceArrays: true });
+		mergeRightI(left, right, { replaceArrays: true });
 
 		expect(left.roles).toEqual(['user']);
 	});
@@ -72,7 +72,7 @@ describe('mergeRightImpure', () => {
 			},
 		};
 
-		mergeRightDeepImpure(left, right, { onlySameKeys: true });
+		mergeRightI(left, right, { onlySameKeys: true });
 
 		expect(left).toEqual({
 			firstName: 'Jane',

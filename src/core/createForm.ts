@@ -4,7 +4,7 @@ import { assign } from '../internal/util/assign';
 import { clone } from '../internal/util/clone';
 import { getInternal } from '../internal/util/get';
 import { isObject } from '../internal/util/isObject';
-import { setImpure } from '../internal/util/set';
+import { setI } from '../internal/util/set';
 import {
 	Form,
 	FormControl,
@@ -27,7 +27,9 @@ import { createRunValidation } from './createForm/runValidation';
 import { createSubmitForm } from './createForm/submitForm';
 import { createUpdateValue } from './createForm/updateValue';
 
-export function createForm<T extends object = object>(formOptions: FormOptions<T>): Form<T> {
+export function createForm<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>>(
+	formOptions: FormOptions<T>,
+): Form<T> {
 	const isSchemaless = 'initialValidators' in formOptions;
 	const isSchema = 'validationResolver' in formOptions;
 	const validateMode =
@@ -179,28 +181,28 @@ export function createForm<T extends object = object>(formOptions: FormOptions<T
 
 	const validate = runValidation;
 
-	const clean: Form['clean'] = (path) => {
+	const clean: ReturnType<typeof createForm>['clean'] = (path) => {
 		const val = getInternal(path, internalState[0].values);
 		if (isObject(val) || Array.isArray(val)) {
-			return dirty_store.update((x) => setImpure(path, assign(false, val), x));
+			return dirty_store.update((x) => setI(path, assign(false, val), x));
 		}
-		return dirty_store.update((x) => setImpure(path, false, x));
+		return dirty_store.update((x) => setI(path, false, x));
 	};
 
 	const makeDirty: Form['makeDirty'] = (path) => {
 		const val = getInternal(path, internalState[0].values);
 		if (isObject(val) || Array.isArray(val)) {
-			return dirty_store.update((x) => setImpure(path, assign(true, val), x));
+			return dirty_store.update((x) => setI(path, assign(true, val), x));
 		}
-		return dirty_store.update((x) => setImpure(path, true, x));
+		return dirty_store.update((x) => setI(path, true, x));
 	};
 
 	const unBlur: Form['unBlur'] = (path) => {
 		const val = getInternal(path, internalState[0].values);
 		if (isObject(val) || Array.isArray(val)) {
-			return touched_store.update((x) => setImpure(path, assign(false, val), x));
+			return touched_store.update((x) => setI(path, assign(false, val), x));
 		}
-		return touched_store.update((x) => setImpure(path, false, x));
+		return touched_store.update((x) => setI(path, false, x));
 	};
 
 	const control: FormControl<T> = {

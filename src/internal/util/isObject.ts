@@ -1,4 +1,4 @@
-export const isObject = (arg: any): arg is Record<string | number | symbol, unknown> => {
+export const isObject = (arg: any): arg is Record<PropertyKey, unknown> => {
 	// export const isObject = (arg: any): arg is object => {
 	if (
 		typeof arg !== 'object' ||

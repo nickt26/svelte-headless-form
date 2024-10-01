@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getValidatorss } from '../../../internal/util/getValidators';
+import { getValidators } from '../../../internal/util/getValidators';
 import { All, PartialValidatorFields, This, Values } from '../../../types/Form';
 
 describe('primitive', () => {
@@ -11,7 +11,7 @@ describe('primitive', () => {
 			firstName: (val) => !val.length && 'First name is required',
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('firstName', validators, values);
+		const res = getValidators('firstName', validators, values);
 
 		expect(res).toEqual([[['firstName'], validators.firstName]]);
 	});
@@ -28,7 +28,7 @@ describe('primitive', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location.streetName', validators, values);
+		const res = getValidators('location.streetName', validators, values);
 
 		expect(res).toEqual([[['location', 'streetName'], validators.location.streetName]]);
 	});
@@ -41,7 +41,7 @@ describe('primitive', () => {
 			roles: [(val) => !val.length && 'Role is required'],
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles.0', validators, values);
+		const res = getValidators('roles.0', validators, values);
 
 		expect(res).toEqual([[['roles', '0'], validators.roles[0]]]);
 	});
@@ -56,7 +56,7 @@ describe('array', () => {
 			roles: [(val) => !val.length && 'Role is required'],
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([[['roles', '0'], validators.roles[0]]]);
 	});
@@ -71,7 +71,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([[['roles'], validators.roles[This]]]);
 	});
@@ -86,7 +86,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([[['roles', '0'], validators.roles[All]]]);
 	});
@@ -101,7 +101,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([
 			...values.roles.map((_, i) => [['roles', `${i}`], validators.roles[Values][i]]),
@@ -119,7 +119,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([
 			[['roles'], validators.roles[This]],
@@ -138,7 +138,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([
 			[['roles'], validators.roles[This]],
@@ -157,7 +157,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([
 			...values.roles.flatMap((_, i) => [
@@ -179,7 +179,7 @@ describe('array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('roles', validators, values);
+		const res = getValidators('roles', validators, values);
 
 		expect(res).toEqual([
 			[['roles'], validators.roles[This]],
@@ -202,7 +202,7 @@ describe('object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location', validators, values);
+		const res = getValidators('location', validators, values);
 
 		expect(res).toEqual([[['location', 'streetName'], validators.location.streetName]]);
 	});
@@ -219,7 +219,7 @@ describe('object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location', validators, values);
+		const res = getValidators('location', validators, values);
 
 		expect(res).toEqual([[['location'], validators.location[This]]]);
 	});
@@ -237,7 +237,7 @@ describe('object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location', validators, values);
+		const res = getValidators('location', validators, values);
 
 		expect(res).toEqual([
 			[['location'], validators.location[This]],
@@ -265,7 +265,7 @@ describe('object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location', validators, values);
+		const res = getValidators('location', validators, values);
 
 		expect(res).toEqual([
 			[['location'], validators.location[This]],
@@ -296,7 +296,7 @@ describe('object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location', validators, values);
+		const res = getValidators('location', validators, values);
 
 		expect(res).toEqual([
 			[['location'], validators.location[This]],
@@ -332,7 +332,7 @@ describe('[object] nested object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location.coords', validators, values);
+		const res = getValidators('location.coords', validators, values);
 
 		expect(res).toEqual([[['location', 'coords'], validators.location.coords[This]]]);
 	});
@@ -361,7 +361,7 @@ describe('[object] nested object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location.coords', validators, values);
+		const res = getValidators('location.coords', validators, values);
 
 		expect(res).toEqual([
 			[['location', 'coords'], validators.location.coords[This]],
@@ -396,7 +396,7 @@ describe('[object] nested object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location.coords', validators, values);
+		const res = getValidators('location.coords', validators, values);
 
 		expect(res).toEqual([
 			[['location', 'coords'], validators.location.coords[This]],
@@ -432,7 +432,7 @@ describe('[object] nested object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location.coords', validators, values);
+		const res = getValidators('location.coords', validators, values);
 
 		expect(res).toEqual([
 			[['location', 'coords'], validators.location.coords[This]],
@@ -469,7 +469,7 @@ describe('[object] nested object', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('location.coords', validators, values);
+		const res = getValidators('location.coords', validators, values);
 
 		expect(res).toEqual([
 			[['location', 'coords'], validators.location.coords[This]],
@@ -500,7 +500,7 @@ describe('[object] nested object', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('location.coords', validators, values);
+			const res = getValidators('location.coords', validators, values);
 			expect(res).toEqual([
 				[['location'], validators.location[This]],
 				[['location', 'coords'], validators.location.coords[This]],
@@ -528,7 +528,7 @@ describe('[object] nested object', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('location.coords', validators, values);
+			const res = getValidators('location.coords', validators, values);
 			expect(res).toEqual([
 				[['location'], validators.location[This]],
 				[['location', 'coords'], validators.location.coords[This]],
@@ -564,7 +564,7 @@ describe('[object] nested object', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('location.coords', validators, values);
+			const res = getValidators('location.coords', validators, values);
 			expect(res).toEqual([
 				[['location'], validators.location[This]],
 				[['location', 'coords'], validators.location.coords[This]],
@@ -601,7 +601,7 @@ describe('[object] nested object', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('location.coords', validators, values);
+			const res = getValidators('location.coords', validators, values);
 			expect(res).toEqual([
 				[['location'], validators.location[This]],
 				[['location', 'coords'], validators.location.coords[This]],
@@ -639,7 +639,7 @@ describe('[object] nested object', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('location.coords', validators, values);
+			const res = getValidators('location.coords', validators, values);
 			expect(res).toEqual([
 				[['location'], validators.location[This]],
 				[['location', 'coords'], validators.location.coords[This]],
@@ -664,7 +664,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([[['nested', 'roles', '0'], validators.nested.roles[0]]]);
 	});
@@ -683,7 +683,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([[['nested', 'roles'], validators.nested.roles[This]]]);
 	});
@@ -702,7 +702,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			...values.nested.roles.map((_, i) => [
@@ -726,7 +726,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			...values.nested.roles.map((_, i) => [
@@ -751,7 +751,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			[['nested', 'roles'], validators.nested.roles[This]],
@@ -777,7 +777,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			[['nested', 'roles'], validators.nested.roles[This]],
@@ -803,7 +803,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			...values.nested.roles.flatMap((_, i) => [
@@ -829,7 +829,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			[['nested', 'roles'], validators.nested.roles[This]],
@@ -866,7 +866,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			...values.nested.roles.map((_, i) => [
@@ -902,7 +902,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			...values.nested.roles.map((_, i) => [
@@ -940,7 +940,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			...values.nested.roles.flatMap((_, i) => [
@@ -979,7 +979,7 @@ describe('[object] nested array', () => {
 			},
 		} satisfies PartialValidatorFields<typeof values>;
 
-		const res = getValidatorss('nested.roles', validators, values);
+		const res = getValidators('nested.roles', validators, values);
 
 		expect(res).toEqual([
 			[['nested', 'roles'], validators.nested.roles[This]],
@@ -1004,7 +1004,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1027,7 +1027,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1050,7 +1050,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1076,7 +1076,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1103,7 +1103,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1131,7 +1131,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1159,7 +1159,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1187,7 +1187,7 @@ describe('[object] nested array', () => {
 				},
 			} satisfies PartialValidatorFields<typeof values>;
 
-			const res = getValidatorss('nested.roles', validators, values);
+			const res = getValidators('nested.roles', validators, values);
 
 			expect(res).toEqual([
 				[['nested'], validators.nested[This]],
@@ -1198,5 +1198,43 @@ describe('[object] nested array', () => {
 				]),
 			]);
 		});
+	});
+});
+
+describe('all', () => {
+	it('should get all validators', () => {
+		const values = {
+			firstName: '',
+			lastName: '',
+			location: {
+				streetName: '',
+				coords: {
+					lat: 0,
+					lng: 0,
+				},
+			},
+			roles: ['admin', 'user'],
+		};
+
+		const validators = {
+			firstName: () => 'error',
+			location: {
+				[This]: () => 'this error',
+				streetName: () => 'error',
+				coords: {
+					[This]: () => 'this error',
+					lat: () => 'error',
+				},
+			},
+		} satisfies PartialValidatorFields<typeof values>;
+
+		const res = getValidators('', validators, values);
+		expect(res).toEqual([
+			[['firstName'], validators.firstName],
+			[['location'], validators.location[This]],
+			[['location', 'streetName'], validators.location.streetName],
+			[['location', 'coords'], validators.location.coords[This]],
+			[['location', 'coords', 'lat'], validators.location.coords.lat],
+		]);
 	});
 });

@@ -1,7 +1,7 @@
 import { onDestroy } from 'svelte';
 import { Writable } from 'svelte/store';
 import { InternalFormStateCounter } from '../../internal/types/Form';
-import { setImpure } from '../../internal/util/set';
+import { setI } from '../../internal/util/set';
 import { FormState } from '../../types/Form';
 
 export function handleSubscriptions(
@@ -10,12 +10,12 @@ export function handleSubscriptions(
 ): void {
 	const counterUnsub = internal_counter_store.subscribe((x) => {
 		x.validations > 0
-			? state_store.update((x) => setImpure('isValidating', true, x))
-			: state_store.update((x) => setImpure('isValidating', false, x));
+			? state_store.update((x) => setI('isValidating', true, x))
+			: state_store.update((x) => setI('isValidating', false, x));
 
 		x.submits > 0
-			? state_store.update((x) => setImpure('isSubmitting', true, x))
-			: state_store.update((x) => setImpure('isSubmitting', false, x));
+			? state_store.update((x) => setI('isSubmitting', true, x))
+			: state_store.update((x) => setI('isSubmitting', false, x));
 	});
 
 	onDestroy(counterUnsub);

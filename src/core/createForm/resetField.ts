@@ -4,8 +4,8 @@ import { assign, assignUsing, assignUsingLeft } from '../../internal/util/assign
 import { clone, noFormUpdate, noValidate } from '../../internal/util/clone';
 import { getInternal, getInternalSafe } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
-import { removePropertyImpure } from '../../internal/util/removeProperty';
-import { setImpure } from '../../internal/util/set';
+import { removePropertyI } from '../../internal/util/removeProperty';
+import { setI } from '../../internal/util/set';
 import {
 	BooleanFields,
 	ErrorFields,
@@ -14,7 +14,7 @@ import {
 	ValidatorFields,
 } from '../../types/Form';
 
-export const createResetField = <TValues extends object>(
+export const createResetField = <TValues extends Record<PropertyKey, unknown>>(
 	initialValues: TValues,
 	initialTouched: BooleanFields<TValues>,
 	initialDirty: BooleanFields<TValues>,
@@ -28,7 +28,7 @@ export const createResetField = <TValues extends object>(
 	errors_store: Writable<ErrorFields<TValues>>,
 	validators_store: Writable<ValidatorFields<TValues>>,
 	checkFormForStateReset: () => void,
-	validate: (name: string | Array<string | number | symbol>) => Promise<void>,
+	validate: (name: string | Array<PropertyKey>) => Promise<void>,
 ): ResetFieldFn<object> => {
 	return async (name, options): Promise<void> => {
 		if (typeof name !== 'string')
@@ -58,30 +58,30 @@ export const createResetField = <TValues extends object>(
 		const newValueWithFlags = [{ [noValidate]: !shouldValidate, [noFormUpdate]: true }, newValue];
 
 		if (isObject(newValue) || Array.isArray(newValue)) {
-			validators_store.update((x) => setImpure(name, newValidator, x));
+			validators_store.update((x) => setI(name, newValidator, x));
 			if (options?.keepTouched) {
 				touched_store.update((x) =>
-					setImpure(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
+					setI(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
 				);
-			} else touched_store.update((x) => setImpure(name, assign(false, newValue), x));
+			} else touched_store.update((x) => setI(name, assign(false, newValue), x));
 
 			if (options?.keepDirty) {
 				dirty_store.update((x) =>
-					setImpure(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
+					setI(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
 				);
-			} else dirty_store.update((x) => setImpure(name, assign(false, newValue), x));
+			} else dirty_store.update((x) => setI(name, assign(false, newValue), x));
 
-			values_store.update((x) => setImpure(name, newValueWithFlags, x));
+			values_store.update((x) => setI(name, newValueWithFlags, x));
 			if (options?.keepError) {
 				const currentErr = getInternal<object>(name, internalState[0].errors);
 				if (currentErr) {
-					errors_store.update((x) => setImpure(name, assignUsing(newValue, currentErr), x));
+					errors_store.update((x) => setI(name, assignUsing(newValue, currentErr), x));
 				}
 			} else if (options?.validate && newValidator) {
 				await validate(name);
 				// errors_store.update((x) => removePropertyImpure(name, x));
 			} else {
-				errors_store.update((x) => removePropertyImpure(name, x));
+				errors_store.update((x) => removePropertyI(name, x));
 			}
 
 			latest_field_event_store.set({ field: name, event: 'afterReset' });
@@ -91,12 +91,12 @@ export const createResetField = <TValues extends object>(
 
 		// const newValidator = options?.validator ?? getInternal(name, initialValidators);
 		// reset all the field values before setting the new value and triggering validation
-		validators_store.update((x) => setImpure(name, newValidator, x));
-		if (!options?.keepTouched) touched_store.update((x) => setImpure(name, false, x));
-		else touched_store.update((x) => setImpure(name, getInternal(name, x), x));
-		if (!options?.keepDirty) dirty_store.update((x) => setImpure(name, false, x));
-		values_store.update((x) => setImpure(name, newValueWithFlags, x));
-		if (!options?.keepError) errors_store.update((x) => removePropertyImpure(name, x));
+		validators_store.update((x) => setI(name, newValidator, x));
+		if (!options?.keepTouched) touched_store.update((x) => setI(name, false, x));
+		else touched_store.update((x) => setI(name, getInternal(name, x), x));
+		if (!options?.keepDirty) dirty_store.update((x) => setI(name, false, x));
+		values_store.update((x) => setI(name, newValueWithFlags, x));
+		if (!options?.keepError) errors_store.update((x) => removePropertyI(name, x));
 
 		latest_field_event_store.set({ field: name, event: 'afterReset' });
 		checkFormForStateReset();

@@ -1,10 +1,8 @@
 import { getInternal } from './get';
-import { setImpure } from './set';
+import { setI } from './set';
 
-export const prependImpure = <T extends object>(name: string, val: unknown, obj: T): T => {
-	const res = getInternal<Array<unknown>>(name, obj);
-	if (Array.isArray(res)) {
-		return setImpure(name, [val, ...res], obj);
-	}
-	return setImpure(name, val, obj);
+export const prependI = <T extends object>(name: string, val: unknown, obj: T): T => {
+	const res = getInternal(name, obj);
+	if (Array.isArray(res)) return setI(name, [val, ...res], obj);
+	return obj;
 };

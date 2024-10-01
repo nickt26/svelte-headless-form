@@ -1,4 +1,4 @@
-import { Equals, ValueDeep } from '../../types/Form';
+import { Equals, PartialErrorFields, ValueDeep } from '../../types/Form';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
@@ -8,8 +8,19 @@ export class FieldNotFoundError extends Error {
 	}
 }
 
-export const getInternalSafe = function <V = unknown, T extends object = object>(
-	path: string | Array<string | number | symbol>,
+export function getInternalSafe<
+	V = unknown,
+	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+>(
+	path: string | Array<PropertyKey>,
+	obj: T,
+): Equals<V, unknown> extends true ? ValueDeep<T> | FieldNotFoundError : V | FieldNotFoundError;
+export function getInternalSafe<V = unknown, T extends any[] = any[]>(
+	path: string | Array<PropertyKey>,
+	obj: T,
+): Equals<V, unknown> extends true ? ValueDeep<T> | FieldNotFoundError : V | FieldNotFoundError;
+export function getInternalSafe<V, T extends Record<PropertyKey, unknown> | any[]>(
+	path: string | Array<PropertyKey>,
 	obj: T,
 ): Equals<V, unknown> extends true ? ValueDeep<T> | FieldNotFoundError : V | FieldNotFoundError {
 	if (
@@ -20,7 +31,7 @@ export const getInternalSafe = function <V = unknown, T extends object = object>
 		return new FieldNotFoundError();
 	}
 
-	let current: any = obj;
+	let current: Record<PropertyKey, unknown> | any[] = obj;
 	const splitPath = Array.isArray(path) ? path : path.split(/\./g);
 
 	for (let i = 0; i < splitPath.length - 1; i++) {
@@ -35,10 +46,26 @@ export const getInternalSafe = function <V = unknown, T extends object = object>
 		return new FieldNotFoundError();
 	}
 	return current[last];
-};
+}
 
-export const getInternal = function <V = unknown, T extends object = object>(
-	path: string | Array<string | number | symbol>,
+export function getInternal<
+	V = unknown,
+	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+>(
+	path: string | Array<PropertyKey>,
+	obj: T,
+): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
+export function getInternal<V = unknown, T extends any[] = any[]>(
+	path: string | Array<PropertyKey>,
+	obj: T,
+): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
+
+export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
+	path: string | Array<PropertyKey>,
+	obj: T,
+): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
+export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
+	path: string | Array<PropertyKey>,
 	obj: T,
 ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined {
 	if (
@@ -49,7 +76,7 @@ export const getInternal = function <V = unknown, T extends object = object>(
 		return undefined;
 	}
 
-	let current: any = obj;
+	let current: Record<PropertyKey, unknown> | any[] = obj;
 	const splitPath = Array.isArray(path) ? path : path.split(/\./g);
 
 	for (let i = 0; i < splitPath.length - 1; i++) {
@@ -61,4 +88,32 @@ export const getInternal = function <V = unknown, T extends object = object>(
 	}
 	const last = splitPath[splitPath.length - 1];
 	return current[last];
+}
+
+export const getError = function <T extends object = object>(
+	path: string | Array<PropertyKey>,
+	errors: PartialErrorFields<T>,
+): string | undefined {
+	if (
+		isNil(errors) ||
+		(!isObject(errors) && !Array.isArray(errors)) ||
+		(typeof path !== 'string' && !Array.isArray(path))
+	) {
+		return undefined;
+	}
+
+	let currentErrors: any = errors;
+	const splitPath = Array.isArray(path) ? path : path.split(/\./g);
+
+	for (let i = 0; i < splitPath.length - 1; i++) {
+		const key = splitPath[i];
+		const nextError = currentErrors[key];
+
+		if (typeof nextError === 'string') return nextError;
+		else if (!isObject(nextError) && !Array.isArray(nextError)) return undefined as any;
+
+		currentErrors = nextError;
+	}
+	const last = splitPath[splitPath.length - 1];
+	return currentErrors[last];
 };

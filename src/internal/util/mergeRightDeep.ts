@@ -22,7 +22,7 @@ type MergeRightDeepOptionsAll = MergeRightDeepOptionsCommon & {
 	onlyNewKeys?: boolean;
 };
 
-export function mergeRightDeepImpure<T extends object, S extends object>(
+export function mergeRightI<T extends object, S extends object>(
 	left: T | undefined,
 	right: S | undefined,
 	options?: MergeRightDeepOptions,
@@ -50,7 +50,7 @@ export function mergeRightDeepImpure<T extends object, S extends object>(
 			(isObject(leftVal) && isObject(rightVal)) ||
 			(Array.isArray(leftVal) && Array.isArray(rightVal) && !replaceArrays)
 		) {
-			mergeRightDeepImpure(leftVal, rightVal, options);
+			mergeRightI(leftVal, rightVal, options);
 		} else if (noUndefinedMerges ? rightVal !== undefined : true) left[key] = rightVal;
 	}
 

@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { createForm } from '../../core/createForm';
-	import { formValidators, initialFormValues } from '../core/createFormUtils';
+	import { initialFormValidators, initialFormValues } from '../core/createFormUtils';
+
+	export let initValidators = initialFormValidators;
 
 	const form = createForm({
 		initialValues: initialFormValues,
-		initialValidators: formValidators,
+		initialValidators: initValidators,
 	});
 	const { submitForm, values, errors, touched, dirty, state, handleBlur } = form;
 </script>

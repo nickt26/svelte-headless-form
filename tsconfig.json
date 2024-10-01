@@ -15,11 +15,12 @@
 		// "strict": true,
 		"strictNullChecks": true,
 		// "noUnusedParameters": true,
-		// "noImplicitAny": true,
+		"noImplicitAny": false,
 		// "noImplicitReturns": true,
-		"strictFunctionTypes": true,
+		// "strictFunctionTypes": true,
 		"noFallthroughCasesInSwitch": true,
 		"alwaysStrict": true
+		// "noUncheckedIndexedAccess": true
 	},
 	"exclude": ["dist", "node_modules", "coverage"]
 }

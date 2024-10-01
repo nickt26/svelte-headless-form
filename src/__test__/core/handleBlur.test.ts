@@ -1,6 +1,8 @@
 import { render } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { describe, expect, it } from 'vitest';
+import { assign } from '../../internal/util/assign';
+import { setI } from '../../internal/util/set';
 import Form from '../components/Form.svelte';
 import { ValueUpdate, getComponentState, waitForAllFieldsToValidate } from './createFormUtils';
 
@@ -38,36 +40,38 @@ describe('handleBlur', () => {
 	it('[Array] should blur all fields', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
-		const { touched, handleBlur, initialTouched } = form;
 
-		await handleBlur('roles');
+		await form.handleBlur('roles');
 
-		expect(get(touched)).toEqual({ ...initialTouched, roles: [true] });
+		expect(get(form.touched)).toEqual({
+			...form.initialTouched,
+			roles: assign(true, form.initialValues.roles),
+		});
 	});
 
 	it('[Single Array Field] should blur field', async () => {
 		const { component } = render(Form);
 		const { form } = getComponentState(component);
-		const { touched, handleBlur, initialTouched, values, useFieldArray } = form;
 
 		const valueUpdate = [
 			{ key: 'roles', value: ['admin', 'tester'] },
 		] as const satisfies ValueUpdate;
-		const arrayField = useFieldArray('roles');
 		const wait = waitForAllFieldsToValidate(valueUpdate, form);
-		// TODO: This test throws error in getTriggers()
-		values.update((vals) => {
-			for (const value of valueUpdate[0].value) {
-				arrayField.append(value);
+		form.values.update((x) => {
+			for (const { key, value } of valueUpdate) {
+				setI(key, value, x);
 			}
-			vals.roles = valueUpdate[0].value;
-			return vals;
+			return x;
 		});
 		await wait;
 
-		await handleBlur('roles.0');
+		await form.handleBlur('roles.0');
 
-		expect(get(touched)).toEqual({ ...initialTouched, roles: [true, false, false] });
+		expect(get(form.values)).toEqual({ ...form.initialValues, roles: ['admin', 'tester'] });
+		expect(get(form.touched)).toEqual({ ...form.initialTouched, roles: [true, false] });
+		expect(get(form.errors)).toEqual(form.initialErrors);
+		expect(get(form.dirty)).toEqual({ ...form.initialDirty, roles: [true, true] });
+		expect(get(form.validators)).toEqual(form.initialValidators);
 	});
 
 	it('[Object] should blur all fields', async () => {

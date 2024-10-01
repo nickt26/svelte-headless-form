@@ -12,6 +12,8 @@ export type FormState = {
 
 export type ValidateMode = 'onChange' | 'onBlur' | 'onSubmit' | 'onFocus' | 'none' | 'all';
 
+export type PromiseLikeResult<T> = T | Promise<T>;
+
 export type ObjectDeep<T, S = null> = T extends object
 	? {
 			[key in keyof T]: Extract<T[key], object> extends never
@@ -39,14 +41,11 @@ export type ReadonlyDeep<T extends object> = {
 export type Equals<T, U> =
 	(<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2 ? true : false;
 
-export type ValueOf<T, Key extends string> =
-	Equals<T, object> extends true
-		? unknown
-		: T extends object
-			? Key extends `${infer Parent}.${infer Leaf}`
-				? ValueOf<T[Parent & keyof T], Leaf>
-				: T[Key & keyof T]
-			: never;
+export type ValueOf<T, Key extends string> = T extends object
+	? Key extends `${infer Parent}.${infer Leaf}`
+		? ValueOf<T[Parent & keyof T], Leaf>
+		: T[Key & keyof T]
+	: never;
 
 export type ArrayValueOf<T, Key extends string> =
 	Equals<T, object> extends true
@@ -64,11 +63,21 @@ const remainSymbol = Symbol('remain');
 
 type IsEmptyTuple<T extends any[]> = 0 extends T['length'] ? true : false;
 
-type BrowserNativeObject = Date | FileList | File;
+type BrowserNativeObject =
+	| Date
+	| FileList
+	| File
+	| Uint8Array
+	| Uint16Array
+	| Uint32Array
+	| BigUint64Array
+	| Map<any, any>
+	| Set<any>
+	| WeakMap<any, any>;
 
 type KeyChainVal<
 	KeyChain extends string | null,
-	Key extends string | number | symbol,
+	Key extends PropertyKey,
 	AddStar extends boolean = false,
 > = KeyChain extends null
 	? `${Key & string}${AddStar extends true ? '*' : ''}`
@@ -77,7 +86,7 @@ type KeyChainVal<
 type DotPathValue<
 	Val,
 	KeyChain extends string | null,
-	key extends string | number | symbol,
+	key extends PropertyKey,
 > = Val extends BrowserNativeObject
 	? KeyChainVal<KeyChain, key>
 	: Val extends object
@@ -133,6 +142,8 @@ export type ValueDeep<T> = T extends any[]
 		: T;
 
 export type DotPaths<T> = Equals<T, object> extends true ? string : ValueDeep<CreateStarPaths4<T>>;
+export type ArrayDotPaths<T> =
+	Equals<T, object> extends true ? string : ValueDeep<CreateArrayStarPaths4<T>>;
 
 export type Validators<O extends object, T extends object> = {
 	[K in keyof T]: Extract<T[K], object> extends never
@@ -221,89 +232,89 @@ export type PartialValidatorss<O extends object, T extends object> = {
 					  ];
 };
 
-type Obj = { banana?: string; lemon?: string } & { current: never; all: never };
-type Test1 = Array<Obj> | [<T extends Obj = Obj>(val: T) => string | false, Array<Obj>];
+// type Obj = { banana?: string; lemon?: string } & { current: never; all: never };
+// type Test1 = Array<Obj> | [<T extends Obj = Obj>(val: T) => string | false, Array<Obj>];
 
-type Test =
-	| [
-			{
-				current?: <T extends Obj = Obj>(val: T) => string | false;
-				all?: <T extends Obj = Obj>(val: T) => string | false;
-			},
-			Test1,
-	  ]
-	| Test1
-	| undefined;
+// type Test =
+// 	| [
+// 			{
+// 				current?: <T extends Obj = Obj>(val: T) => string | false;
+// 				all?: <T extends Obj = Obj>(val: T) => string | false;
+// 			},
+// 			Test1,
+// 	  ]
+// 	| Test1
+// 	| undefined;
 
-const test: Test = [{ current: (val) => 'err' }];
+// const test: Test = [{ current: (val) => 'err' }];
 
-type O = {
-	firstName: string;
-	tester: { banana: string; lemon: string }[];
-};
+// type O = {
+// 	firstName: string;
+// 	tester: { banana: string; lemon: string }[];
+// };
 
-type A<T extends object, O extends object> = {
-	[K in keyof T]?: Extract<T[K], object> extends never
-		? ValidatorFn<O, T[K]>
-		: Extract<T[K], Array<any>> extends never
-			?
-					| [ValidatorFn<O, T[K]>, A<Extract<T[K], object>, O>]
-					| [ValidatorFn<O, T[K]>, A<Extract<T[K], object>, O>, A<Extract<T[K], object>, O>]
-					| A<Extract<T[K], object>, O>
-			:
-					| [
-							{
-								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
-								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
-							},
-							A<Extract<T[K], Array<any>>, O>,
-					  ]
-					| [
-							{
-								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
-								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
-							},
-					  ]
-					| A<Extract<T[K], Array<any>>, O>;
-};
+// type A<T extends object, O extends object> = {
+// 	[K in keyof T]?: Extract<T[K], object> extends never
+// 		? ValidatorFn<O, T[K]>
+// 		: Extract<T[K], Array<any>> extends never
+// 			?
+// 					| [ValidatorFn<O, T[K]>, A<Extract<T[K], object>, O>]
+// 					| [ValidatorFn<O, T[K]>, A<Extract<T[K], object>, O>, A<Extract<T[K], object>, O>]
+// 					| A<Extract<T[K], object>, O>
+// 			:
+// 					| [
+// 							{
+// 								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
+// 								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
+// 							},
+// 							A<Extract<T[K], Array<any>>, O>,
+// 					  ]
+// 					| [
+// 							{
+// 								current?: ValidatorFn<O, Extract<T[K], Array<any>>>;
+// 								all?: ValidatorFn<O, Extract<T[K], Array<any>>[number]>;
+// 							},
+// 					  ]
+// 					| A<Extract<T[K], Array<any>>, O>;
+// };
 
-const yes: PartialValidatorss<O, O> = {
-	firstName: (val) => 'err',
-	tester: [{ banana: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
-};
+// const yes: PartialValidatorss<O, O> = {
+// 	firstName: (val) => 'err',
+// 	tester: [{ banana: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
+// };
 
-type F<V extends object> = {
-	initialValues: V;
-	validators:
-		| PartialValidatorFields<V>
-		| ((values: PartialValidatorFields<V>) => PartialValidatorFields<V>);
-};
+// type F<V extends object> = {
+// 	initialValues: V;
+// 	validators:
+// 		| PartialValidatorFields<V>
+// 		| ((values: PartialValidatorFields<V>) => PartialValidatorFields<V>);
+// };
 
-const f: F<O> = {
-	initialValues: {
-		firstName: 'test',
-		tester: [],
-	},
-	validators: {
-		firstName: (val) => 'err',
-		tester: [{ banana: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
-	},
-};
+// const f: F<O> = {
+// 	initialValues: {
+// 		firstName: 'test',
+// 		tester: [],
+// 	},
+// 	validators: {
+// 		firstName: (val) => 'err',
+// 		tester: [{ banana: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
+// 	},
+// };
 
-const fn = <T extends object>(f: F<T>): void => {
-	return;
-};
+// const fn = <T extends object>(f: F<T>): void => {
+// 	return;
+// };
 
-fn<O>({
-	initialValues: {
-		firstName: 'test',
-		tester: [],
-	},
-	validators: (vals) => ({
-		firstName: () => 'err',
-		tester: [{ current: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
-	}),
-});
+// fn<O>({
+// 	initialValues: {
+// 		firstName: 'test',
+// 		tester: [],
+// 	},
+// 	validators: (vals) => ({
+// 		firstName: () => 'err',
+// 		tester: [{ current: () => 'err', all: () => 'err' }, [{ banana: () => 'lemon' }]],
+// 	}),
+// });
 
 type Paths<T extends string, S extends string> = T extends '' ? S : `${T}.${S}`;
 
@@ -315,9 +326,12 @@ type CreateStarPaths4<
 > = StrippedObject extends BrowserNativeObject
 	? Path
 	: StrippedObject extends Array<infer U>
-		? 0 extends StrippedObject['length']
-			? CreateStarPaths4<U, Paths<Path, `${number}`>>
-			: CreateStarPaths4<U, Path>
+		? {
+				[dotPathSymbol]: 0 extends StrippedObject['length'] ? Paths<Path, `${number}`> : never;
+				[remainSymbol]: 0 extends StrippedObject['length']
+					? CreateStarPaths4<U, Paths<Path, `${number}`>>
+					: CreateStarPaths4<U, Path>;
+			}
 		: StrippedObject extends object
 			? {
 					[K in keyof StrippedObject]: {
@@ -327,10 +341,39 @@ type CreateStarPaths4<
 				}
 			: Path;
 
+type CreateArrayStarPaths4<
+	T,
+	Path extends string = '',
+	StrippedObject = T extends object ? { -readonly [K in keyof T]-?: T[K] } : T,
+> = StrippedObject extends BrowserNativeObject
+	? never
+	: StrippedObject extends Array<infer U>
+		? {
+				[remainSymbol]: 0 extends StrippedObject['length']
+					? CreateArrayStarPaths4<U, Paths<Path, `${number}`>>
+					: CreateArrayStarPaths4<U, Path>;
+			}
+		: StrippedObject extends object
+			? {
+					[K in keyof StrippedObject]: {
+						[dotPathSymbol]: Extract<StrippedObject[K], any[]> extends never
+							? never
+							: Paths<Path, K & string>;
+						[remainSymbol]: CreateArrayStarPaths4<StrippedObject[K], Paths<Path, K & string>>;
+					};
+				}
+			: never;
+
+type T1 = CreateArrayStarPaths4<{ a: string; b: { value: string }[] }>;
+type T2 = ArrayDotPaths<{
+	a: string;
+	b: ({ value: string; metadata: string[] } | string)[] | { a: number; b: boolean };
+}>;
+
 export const allKey = 'allFields';
 export const All = Symbol(allKey);
 
-export type BooleanFields<T extends object = object> = ObjectDeep<T, boolean>;
+export type BooleanFields<T extends Record<PropertyKey, unknown> | any[]> = ObjectDeep<T, boolean>;
 export type ErrorFields<T extends object = object> = PartialDeep<T, string | false>;
 export type PartialErrorFields<T extends object> = PartialDeep<T, string | false>;
 export type ValidatorFields<T extends object = object> = Validators<T, T>;
@@ -487,7 +530,7 @@ type FieldEvent = 'change' | 'blur' | 'focus' | 'reset' | 'validate';
 export type FieldEventHook = `${BeforeOrAfter}${Capitalize<FieldEvent>}`;
 
 export type LatestFieldEvent = {
-	field: string | Array<string | number | symbol>;
+	field: string | Array<PropertyKey>;
 	event: FieldEventHook;
 };
 

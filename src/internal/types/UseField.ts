@@ -9,8 +9,8 @@ export type UseFieldOptions<T extends object, TPath extends DotPaths<T>> = {
 export type UseField<T extends object, TPath extends DotPaths<T>> = {
 	field: {
 		value: Writable<ValueOf<T, TPath>>;
-		handleBlur: () => void;
-		handleFocus: () => void;
+		onBlur: () => void;
+		onFocus: () => void;
 	};
 	fieldState: {
 		isTouched: Readable<boolean>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { removePropertyImpure } from '../../../internal/util/removeProperty';
+import { removePropertyI } from '../../../internal/util/removeProperty';
 
 describe('removePropertyImpure', () => {
 	it('should remove property from object', () => {
@@ -7,7 +7,7 @@ describe('removePropertyImpure', () => {
 			banana: 'lemon',
 		};
 
-		removePropertyImpure('banana', tester);
+		removePropertyI('banana', tester);
 
 		expect(tester).toEqual({});
 	});
@@ -17,7 +17,7 @@ describe('removePropertyImpure', () => {
 			arr: [1, 2, 3],
 		};
 
-		removePropertyImpure('arr.2', tester);
+		removePropertyI('arr.2', tester);
 
 		expect(tester.arr).toEqual([1, 2]);
 	});
@@ -29,7 +29,7 @@ describe('removePropertyImpure', () => {
 			},
 		};
 
-		removePropertyImpure('nested.arr.3', tester);
+		removePropertyI('nested.arr.3', tester);
 
 		expect(tester).toEqual(tester);
 	});
@@ -38,7 +38,7 @@ describe('removePropertyImpure', () => {
 		const tester = 123;
 
 		// @ts-expect-error
-		removePropertyImpure('arr.nested.3', tester);
+		removePropertyI('arr.nested.3', tester);
 
 		expect(tester).toEqual(tester);
 	});
@@ -47,7 +47,7 @@ describe('removePropertyImpure', () => {
 		const tester = null;
 
 		// @ts-expect-error
-		removePropertyImpure('arr.nested.3', tester);
+		removePropertyI('arr.nested.3', tester);
 
 		expect(tester).toEqual(tester);
 	});
@@ -56,7 +56,7 @@ describe('removePropertyImpure', () => {
 		const tester = undefined;
 
 		// @ts-expect-error
-		removePropertyImpure('arr.nested.3', tester);
+		removePropertyI('arr.nested.3', tester);
 
 		expect(tester).toEqual(tester);
 	});
@@ -68,7 +68,7 @@ describe('removePropertyImpure', () => {
 			},
 		};
 
-		removePropertyImpure('nested.arr.prop', tester);
+		removePropertyI('nested.arr.prop', tester);
 
 		expect(tester).toEqual(tester);
 	});
