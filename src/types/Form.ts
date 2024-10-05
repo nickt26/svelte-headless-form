@@ -14,7 +14,7 @@ export type ValidateMode = 'onChange' | 'onBlur' | 'onSubmit' | 'onFocus' | 'non
 
 export type PromiseLikeResult<T> = T | Promise<T>;
 
-export type ObjectDeep<T, S = null> = T extends object
+export type ObjectDeep<T, S = null> = T extends Record<PropertyKey, unknown> | any[]
 	? {
 			[key in keyof T]: Extract<T[key], object> extends never
 				? S extends null
@@ -141,7 +141,14 @@ export type ValueDeep<T> = T extends any[]
 			}[keyof T]
 		: T;
 
-export type DotPaths<T> = Equals<T, object> extends true ? string : ValueDeep<CreateStarPaths4<T>>;
+export type DotPaths<T> =
+	Equals<T, object> extends true
+		? string
+		: Equals<T, Record<PropertyKey, unknown>> extends true
+			? string
+			: Equals<T, any[]> extends true
+				? string
+				: ValueDeep<CreateStarPaths4<T>>;
 export type ArrayDotPaths<T> =
 	Equals<T, object> extends true ? string : ValueDeep<CreateArrayStarPaths4<T>>;
 
@@ -373,7 +380,9 @@ type T2 = ArrayDotPaths<{
 export const allKey = 'allFields';
 export const All = Symbol(allKey);
 
-export type BooleanFields<T extends Record<PropertyKey, unknown> | any[]> = ObjectDeep<T, boolean>;
+export type BooleanFields<
+	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
+> = ObjectDeep<T, boolean>;
 export type ErrorFields<T extends object = object> = PartialDeep<T, string | false>;
 export type PartialErrorFields<T extends object> = PartialDeep<T, string | false>;
 export type ValidatorFields<T extends object = object> = Validators<T, T>;
@@ -421,42 +430,28 @@ export type ArrayFieldAddOptions<T extends object> = {
 	validator?: ValidatorFn<T>;
 };
 
-type ResetFieldValues<T extends object, TPath extends string> = {
+export type ResetFieldOptions<
+	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
+	TPath extends string = string,
+> = {
 	value?: ValueOf<T, TPath>;
 	validator?: ValueOf<PartialValidatorFields<T>, TPath>;
-};
-export type ResetFieldOptions<T extends object, TPath extends string> = ResetFieldValues<
-	T,
-	TPath
-> & {
 	keepTouched?: boolean;
 	keepDirty?: boolean;
 } & (
-		| {
-				keepError?: boolean;
-				validate?: undefined;
-		  }
-		| {
-				keepError?: undefined;
-				validate?: boolean;
-		  }
-	);
-// | (ResetFieldValues<T, TPath> & {
-// 		keepTouched?: boolean;
-// 		keepDirty?: boolean;
-// 		keepError?: boolean;
-// 		validate?: undefined;
-//   })
-// | (ResetFieldValues<T, TPath> & {
-// 		keepTouched?: boolean;
-// 		keepDirty?: boolean;
-// 		keepError?: undefined;
-// 		validate?: boolean;
-//   });
+	| {
+			keepError?: true;
+			validate?: false;
+	  }
+	| {
+			keepError?: false;
+			validate?: true;
+	  }
+);
 
 export type FormUseFieldArray<T extends object, S = unknown> = {
 	remove: (index: number) => void;
-	append: (value: S, options?: ArrayFieldAddOptions<T>) => void;
+	append: (value: S, options?: ArrayFieldAddOptions<T>) => Promise<void>;
 	prepend: (value: S, options?: ArrayFieldAddOptions<T>) => void;
 	swap: (from: number, to: number) => void;
 };
@@ -495,7 +490,9 @@ export type ResetFieldFn<T extends object> = <TObject extends T, Path extends Do
 	options?: ResetFieldOptions<TObject, Path>,
 ) => Promise<void>;
 
-export type ResetFormOptions<T extends object> = {
+export type ResetFormOptions<
+	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+> = {
 	values?: PartialDeep<T>;
 	validators?: PartialValidatorFields<T>;
 	keepTouched?: boolean;
@@ -504,7 +501,9 @@ export type ResetFormOptions<T extends object> = {
 	keepValidators?: boolean;
 };
 
-export type ResetFormFn<T extends object = object> = <TValues extends T>(
+export type ResetFormFn<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>> = <
+	TValues extends T,
+>(
 	options?: ResetFormOptions<TValues>,
 ) => void;
 
@@ -536,7 +535,7 @@ export type LatestFieldEvent = {
 
 export type ValidateFn<T extends object> = <TPath extends DotPaths<T>>(name: TPath) => void;
 
-export type Form<T extends object = object> = {
+export type Form<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>> = {
 	touched: Readable<BooleanFields<T>>;
 	values: Writable<T>;
 	dirty: Readable<BooleanFields<T>>;
@@ -562,12 +561,12 @@ export type Form<T extends object = object> = {
 	clean: <TPath extends DotPaths<T>>(path: TPath) => void;
 	makeDirty: <TPath extends DotPaths<T>>(path: TPath) => void;
 	unBlur: <TPath extends DotPaths<T>>(path: TPath) => void;
-	// batch: (fn: (options: FormControl<T>) => void | Promise<void>) => Promise<void>;
 };
 
-export type ValidatorState<T extends object> = {
+export type ValidatorState<T extends Record<PropertyKey, unknown>> = {
 	values: T;
 	path: string;
 };
 
-export type FormControl<T extends object = object> = Omit<Form<T>, 'control'>;
+export type FormControl<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>> =
+	Omit<Form<T>, 'control'>;

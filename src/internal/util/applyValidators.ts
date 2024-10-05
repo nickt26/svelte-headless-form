@@ -4,7 +4,7 @@ import { isObject } from './isObject';
 import { isPromise } from './isPromise';
 import { setI } from './set';
 
-export function applyValidatorI<T extends object>(
+export function applyValidatorI<T extends Record<PropertyKey, unknown>>(
 	validator: [Array<PropertyKey>, Function],
 	values: T,
 	errors: object,

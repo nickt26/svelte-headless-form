@@ -1,4 +1,5 @@
-<script lang="ts" generics="T extends object">
+<script lang="ts" generics="T extends Obj">
+	import { type Obj } from '../types/FormValues';
 	import { useField } from '../../../src/core/useField';
 	import type { DotPaths, FormControl } from '../../../src/types/Form';
 

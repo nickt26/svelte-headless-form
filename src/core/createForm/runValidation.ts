@@ -11,7 +11,7 @@ import { setI } from '../../internal/util/set';
 import { someDeep } from '../../internal/util/someDeep';
 import { ErrorFields, FormState, LatestFieldEvent, ValidationResolver } from '../../types/Form';
 
-export function createRunValidation<T extends object>(
+export function createRunValidation<T extends Record<PropertyKey, unknown>>(
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	internal_counter_store: Writable<InternalFormStateCounter>,
 	errors_store: Writable<ErrorFields<T>>,

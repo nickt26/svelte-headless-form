@@ -97,6 +97,7 @@ export const createResetField = <TValues extends Record<PropertyKey, unknown>>(
 		if (!options?.keepDirty) dirty_store.update((x) => setI(name, false, x));
 		values_store.update((x) => setI(name, newValueWithFlags, x));
 		if (!options?.keepError) errors_store.update((x) => removePropertyI(name, x));
+		if (options?.validate) await validate(name);
 
 		latest_field_event_store.set({ field: name, event: 'afterReset' });
 		checkFormForStateReset();

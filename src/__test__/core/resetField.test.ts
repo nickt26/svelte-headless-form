@@ -331,18 +331,21 @@ describe('resetField', () => {
 			});
 			handleBlur('name');
 
+			expect(get(values)).toEqual({
+				...initialValues,
+				name: valueUpdate[0].value,
+			});
+
 			await wait;
 
-			const waitForResetFieldValidate = waitForAllFieldsToValidate(['name'], form);
 			const validator = () => 'test error';
-			resetField('name', {
+			await resetField('name', {
 				value: 'Test',
 				keepDirty: true,
 				validator,
 				keepTouched: true,
 				validate: true,
 			});
-			await waitForResetFieldValidate;
 
 			expect(get(values)).toEqual({ ...initialValues, name: 'Test' });
 			expect(get(touched)).toEqual({ ...initialTouched, name: true });

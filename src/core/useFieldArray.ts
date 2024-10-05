@@ -3,7 +3,10 @@ import { UseFieldArray, UseFieldArrayOptions } from '../internal/types/UseFieldA
 import { getInternal } from '../internal/util/get';
 import { setI } from '../internal/util/set';
 
-export const useFieldArray = <S, T extends object = object>({
+export const useFieldArray = <
+	S,
+	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+>({
 	name,
 	control,
 }: UseFieldArrayOptions<T>): UseFieldArray<S, T> => {

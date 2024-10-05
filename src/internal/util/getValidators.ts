@@ -42,7 +42,7 @@ export const getValidators = (
 		currentValue = currentValue[key];
 	}
 	const lastKey = splitPath[splitPath.length - 1];
-	let lastValidator =
+	const lastValidator =
 		splitPath.length === 0
 			? currentValidator
 			: currentValidator[lastKey] ?? currentValidator[Values]?.[lastKey];

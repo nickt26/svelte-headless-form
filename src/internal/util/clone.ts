@@ -40,32 +40,54 @@ export const noValidate = Symbol('noValidate');
 export const noFormUpdate = Symbol('noFormUpdate');
 // const mutatingArrayMethods = ['push', 'pop', 'shift', 'unshift', 'splice'] as cost;
 
+// cloneWithStoreReactivity({ a: 'b' });
+// type NotObjOrArray<T> = T extends Record<PropertyKey, unknown> | any[] ? never : T;
+
+// type Primitive = string | number | boolean | null | undefined;
+// type SupportedObjects = Date | File;
+
+// function isSupported(
+// 	val: unknown,
+// ): val is SupportedObjects | Primitive | Record<PropertyKey, unknown> | any[] {
+// 	return (
+// 		val instanceof Date ||
+// 		val instanceof File ||
+// 		typeof val === 'string' ||
+// 		typeof val === 'number' ||
+// 		typeof val === 'boolean' ||
+// 		val === null ||
+// 		val === undefined ||
+// 		isObject(val) ||
+// 		Array.isArray(val)
+// 	);
+// }
+
+// export function cloneWithStoreReactivity<T extends SupportedObjects | Primitive>(
+// 	obj: T,
+// 	store?: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
+// 	touched_store?: Writable<BooleanFields<T & (Record<PropertyKey, unknown> | any[])>>,
+// 	dirty_store?: Writable<BooleanFields<T & (Record<PropertyKey, unknown> | any[])>>,
+// 	path?: string | Array<PropertyKey>,
+// ): T;
+// export function cloneWithStoreReactivity<T extends Record<PropertyKey, unknown> | any[]>(
+// 	obj: T,
+// 	store: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
+// 	touched_store: Writable<BooleanFields<T>>,
+// 	dirty_store: Writable<BooleanFields<T>>,
+// 	path?: string | Array<PropertyKey>,
+// ): T;
+// export function cloneWithStoreReactivity<T extends any[]>(
+// 	obj: T,
+// 	store: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
+// 	touched_store: Writable<BooleanFields<T>>,
+// 	dirty_store: Writable<BooleanFields<T>>,
+// 	path?: string | Array<PropertyKey>,
+// ): T;
 export function cloneWithStoreReactivity<T>(
-	obj: T extends Record<PropertyKey, unknown> ? T : T extends any[] ? never : T,
-	store?: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
-	touched_store?: Writable<BooleanFields<T & (Record<PropertyKey, unknown> | any[])>>,
-	dirty_store?: Writable<BooleanFields<T & (Record<PropertyKey, unknown> | any[])>>,
-	path?: string | Array<PropertyKey>,
-): T;
-export function cloneWithStoreReactivity<T extends Record<PropertyKey, unknown>>(
 	obj: T,
 	store: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
-	touched_store: Writable<BooleanFields<T>>,
-	dirty_store: Writable<BooleanFields<T>>,
-	path?: string | Array<PropertyKey>,
-): T;
-export function cloneWithStoreReactivity<T extends any[]>(
-	obj: T,
-	store: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
-	touched_store: Writable<BooleanFields<T>>,
-	dirty_store: Writable<BooleanFields<T>>,
-	path?: string | Array<PropertyKey>,
-): T;
-export function cloneWithStoreReactivity<T>(
-	obj: T,
-	store?: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
-	touched_store?: Writable<BooleanFields<T & (Record<PropertyKey, unknown> | any[])>>,
-	dirty_store?: Writable<BooleanFields<T & (Record<PropertyKey, unknown> | any[])>>,
+	touched_store: Writable<BooleanFields>,
+	dirty_store: Writable<BooleanFields>,
 	path?: string | Array<PropertyKey>,
 ): T {
 	if (!isObject(obj) && !Array.isArray(obj)) {

@@ -13,7 +13,7 @@ import {
 	ValidatorFields,
 } from '../../types/Form';
 
-export function createUseFieldArray<T extends object>(
+export function createUseFieldArray<T extends Record<PropertyKey, unknown>>(
 	values_store: Writable<T>,
 	touched_store: Writable<BooleanFields<T>>,
 	dirty_store: Writable<BooleanFields<T>>,
@@ -37,12 +37,12 @@ export function createUseFieldArray<T extends object>(
 				const path = `${name}.${index}`;
 				touched_store.update((x) => removePropertyI(path, x));
 				dirty_store.update((x) => removePropertyI(path, x));
-				values_store.update((x) => removePropertyI(path, x));
+				values_store.update((x) => removePropertyI(path, x, true));
 				validators_store.update((x) => removePropertyI(path, x));
 				errors_store.update((x) => removePropertyI(path, x));
 				checkFormForStateReset();
 			},
-			append: (val, { validate = false, validator } = {}) => {
+			append: async (val, { validate = false, validator } = {}) => {
 				touched_store.update((x) => appendI(name, false, x));
 				dirty_store.update((x) => appendI(name, false, x));
 				values_store.update((x) =>
@@ -65,9 +65,7 @@ export function createUseFieldArray<T extends object>(
 			prepend: (val, { validate = false, validator } = {}) => {
 				touched_store.update((x) => prependI(name, false, x));
 				dirty_store.update((x) => prependI(name, false, x));
-				values_store.update((x) =>
-					prependI(name, [{ [noValidate]: true, [noFormUpdate]: true }, val], x),
-				);
+				values_store.update((x) => prependI(name, val, x, true));
 				if (validator) validators_store.update((x) => prependI(name, validator, x));
 				else validators_store.update((x) => prependI(name, undefined, x));
 				if (validator && validate) runValidation(`${name}.0`);

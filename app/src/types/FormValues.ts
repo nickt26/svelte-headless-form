@@ -21,3 +21,5 @@ export type FormValues = {
 	rolesAreUnique: null;
 	files: FileList | null;
 };
+
+export type Obj = Record<PropertyKey, unknown>;

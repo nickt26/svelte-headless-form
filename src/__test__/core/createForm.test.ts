@@ -1,18 +1,305 @@
 import { render } from '@testing-library/svelte';
+// import { readFileSync } from 'fs';
 import { get } from 'svelte/store';
+import { Project } from 'ts-morph';
 import { describe, expect, it } from 'vitest';
+// import Parser from 'web-tree-sitter';
 import { assign } from '../../internal/util/assign';
+import { canParseToInt } from '../../internal/util/canParseToInt';
 import { clone } from '../../internal/util/clone';
+import { mergeRightI } from '../../internal/util/mergeRightDeep';
 import { setI } from '../../internal/util/set';
 import { ArrayDotPaths, DotPaths } from '../../types/Form';
 import Form from '../components/Form.svelte';
 import {
 	FormValues,
-	formValidators,
 	getComponentState,
+	initialFormValidators,
 	initialFormValues,
 	waitForAllFieldsToValidate,
 } from './createFormUtils';
+
+// const parser = new Parser();
+// const typescript = await Parser.Language.load('./tree-sitter-typescript.wasm');
+// parser.setLanguage(typescript);
+
+// const tree = parser.parse(readFileSync('./FormValues.ts', 'utf-8'));
+function getTypeOfProperty(
+	project: Project,
+	typeAliasName: string,
+	dotPath: string,
+	types: string[] = [],
+): string[] {
+	const sourceFile = project.getSourceFile('./src/__test__/core/FormValues.ts');
+	const typeAlias = sourceFile?.getTypeAlias(typeAliasName);
+	if (!typeAlias) return types;
+
+	const type = typeAlias.getType();
+	const pathParts = dotPath.split('.');
+
+	let currentType = type;
+	// console.log('currentType', currentType.getText());
+	let prevIsArray = false;
+	for (let i = 0; i < pathParts.length - 1; i++) {
+		const part = pathParts[i];
+		if (currentType.isUnion() && prevIsArray && canParseToInt(part)) continue;
+
+		if (currentType.isArray()) {
+			currentType = currentType.getArrayElementTypeOrThrow();
+			prevIsArray = true;
+		}
+
+		const property =
+			// currentType.isUnion()
+			// 	? // TODO: make this fn recursive to deal with unions
+			// currentType.getUnionTypes().map((x) => x.getText())
+			// :
+			currentType.getProperty(part);
+		if (!property) return types;
+
+		currentType = property.getTypeAtLocation(typeAlias);
+		console.log('currentType', currentType.getText());
+	}
+
+	const lastPart = pathParts[pathParts.length - 1];
+	if (currentType.isArray() && !currentType.getProperty(lastPart)) {
+		console.log('array');
+
+		// return currentType.getArrayElementType()?.getText();
+		types.push(currentType.getArrayElementTypeOrThrow().getText());
+		return types;
+	}
+
+	// return currentType.getProperty(lastPart)?.getTypeAtLocation(typeAlias)?.getText();
+	types.push(currentType.getProperty(lastPart)?.getTypeAtLocation(typeAlias)?.getText() ?? '');
+	return types;
+}
+
+describe('getTypeOfProperty', () => {
+	const proj = new Project({
+		tsConfigFilePath: './tsconfig.json',
+		skipFileDependencyResolution: true,
+		skipAddingFilesFromTsConfig: true,
+		skipLoadingLibFiles: false,
+	});
+	proj.addSourceFileAtPath('./src/__test__/core/FormValues.ts');
+
+	it('should get primitive', () => {
+		expect(getTypeOfProperty(proj, 'FormValues', 'name')).toEqual(['string']);
+	});
+
+	it('should get array', () => {
+		expect(getTypeOfProperty(proj, 'FormValues', 'roles')).toEqual(['string[]']);
+	});
+
+	it('should get type of object', () => {
+		expect(getTypeOfProperty(proj, 'FormValues', 'location.coords')).toEqual([
+			'{ lat: number; lng: number; }',
+		]);
+	});
+
+	it('should get type of array element', () => {
+		expect(getTypeOfProperty(proj, 'FormValues', 'roles.1')).toEqual(['string']);
+	});
+
+	it('should get type of tuple element', () => {
+		expect(getTypeOfProperty(proj, 'FormValues', 'titles.1')).toEqual(['"Dr"']);
+	});
+
+	it('should get type of union', () => {
+		expect(getTypeOfProperty(proj, 'FormValues', 'age')).toEqual(['number | Date']);
+	});
+
+	it('should log', () => {
+		console.log('found type:', getTypeOfProperty(proj, 'FormValues', 'location.parts.1.a'));
+
+		// const sourceFile = proj.getSourceFile('./src/__test__/core/FormValues.ts');
+		// const type = sourceFile?.getTypeAlias('FormValues');
+		// console.log(
+		// 	type?.forEachChild((x) => {
+		// 		if (x.isKind(SyntaxKind.TypeLiteral)) {
+		// 			console.log(x.getKindName());
+		// 			x.forEachChild((y) => {
+		// 				if (y.isKind(SyntaxKind.PropertySignature)) {
+		// 					// console.log(y.getKindName());
+		// 					console.log(`${y.getName()}: ${y.getType().getText()}`);
+
+		// 					// y.forEachChild((z) => {
+		// 					// 	if (z.isKind(SyntaxKind.Identifier)) {
+		// 					// 		console.log(z.getKindName());
+		// 					// 	}
+		// 					// });
+		// 				}
+		// 			});
+		// 		}
+		// 		// console.log(x.getKindName());
+		// 	}),
+		// );
+	});
+});
+
+// function getDotPaths<
+// 	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
+// >(obj: T, currPath: string = '', paths: string[] = []): string[] {
+// 	const keys = Object.keys(obj);
+// 	for (let i = 0; i < keys.length; i++) {
+// 		const key = keys[i];
+// 		const val = obj[key];
+// 		if (Array.isArray(val) || isObject(val)) {
+// 			getDotPaths(val, currPath ? `${currPath}.${key}` : key, paths);
+// 		} else {
+// 			paths.push(currPath ? `${currPath}.${key}` : key);
+// 		}
+// 	}
+// 	return paths;
+// }
+
+// type Z<T, U = T> = [T] extends [never] ? [] : T extends infer A ? [A, ...Z<Exclude<U, A>>] : never;
+
+// type ZA = Z<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>;
+
+// type B<T extends number> = { [K in T as Exclude<T, K>]: Extract<T, K> } & { length: 2 };
+// type IsArray<T> = T extends Array<any> ? true : false;
+// type I = IsArray<Array<number> & { a: 'b' }>;
+// type IK = (Array<number> & { a: 'b' })[keyof (Array<number> & { a: 'b' })];
+// type C<T> = [T, T, T, T] extends [infer A, infer B, infer C, infer D] ? B : never;
+// type C1 = C<1 | 2 | 3 | 4>;
+
+// type a = B<1 | 2>;
+
+// type UnionToTuple<T extends string | number, Tuple extends any[] = []> = [T] extends [never]
+// 	? Tuple
+// 	: {
+// 			[K in T]: UnionToTuple<Exclude<T, K>, [...Tuple, K]>;
+// 		}[T];
+// type UT = UnionToTuple<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>;
+
+// type ArrTest<T extends any[], Tuple extends string[] = []> = {
+// 	[K in keyof T]: [K, ...Tuple];
+// }[number];
+// type TT = ArrTest<[1, 2, 3]>;
+
+// type KeysToTuple<T extends Record<PropertyKey, unknown> | any[]> = T extends any[]
+// 	? {
+// 			[K in keyof T]: K;
+// 		}[number]
+// 	: T extends Record<PropertyKey, unknown>
+// 		? {
+// 				[K in keyof T]: K;
+// 			}[keyof T]
+// 		: never;
+// type KT = KeysToTuple<{ a: 1; b: 2; c: { d: 3 } }>;
+
+// const valueUpdatess = [
+
+// ] satisfies Array<{ key: DotPaths<FormValues>; value: any }>;
+
+// function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
+// 	form: FormType<T>,
+// 	count: number,
+// ) {
+// 	const formFns = [
+// 		'clean',
+// 		'handleBlur',
+// 		'handleFocus',
+// 		'makeDirty',
+// 		'resetField',
+// 		'resetForm',
+// 		'submitForm',
+// 		'unBlur',
+// 		'updateValue',
+// 		'useFieldArray',
+// 		'validate',
+// 	] as const satisfies Array<keyof FormType<T>>;
+// 	type FormFnOptions = {
+// 		[K in (typeof formFns)[number]]: () => Parameters<FormType<T>[K]>;
+// 	};
+// 	const formFnToOptions = {
+// 		clean: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+// 		},
+// 		handleBlur: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+// 		},
+// 		handleFocus: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+// 		},
+// 		makeDirty: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+// 		},
+// 		validate: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+// 		},
+// 		unBlur: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+// 		},
+// 		resetField: () => {
+// 			const dotPaths = getDotPaths(get(form.values));
+// 			const options = [
+// 				'keepDirty',
+// 				'keepError',
+// 				'keepTouched',
+// 				'validate',
+// 				'validator',
+// 				'value',
+// 			] as const satisfies Array<keyof ResetFieldOptions>;
+// 			const invalidOptionCombinations = [{ keepError: true, validate: true }];
+// 			const amountOfOptionsToChoose = Math.floor(Math.random() * options.length);
+// 			const opts = {};
+// 			const chooseOpt = (opt: keyof ResetFieldOptions) => {
+// 				opts[opt] = true;
+// 				if (invalidOptionCombinations.every((x) => Object.keys(x).every((y) => opts[y] === x[y]))) {
+// 					delete opts[opt];
+// 					chooseOpt(options[Math.floor(Math.random() * options.length)]);
+// 				}
+// 			};
+// 			for (let i = 0; i < amountOfOptionsToChoose; i++) {
+// 				chooseOpt(options[Math.floor(Math.random() * options.length)]);
+// 			}
+// 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>, opts];
+// 		},
+// 		resetForm: () => {
+// 			const options = [
+// 				'keepDirty',
+// 				'keepErrors',
+// 				'keepTouched',
+// 				'keepValidators',
+// 				'validators',
+// 				'values',
+// 			] as const satisfies Array<keyof ResetFormOptions>;
+// 			const count = Math.floor(Math.random() * options.length);
+// 			const opts: ResetFormOptions = {};
+// 			const paths = getDotPaths(get(form.values)) as DotPaths<T>[];
+// 			for (let i = 0; i < count; i++) {
+// 				const opt = options[Math.floor(Math.random() * options.length)];
+// 				if (opt === 'values') {
+// 					opts[opt] = ;
+// 				}
+// 			}
+// 		},
+// 	} as const satisfies FormFnOptions;
+// 	for (let i = 0; i < count; i++) {
+// 		const rand = Math.floor(Math.random() * formFns.length);
+// 		const fn = formFns[rand];
+// 		const fnOptions = formFnToOptions[fn]();
+// 		const formFn = form[fn];
+// 		interactions.push(formFn(...fnOptions));
+// 	}
+
+// 	return interactions;
+// }
+
+// it('should work with 1000 fuzzy interactions', () => {
+// 	const { component } = render(Form);
+// 	const { form } = getComponentState(component);
+// 	const fuzzy = createFuzzyInteractions(form, 1000);
+// });
 
 describe('createForm', async () => {
 	it('[Form creation] should have correct initial state', async () => {
@@ -23,7 +310,7 @@ describe('createForm', async () => {
 		expect(get(form.touched)).toEqual(assign(false, initialFormValues));
 		expect(get(form.errors)).toEqual({});
 		expect(get(form.dirty)).toEqual(assign(false, initialFormValues));
-		expect(get(form.validators)).toEqual(formValidators);
+		expect(get(form.validators)).toEqual(initialFormValidators);
 		expect(get(form.state)).toEqual({
 			isSubmitting: false,
 			isValidating: false,
@@ -85,8 +372,8 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(form.errors)).toEqual({ name: 'Required', email: false, roles: [false] });
-		expect(get(form.dirty)).toEqual({ name: true, email: true, roles: [false] });
+		expect(get(form.errors)).toEqual({ name: 'Required', email: false });
+		expect(get(form.dirty)).toEqual({ ...form.initialDirty, name: true, email: true });
 	});
 
 	it('[Form value-change] should have error for email', async () => {
@@ -109,8 +396,12 @@ describe('createForm', async () => {
 
 		await wait;
 
-		expect(get(form.errors)).toEqual({ name: false, email: 'Required', roles: [false] });
-		expect(get(form.dirty)).toEqual({ name: true, email: true, roles: [false] });
+		const values = get(form.values);
+		expect(get(form.errors)).toEqual({
+			name: form.initialValidators?.name?.(values.name, { path: 'name', values }) ?? false,
+			email: 'Required',
+		});
+		expect(get(form.dirty)).toEqual({ ...form.initialDirty, name: true, email: true });
 	});
 
 	it('[Form value-change] should have error for name & email', async () => {
@@ -154,10 +445,19 @@ describe('createForm', async () => {
 						...form.initialValues,
 						roles: [...initialFormValues.roles, 'admin'],
 					});
-					expect(get(form.touched)).toEqual({ ...form.initialTouched, roles: [false, false] });
+					expect(get(form.touched)).toEqual({
+						...form.initialTouched,
+						roles: [...form.initialTouched.roles, false],
+					});
 					expect(get(form.errors)).toEqual(form.initialErrors);
-					expect(get(form.dirty)).toEqual({ ...form.initialDirty, roles: [false, false] });
-					expect(get(form.validators)).toEqual(form.initialValidators);
+					expect(get(form.dirty)).toEqual({
+						...form.initialDirty,
+						roles: [...form.initialDirty.roles, false],
+					});
+					expect(get(form.validators)).toEqual({
+						...form.initialValidators,
+						roles: get(form.values).roles.map(() => undefined),
+					});
 				});
 
 				it('should append with { validator }', async () => {
@@ -212,15 +512,31 @@ describe('createForm', async () => {
 						...form.initialValues,
 						roles: [...initialFormValues.roles, 'admin'],
 					});
-					expect(get(form.touched)).toEqual({ ...form.initialTouched, roles: [false, false] });
+					expect(get(form.touched)).toEqual({
+						...form.initialTouched,
+						roles: [false, ...form.initialTouched.roles],
+					});
 					expect(get(form.errors)).toEqual({
 						...form.initialErrors,
-						roles: [, newValidator()],
+						roles: [
+							...mergeRightI(
+								form.initialValues.roles.map(() => undefined),
+								form.initialErrors.roles,
+							),
+							newValidator(),
+						],
 					});
 					expect(get(form.dirty)).toEqual({ ...form.initialDirty, roles: [false, false] });
 					expect(get(form.validators)).toEqual({
 						...form.initialValidators,
-						roles: [undefined, newValidator],
+						roles: [
+							...(form.initialValidators.roles === undefined
+								? form.initialValues.roles.map(() => undefined)
+								: Array.isArray(form.initialValidators.roles)
+									? form.initialValidators.roles
+									: []),
+							newValidator,
+						],
 					});
 				});
 			});
@@ -264,7 +580,7 @@ describe('createForm', async () => {
 
 		const { useFieldArray } = form;
 
-		// @ts-ignore
+		// @ts-expect-error Testing for incorrect parameter
 		expect(() => useFieldArray(1)).toThrowError('name must be a string');
 	});
 
@@ -364,13 +680,14 @@ describe('createForm', async () => {
 		const { values, touched, errors, dirty, validators, useFieldArray } = form;
 
 		const rolesHelpers = useFieldArray('roles');
+		rolesHelpers.prepend('admin');
 		rolesHelpers.remove(0);
 
-		expect(get(values).roles).toEqual([]);
-		expect(get(touched).roles).toEqual([]);
-		expect(get(errors).roles).toEqual([]);
-		expect(get(dirty).roles).toEqual([]);
-		expect(get(validators).roles).toEqual([]);
+		expect(get(values)).toEqual(form.initialValues);
+		expect(get(touched)).toEqual(form.initialTouched);
+		expect(get(errors)).toEqual(form.initialErrors);
+		expect(get(dirty)).toEqual(form.initialDirty);
+		expect(get(validators)).toEqual(form.initialValidators);
 	});
 
 	it('[Form useFieldArray] remove should throw error on incorrect indices', async () => {
