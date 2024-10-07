@@ -2,6 +2,7 @@ import { Writable } from 'svelte/store';
 import { ArrayDotPaths, FormControl, FormUseFieldArray } from '../../types/Form';
 
 export type UseFieldArrayOptions<T extends Record<PropertyKey, unknown>> = {
+	// eslint-disable-next-line @typescript-eslint/ban-types
 	name: ArrayDotPaths<T> | ({} & string);
 	control: FormControl<T>;
 };

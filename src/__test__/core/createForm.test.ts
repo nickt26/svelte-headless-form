@@ -4,12 +4,22 @@ import { get } from 'svelte/store';
 import { Project, SyntaxKind, ts, Type, TypeAliasDeclaration } from 'ts-morph';
 import { describe, expect, it } from 'vitest';
 // import Parser from 'web-tree-sitter';
+import { faker } from '@faker-js/faker';
 import { assign } from '../../internal/util/assign';
 import { canParseToInt } from '../../internal/util/canParseToInt';
 import { clone } from '../../internal/util/clone';
+import { isObject } from '../../internal/util/isObject';
 import { mergeRightI } from '../../internal/util/mergeRightDeep';
 import { setI } from '../../internal/util/set';
-import type { ArrayDotPaths, DotPaths, ValueOf, Form as FormType, ResetFieldOptions, ResetFormOptions, SupportedValues } from '../../types/Form';
+import type {
+	ArrayDotPaths,
+	DotPaths,
+	Form as FormType,
+	ResetFieldOptions,
+	ResetFormOptions,
+	SupportedValues,
+	ValueOf,
+} from '../../types/Form';
 import Form from '../components/Form.svelte';
 import {
 	FormValues,
@@ -19,9 +29,6 @@ import {
 	waitForAllFieldsToValidate,
 } from './createFormUtils';
 import type { FormValues as TestFV } from './FormValues';
-import { isObject } from '../../internal/util/isObject';
-import moment from 'moment';
-import {faker} from '@faker-js/faker';
 
 // const parser = new Parser();
 // const typescript = await Parser.Language.load('./tree-sitter-typescript.wasm');
@@ -77,38 +84,42 @@ function getTypeOfProperty(
 	return types;
 }
 
-type Primitive = string | number | boolean | symbol | bigint | null | undefined;
-
 const primitiveValueMapping = {
 	string: Math.random() > 0.5 ? faker.lorem.word() : '',
 	number: Math.random() > 0.5 ? faker.number.int() : 0,
+	bigint: Math.random() > 0.5 ? faker.number.bigInt() : BigInt(0),
 	boolean: Math.random() > 0.5,
 	Date: faker.date.anytime(),
+	File: new File([], 'test'),
 	null: null,
 	undefined: undefined,
 } satisfies Record<string, SupportedValues>;
 
-function genValue (type: Type<ts.Type>, typeAlias: TypeAliasDeclaration): SupportedValues {
-	if (type.isObject()) {
-		return type.getProperties().reduce((acc, val) => {
-			return Object.defineProperty(acc, val.getName(), {
-				value: genValue(val.getTypeAtLocation(typeAlias), typeAlias),
-			});
-		}, {} as Record<PropertyKey, SupportedValues>);
+function genValue(type: Type<ts.Type>, typeAlias: TypeAliasDeclaration): SupportedValues {
+	if (type.isObject() && type.getText() !== 'Date' && type.getText() !== 'File') {
+		return type.getProperties().reduce(
+			(acc, val) =>
+				Object.defineProperty(acc, val.getName(), {
+					value: genValue(val.getTypeAtLocation(typeAlias), typeAlias),
+				}),
+			{} as Record<PropertyKey, SupportedValues>,
+		);
 	} else if (type.isArray()) {
 		const elementType = type.getArrayElementTypeOrThrow();
-		return [genValue(elementType, typeAlias)];
+		const length = Math.floor(Math.random() * 10);
+		return Array.from({ length }, () => genValue(elementType, typeAlias));
+	} else if (type.isUnion()) {
+		const vals = type.getUnionTypes().map((x) => genValue(x, typeAlias));
+		return vals[Math.floor(Math.random() * vals.length)];
 	} else {
 		return primitiveValueMapping[type.getText()];
 	}
 }
 
-const kindToValue = {
-	['object']: (t: Type<ts.ObjectType>) => {
-		return t.getProperties().map
-	}
-};
-function getValues(types: Type<ts.Type>[], typeAlias: TypeAliasDeclaration): SupportedValues[] {
+function generateValues(
+	types: Type<ts.Type>[],
+	typeAlias: TypeAliasDeclaration,
+): SupportedValues[] {
 	return types.map((x) => genValue(x, typeAlias));
 }
 
@@ -123,15 +134,11 @@ describe('getTypeOfProperty', () => {
 	const typeAlias = sourceFile.getTypeAlias('FormValues')!;
 
 	it('should get primitive', () => {
-		expect(getTypeOfProperty(typeAlias, 'name').map((x) => x.getText())).toEqual([
-			'string',
-		]);
+		expect(getTypeOfProperty(typeAlias, 'name').map((x) => x.getText())).toEqual(['string']);
 	});
 
 	it('should get array', () => {
-		expect(getTypeOfProperty(typeAlias, 'roles').map((x) => x.getText())).toEqual([
-			'string[]',
-		]);
+		expect(getTypeOfProperty(typeAlias, 'roles').map((x) => x.getText())).toEqual(['string[]']);
 	});
 
 	it('should get type of object', () => {
@@ -179,7 +186,9 @@ describe('getTypeOfProperty', () => {
 
 		// const sourceFile = proj.getSourceFile('./src/__test__/core/FormValues.ts');
 		// const type = sourceFile?.getTypeAlias('FormValues');
-		const properties = sourceFile?.getTypeAlias('FormValues')?.getChildrenOfKind(SyntaxKind.PropertySignature)
+		const properties = sourceFile
+			?.getTypeAlias('FormValues')
+			?.getChildrenOfKind(SyntaxKind.PropertySignature);
 		// const parts = 'roles.1'.split('.');
 		// for (let i = 0; i < parts.length; i++) {
 		// 	const part = parts[i];
@@ -289,7 +298,9 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 		'validate',
 	] as const satisfies Array<keyof FormType<T>>;
 	type FormFnOptions = {
-		[K in (typeof formFns)[number]]: () => Parameters<FormType<T>[K]>;
+		[K in (typeof formFns)[number]]: (
+			typeAlias: TypeAliasDeclaration,
+		) => Parameters<FormType<T>[K]>;
 	};
 	const formFnToOptions = {
 		clean: () => {
@@ -341,7 +352,7 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 			}
 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>, opts];
 		},
-		resetForm: () => {
+		resetForm: (typeAlias) => {
 			const options = [
 				'keepDirty',
 				'keepErrors',
@@ -356,8 +367,14 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 			for (let i = 0; i < count; i++) {
 				const opt = options[Math.floor(Math.random() * options.length)];
 				if (opt === 'values') {
-					const values = generateValues()
-					opts[opt] = ;
+					const values = {} as Record<PropertyKey, unknown>;
+					// TODO: Get random number of paths and generate a value for each path
+					for (const val of generateValues(getTypeOfProperty(typeAlias, path), typeAlias)) {
+						if (Math.random() > 0.5) {
+							setI();
+						}
+					}
+					opts[opt] = values[Math.floor(Math.random() * values.length)];
 				}
 			}
 		},

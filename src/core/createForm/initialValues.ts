@@ -11,7 +11,7 @@ import {
 	type ValidatorFields,
 } from '../../types/Form';
 
-type InitialFormValues<T extends object> = {
+type InitialFormValues<T extends Record<PropertyKey, unknown>> = {
 	initialTouched: BooleanFields<T>;
 	initialDirty: BooleanFields<T>;
 	initialErrors: ErrorFields<T>;
@@ -21,7 +21,7 @@ type InitialFormValues<T extends object> = {
 	validationResolver?: ValidationResolver<T>;
 };
 
-export function createInitialValues<T extends object>(
+export function createInitialValues<T extends Record<PropertyKey, unknown>>(
 	formInitialValues: T,
 	isSchemaless: boolean,
 	isSchema: boolean,

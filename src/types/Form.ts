@@ -41,27 +41,27 @@ export type ValueOf<T, Key extends string> = T extends object
 		: T[Key & keyof T]
 	: never;
 
-type O = {
-	firstName: string;
-	lastName: string;
-	age: number;
-	address: {
-		street: string;
-		city: string;
-	};
-	roles: number | string[];
-};
+// type O = {
+// 	firstName: string;
+// 	lastName: string;
+// 	age: number;
+// 	address: {
+// 		street: string;
+// 		city: string;
+// 	};
+// 	roles: number | string[];
+// };
 
-export type ArrayValueOf<T, Key extends string> =
-	Equals<T, object> extends true
-		? unknown
-		: T extends object
-			? Key extends `${infer Parent}.${infer Leaf}`
-				? ValueOf<T[Parent & keyof T], Leaf>
-				: T[Key & keyof T] extends any[]
-					? T[Key & keyof T][number]
-					: never
-			: never;
+// export type ArrayValueOf<T, Key extends string> =
+// 	Equals<T, object> extends true
+// 		? unknown
+// 		: T extends object
+// 			? Key extends `${infer Parent}.${infer Leaf}`
+// 				? ValueOf<T[Parent & keyof T], Leaf>
+// 				: T[Key & keyof T] extends any[]
+// 					? T[Key & keyof T][number]
+// 					: never
+// 			: never;
 
 const dotPathSymbol = Symbol('dotPath');
 const remainSymbol = Symbol('remain');
@@ -376,11 +376,11 @@ type CreateArrayStarPaths4<
 				}
 			: never;
 
-type T1 = CreateArrayStarPaths4<{ a: string; b: { value: string }[] }>;
-type T2 = ArrayDotPaths<{
-	a: string;
-	b: ({ value: string; metadata: string[] } | string)[] | { a: number; b: boolean };
-}>;
+// type T1 = CreateArrayStarPaths4<{ a: string; b: { value: string }[] }>;
+// type T2 = ArrayDotPaths<{
+// 	a: string;
+// 	b: ({ value: string; metadata: string[] } | string)[] | { a: number; b: boolean };
+// }>;
 
 export const allKey = 'allFields';
 export const All = Symbol(allKey);
@@ -388,8 +388,11 @@ export const All = Symbol(allKey);
 export type BooleanFields<
 	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
 > = ObjectDeep<T, boolean>;
-export type ErrorFields<T extends object = object> = PartialDeep<ObjectDeep<T, string | false>>;
-export type PartialErrorFields<T extends object> = PartialDeep<ObjectDeep<T, string | false>>;
+export type ErrorFields<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>> =
+	PartialDeep<ObjectDeep<T, string | false>>;
+export type PartialErrorFields<T extends Record<PropertyKey, unknown>> = PartialDeep<
+	ObjectDeep<T, string | false>
+>;
 export type ValidatorFields<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>> =
 	Validators<T, T>;
 export type PartialValidatorFields<T extends Record<PropertyKey, unknown>> = PartialValidators<
@@ -420,20 +423,20 @@ export type FormOptionsSchemaless<T extends Record<PropertyKey, unknown>> = {
 	validationResolver?: undefined;
 };
 
-export type FormOptionsSchema<T extends object> = {
+export type FormOptionsSchema<T extends Record<PropertyKey, unknown>> = {
 	validationResolver?: ValidationResolver<T>;
 	initialValidators?: undefined;
 };
 export type FormOptions<T extends Record<PropertyKey, unknown>> = GlobalFormOptions<T> &
 	(FormOptionsSchemaless<T> | FormOptionsSchema<T>);
-export type SyncValidationResolver<T extends object> = (
+export type SyncValidationResolver<T extends Record<PropertyKey, unknown>> = (
 	values: ReadonlyDeep<T>,
 ) => PartialErrorFields<T>;
-export type AsyncValidationResolver<T extends object> = (
+export type AsyncValidationResolver<T extends Record<PropertyKey, unknown>> = (
 	values: ReadonlyDeep<T>,
 ) => Promise<PartialErrorFields<T>>;
 // export type ValidationResolver<T extends object> = SyncValidationResolver<T> | AsyncValidationResolver<T>;
-export type ValidationResolver<T extends object> = (
+export type ValidationResolver<T extends Record<PropertyKey, unknown>> = (
 	values: T,
 ) => PartialErrorFields<T> | Promise<PartialErrorFields<T>>;
 
@@ -493,9 +496,11 @@ export type HandlerFn<T extends object = object> = <
 
 export type SubmitFn<T extends object> = (values: T) => void | Promise<void>;
 
-export type ErrorFn<T extends object> = (errors: ErrorFields<T>) => void | Promise<void>;
+export type ErrorFn<T extends Record<PropertyKey, unknown>> = (
+	errors: ErrorFields<T>,
+) => void | Promise<void>;
 
-export type SubmitFormFn<T extends object> = (
+export type SubmitFormFn<T extends Record<PropertyKey, unknown>> = (
 	submitFn: SubmitFn<T>,
 	errorFn?: ErrorFn<T>,
 ) => (e: Event) => Promise<void>;
@@ -554,12 +559,16 @@ export type LatestFieldEvent = {
 	event: FieldEventHook;
 };
 
-export type ValidateFn<T extends object> = <TPath extends DotPaths<T>>(name: TPath) => void;
+export type ValidateFn<T extends Record<PropertyKey, unknown>> = <TPath extends DotPaths<T>>(
+	name: TPath,
+) => void;
 
 type Primitive = string | number | boolean | symbol | bigint | null | undefined;
 
 export type SupportedValues =
 	| Exclude<Primitive, symbol>
+	| Date
+	| File
 	| Array<SupportedValues>
 	| { [K in PropertyKey]: SupportedValues };
 
