@@ -18,6 +18,7 @@ import type {
 	ResetFieldOptions,
 	ResetFormOptions,
 	SupportedValues,
+	ValidatorFn,
 	ValueOf,
 } from '../../types/Form';
 import Form from '../components/Form.svelte';
@@ -85,9 +86,9 @@ function getTypeOfProperty(
 }
 
 const primitiveValueMapping = {
-	string: Math.random() > 0.5 ? faker.lorem.word() : '',
-	number: Math.random() > 0.5 ? faker.number.int() : 0,
-	bigint: Math.random() > 0.5 ? faker.number.bigInt() : BigInt(0),
+	string: Math.random() > 0.5 ? faker.string.alphanumeric({ length: { min: 0, max: 10 } }) : '',
+	number: faker.number.int(),
+	bigint: faker.number.bigInt(),
 	boolean: Math.random() > 0.5,
 	Date: faker.date.anytime(),
 	File: new File([], 'test'),
@@ -121,6 +122,47 @@ function generateValues(
 	typeAlias: TypeAliasDeclaration,
 ): SupportedValues[] {
 	return types.map((x) => genValue(x, typeAlias));
+}
+
+type GeneratedValidator = ValidatorFn | Record<PropertyKey, ValidatorFn> | ValidatorFn[];
+// TODO: Finish up this mapping
+const primitiveValidatorMapping = {
+	string: (value) => (typeof value === 'string' && value.length === 0 && 'Required'),
+	number: faker.number.int(),
+	bigint: faker.number.bigInt(),
+	boolean: Math.random() > 0.5,
+	Date: faker.date.anytime(),
+	File: new File([], 'test'),
+	null: () => Math.random() > 0.5 && 'Required',
+	undefined: () => Math.random() > 0.5 && 'Required',
+} satisfies Record<string, ValidatorFn>;
+
+function genValidator(type: Type<ts.Type>, typeAlias: TypeAliasDeclaration): GeneratedValidator {
+	if (type.isObject() && type.getText() !== 'Date' && type.getText() !== 'File') {
+		return (value, { path, values }) =>
+			type.getProperties().reduce(
+				(acc, val) =>
+					Object.defineProperty(acc, val.getName(), {
+						value: genValidator(val.getTypeAtLocation(typeAlias), typeAlias),
+					}),
+				{} as Record<PropertyKey, GeneratedValidator>,
+			);
+	} else if (type.isArray()) {
+		const elementType = type.getArrayElementTypeOrThrow();
+		return new Array({length: 10}, () => genValidator(elementType, typeAlias))
+	} else if (type.isUnion()) {
+		const vals = type.getUnionTypes().map((x) => genValidator(x, typeAlias));
+		return vals[Math.floor(Math.random() * vals.length)];
+	} else {
+		return ()
+	}
+}
+
+function generateValidators(
+	types: Type<ts.Type>[],
+	typeAlias: TypeAliasDeclaration,
+): ValidatorFn[] {
+	return types.map(x => )
 }
 
 describe('getTypeOfProperty', () => {
@@ -338,7 +380,7 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 				'value',
 			] as const satisfies Array<keyof ResetFieldOptions>;
 			const invalidOptionCombinations = [{ keepError: true, validate: true }];
-			const amountOfOptionsToChoose = Math.floor(Math.random() * options.length);
+			const rCount = Math.floor(Math.random() * options.length);
 			const opts = {};
 			const chooseOpt = (opt: keyof ResetFieldOptions) => {
 				opts[opt] = true;
@@ -347,7 +389,7 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 					chooseOpt(options[Math.floor(Math.random() * options.length)]);
 				}
 			};
-			for (let i = 0; i < amountOfOptionsToChoose; i++) {
+			for (let i = 0; i < rCount; i++) {
 				chooseOpt(options[Math.floor(Math.random() * options.length)]);
 			}
 			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>, opts];
@@ -361,22 +403,34 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 				'validators',
 				'values',
 			] as const satisfies Array<keyof ResetFormOptions>;
-			const count = Math.floor(Math.random() * options.length);
+			const rCount = Math.floor(Math.random() * options.length);
 			const opts: ResetFormOptions = {};
 			const paths = getDotPaths(get(form.values)) as DotPaths<T>[];
-			for (let i = 0; i < count; i++) {
+			for (let i = 0; i < rCount; i++) {
 				const opt = options[Math.floor(Math.random() * options.length)];
 				if (opt === 'values') {
-					const values = {} as Record<PropertyKey, unknown>;
-					// TODO: Get random number of paths and generate a value for each path
-					for (const val of generateValues(getTypeOfProperty(typeAlias, path), typeAlias)) {
-						if (Math.random() > 0.5) {
-							setI();
-						}
-					}
-					opts[opt] = values[Math.floor(Math.random() * values.length)];
+					opts[opt] = paths
+						.filter(() => Math.random() > 0.5)
+						.map((x) => {
+							const vals = generateValues(getTypeOfProperty(typeAlias, x), typeAlias);
+							return [x, vals[Math.floor(Math.random() * vals.length)]] as const;
+						})
+						.reduce(
+							(acc, [path, value]) => setI(path, value, acc),
+							{} as Record<PropertyKey, SupportedValues>,
+						);
+					continue;
 				}
+
+				if (opt === 'validators') {
+					// TODO: Generate random validators obj
+					continue;
+				}
+
+				opts[opt] = Math.random() > 0.5;
 			}
+
+			return opts;
 		},
 	} as const satisfies FormFnOptions;
 	for (let i = 0; i < count; i++) {
