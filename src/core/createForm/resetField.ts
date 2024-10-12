@@ -10,26 +10,27 @@ import {
 	BooleanFields,
 	ErrorFields,
 	LatestFieldEvent,
+	PartialValidatorFields,
 	ResetFieldFn,
 	ValidatorFields,
 } from '../../types/Form';
 
-export const createResetField = <TValues extends Record<PropertyKey, unknown>>(
-	initialValues: TValues,
-	initialTouched: BooleanFields<TValues>,
-	initialDirty: BooleanFields<TValues>,
-	initialErrors: ErrorFields<TValues>,
-	initialValidators: ValidatorFields<TValues>,
+export const createResetField = <T extends Record<PropertyKey, unknown>>(
+	initialValues: T,
+	initialTouched: BooleanFields<T>,
+	initialDirty: BooleanFields<T>,
+	initialErrors: ErrorFields<T>,
+	initialValidators: ValidatorFields<T>,
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
-	internalState: [InternalFormState<TValues>],
-	values_store: Writable<TValues>,
-	touched_store: Writable<BooleanFields<TValues>>,
-	dirty_store: Writable<BooleanFields<TValues>>,
-	errors_store: Writable<ErrorFields<TValues>>,
-	validators_store: Writable<ValidatorFields<TValues>>,
+	internalState: [InternalFormState<T>],
+	values_store: Writable<T>,
+	touched_store: Writable<BooleanFields<T>>,
+	dirty_store: Writable<BooleanFields<T>>,
+	errors_store: Writable<ErrorFields<T>>,
+	validators_store: Writable<PartialValidatorFields<T>>,
 	checkFormForStateReset: () => void,
 	validate: (name: string | Array<PropertyKey>) => Promise<void>,
-): ResetFieldFn<object> => {
+): ResetFieldFn<T> => {
 	return async (name, options): Promise<void> => {
 		if (typeof name !== 'string')
 			throw new Error('resetField: The `name` argument must be a string');

@@ -2,12 +2,15 @@ import { render } from '@testing-library/svelte';
 // import { readFileSync } from 'fs';
 import { get } from 'svelte/store';
 import { Project, SyntaxKind, ts, Type, TypeAliasDeclaration } from 'ts-morph';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 // import Parser from 'web-tree-sitter';
 import { faker } from '@faker-js/faker';
+import * as applyValidator from '../../../src/internal/util/applyValidators';
 import { assign } from '../../internal/util/assign';
 import { canParseToInt } from '../../internal/util/canParseToInt';
 import { clone } from '../../internal/util/clone';
+import { getInternal } from '../../internal/util/get';
+import { getValidators } from '../../internal/util/getValidators';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightI } from '../../internal/util/mergeRightDeep';
 import { setI } from '../../internal/util/set';
@@ -15,9 +18,13 @@ import type {
 	ArrayDotPaths,
 	DotPaths,
 	Form as FormType,
+	PartialDeep,
+	PartialValidatorFields,
 	ResetFieldOptions,
 	ResetFormOptions,
+	SubmitFormFn,
 	SupportedValues,
+	UpdateValueFn,
 	ValidatorFn,
 	ValueOf,
 } from '../../types/Form';
@@ -38,13 +45,13 @@ import type { FormValues as TestFV } from './FormValues';
 // const tree = parser.parse(readFileSync('./FormValues.ts', 'utf-8'));
 function getTypeOfProperty(
 	typeAlias: TypeAliasDeclaration,
-	dotPath: string,
+	path: string,
 	types: Type<ts.Type>[] = [],
 ): typeof types {
 	if (!typeAlias) return types;
 
 	const type = typeAlias.getType();
-	const pathParts = dotPath.split('.');
+	const pathParts = path.split('.');
 
 	let currentType = type;
 	// console.log('currentType', currentType.getText());
@@ -109,9 +116,13 @@ function genValue(type: Type<ts.Type>, typeAlias: TypeAliasDeclaration): Support
 		const elementType = type.getArrayElementTypeOrThrow();
 		const length = Math.floor(Math.random() * 10);
 		return Array.from({ length }, () => genValue(elementType, typeAlias));
+	} else if (type.isTuple()) {
+		return type.getTupleElements().map((x) => genValue(x, typeAlias));
 	} else if (type.isUnion()) {
 		const vals = type.getUnionTypes().map((x) => genValue(x, typeAlias));
 		return vals[Math.floor(Math.random() * vals.length)];
+	} else if (type.isLiteral()) {
+		return genValue(type.getBaseTypeOfLiteralType(), typeAlias);
 	} else {
 		return primitiveValueMapping[type.getText()];
 	}
@@ -124,46 +135,74 @@ function generateValues(
 	return types.map((x) => genValue(x, typeAlias));
 }
 
-type GeneratedValidator = ValidatorFn | Record<PropertyKey, ValidatorFn> | ValidatorFn[];
-// TODO: Finish up this mapping
+type GeneratedValidator =
+	| ValidatorFn
+	| { [K in PropertyKey]: GeneratedValidator }
+	| GeneratedValidator[];
+// TODO: Think about randomizing the validator functions
 const primitiveValidatorMapping = {
-	string: (value) => (typeof value === 'string' && value.length === 0 && 'Required'),
-	number: faker.number.int(),
-	bigint: faker.number.bigInt(),
-	boolean: Math.random() > 0.5,
-	Date: faker.date.anytime(),
-	File: new File([], 'test'),
-	null: () => Math.random() > 0.5 && 'Required',
-	undefined: () => Math.random() > 0.5 && 'Required',
+	string: (v) => (!v && 'Required') || (typeof v !== 'string' && 'Required'),
+	number: (v) => (!v && 'Required') || (typeof v !== 'number' && 'Required'),
+	bigint: (v) => (!v && 'Required') || (typeof v !== 'bigint' && 'Required'),
+	boolean: (v) => (!v && 'Required') || (typeof v !== 'boolean' && 'Required'),
+	Date: (v) => (!v && 'Required') || (!(v instanceof Date) && 'Required'),
+	File: (v) => (!v && 'Required') || (!(v instanceof File) && 'Required'),
+	null: () => 'Required',
+	undefined: () => 'Required',
 } satisfies Record<string, ValidatorFn>;
 
 function genValidator(type: Type<ts.Type>, typeAlias: TypeAliasDeclaration): GeneratedValidator {
 	if (type.isObject() && type.getText() !== 'Date' && type.getText() !== 'File') {
-		return (value, { path, values }) =>
-			type.getProperties().reduce(
-				(acc, val) =>
-					Object.defineProperty(acc, val.getName(), {
-						value: genValidator(val.getTypeAtLocation(typeAlias), typeAlias),
-					}),
-				{} as Record<PropertyKey, GeneratedValidator>,
-			);
+		return type.getProperties().reduce(
+			(acc, val) =>
+				Object.defineProperty(acc, val.getName(), {
+					value: genValidator(val.getTypeAtLocation(typeAlias), typeAlias),
+				}),
+			{} as Record<PropertyKey, GeneratedValidator>,
+		);
 	} else if (type.isArray()) {
 		const elementType = type.getArrayElementTypeOrThrow();
-		return new Array({length: 10}, () => genValidator(elementType, typeAlias))
+		return Array.from({ length: Math.floor(Math.random() * 10) }, () =>
+			genValidator(elementType, typeAlias),
+		);
+	} else if (type.isTuple()) {
+		return type.getTupleElements().map((x) => genValidator(x, typeAlias));
 	} else if (type.isUnion()) {
 		const vals = type.getUnionTypes().map((x) => genValidator(x, typeAlias));
 		return vals[Math.floor(Math.random() * vals.length)];
+	} else if (type.isLiteral()) {
+		return genValidator(type.getBaseTypeOfLiteralType(), typeAlias);
 	} else {
-		return ()
+		return primitiveValidatorMapping[type.getText()];
 	}
 }
 
 function generateValidators(
 	types: Type<ts.Type>[],
 	typeAlias: TypeAliasDeclaration,
-): ValidatorFn[] {
-	return types.map(x => )
+): GeneratedValidator[] {
+	return types.map((x) => genValidator(x, typeAlias));
 }
+
+it('should check if spy was called', () => {
+	const s = {
+		a: (a: number) => {
+			console.log(a);
+			return a + 2;
+		},
+		b: () => s.a(2),
+	};
+
+	const spy = vi.spyOn(applyValidator, 'applyValidatorI');
+
+	s.a(4);
+	s.b();
+
+	expect(spy).not.toHaveBeenCalled();
+	// expect(spy).toHaveBeenCalledWith(2);
+	// expect(spy).toHaveBeenCalledWith(4);
+	// expect(spy).toHaveBeenCalledTimes(2);
+});
 
 describe('getTypeOfProperty', () => {
 	const proj = new Project({
@@ -266,6 +305,15 @@ describe('getTypeOfProperty', () => {
 	});
 });
 
+// function getDotPaths<
+// 	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
+// >(obj: T, currPath: string, paths: string[]): DotPaths<T>[];
+// function getDotPaths(
+// 	obj: Record<PropertyKey, unknown> | any[],
+// 	currPath: string,
+// 	paths: string[],
+// ): string[];
+
 function getDotPaths<
 	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
 >(obj: T, currPath: string = '', paths: string[] = []): string[] {
@@ -322,9 +370,18 @@ function getDotPaths<
 
 // ] satisfies Array<{ key: DotPaths<FormValues>; value: any }>;
 
-function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
+type KeyOfFn<T extends Record<PropertyKey, unknown>> = {
+	[K in keyof T]: T[K] extends (...args: any[]) => any ? K : never;
+}[keyof T];
+
+type KeyOfVal<T extends Record<PropertyKey, unknown>> = {
+	[K in keyof T]: T[K] extends (...args: any[]) => any ? never : K;
+}[keyof T];
+
+async function runRandomizedInteractions<T extends Record<PropertyKey, unknown>>(
 	form: FormType<T>,
 	count: number,
+	typeAlias: TypeAliasDeclaration,
 ) {
 	const formFns = [
 		'clean',
@@ -338,116 +395,365 @@ function createFuzzyInteractions<T extends Record<PropertyKey, unknown>>(
 		'updateValue',
 		'useFieldArray',
 		'validate',
-	] as const satisfies Array<keyof FormType<T>>;
+	] as const satisfies Array<KeyOfFn<FormType<T>>>;
 	type FormFnOptions = {
 		[K in (typeof formFns)[number]]: (
 			typeAlias: TypeAliasDeclaration,
-		) => Parameters<FormType<T>[K]>;
+		) => [(typeof form)[K], Parameters<FormType<T>[K]>];
 	};
-	const formFnToOptions = {
+	const formFnMapping = {
 		clean: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+			const dotPaths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			return [form.clean, [dotPaths[Math.floor(Math.random() * dotPaths.length)]]];
 		},
 		handleBlur: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+			const dotPaths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			return [form.handleBlur, [dotPaths[Math.floor(Math.random() * dotPaths.length)]]];
 		},
 		handleFocus: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+			const dotPaths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			return [form.handleFocus, [dotPaths[Math.floor(Math.random() * dotPaths.length)]]];
 		},
 		makeDirty: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+			const dotPaths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			return [form.makeDirty, [dotPaths[Math.floor(Math.random() * dotPaths.length)]]];
 		},
 		validate: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+			const dotPaths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			return [form.validate, [dotPaths[Math.floor(Math.random() * dotPaths.length)]]];
 		},
 		unBlur: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>];
+			const dotPaths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			return [form.unBlur, [dotPaths[Math.floor(Math.random() * dotPaths.length)]]];
 		},
 		resetField: () => {
-			const dotPaths = getDotPaths(get(form.values));
-			const options = [
-				'keepDirty',
-				'keepError',
-				'keepTouched',
-				'validate',
-				'validator',
-				'value',
-			] as const satisfies Array<keyof ResetFieldOptions>;
-			const invalidOptionCombinations = [{ keepError: true, validate: true }];
-			const rCount = Math.floor(Math.random() * options.length);
-			const opts = {};
-			const chooseOpt = (opt: keyof ResetFieldOptions) => {
-				opts[opt] = true;
-				if (invalidOptionCombinations.every((x) => Object.keys(x).every((y) => opts[y] === x[y]))) {
-					delete opts[opt];
-					chooseOpt(options[Math.floor(Math.random() * options.length)]);
-				}
-			};
-			for (let i = 0; i < rCount; i++) {
-				chooseOpt(options[Math.floor(Math.random() * options.length)]);
-			}
-			return [dotPaths[Math.floor(Math.random() * dotPaths.length)] as DotPaths<T>, opts];
+			const paths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			const path = paths[Math.floor(Math.random() * paths.length)];
+			const validators = generateValidators(getTypeOfProperty(typeAlias, path), typeAlias);
+			const values = generateValues(getTypeOfProperty(typeAlias, path), typeAlias);
+			const sharedOpts = {
+				keepDirty: Math.random() > 0.5,
+				keepTouched: Math.random() > 0.5,
+				validator: validators[
+					Math.floor(Math.random() * validators.length)
+				] as ResetFieldOptions<T>['validator'],
+				value: values[Math.floor(Math.random() * values.length)] as ResetFieldOptions<T>['value'],
+			} as const satisfies Exclude<ResetFieldOptions<T>, 'keepError' | 'validate'>;
+			const opts = [
+				{
+					...sharedOpts,
+					validate: Math.random() > 0.5,
+				},
+				{ ...sharedOpts, keepError: Math.random() > 0.5 },
+			] as const satisfies ResetFieldOptions<T>[];
+			// const options = [
+			// 	'keepDirty',
+			// 	'keepError',
+			// 	'keepTouched',
+			// 	'validate',
+			// 	'validator',
+			// 	'value',
+			// ] as const satisfies Array<keyof ResetFieldOptions>;
+			// const invalidOptionCombinations = [{ keepError: true, validate: true }];
+			// const rCount = Math.floor(Math.random() * options.length);
+			// const opts = {};
+			// const chooseOpt = (opt: keyof ResetFieldOptions) => {
+			// 	opts[opt] = true;
+			// 	if (invalidOptionCombinations.every((x) => Object.keys(x).every((y) => opts[y] === x[y]))) {
+			// 		delete opts[opt];
+			// 		chooseOpt(options[Math.floor(Math.random() * options.length)]);
+			// 	}
+			// };
+			// for (let i = 0; i < rCount; i++) {
+			// 	chooseOpt(options[Math.floor(Math.random() * options.length)]);
+			// }
+			return [
+				form.resetField,
+				[
+					paths[Math.floor(Math.random() * paths.length)],
+					opts[Math.floor(Math.random() * opts.length)],
+				],
+			];
 		},
 		resetForm: (typeAlias) => {
-			const options = [
-				'keepDirty',
-				'keepErrors',
-				'keepTouched',
-				'keepValidators',
-				'validators',
-				'values',
-			] as const satisfies Array<keyof ResetFormOptions>;
-			const rCount = Math.floor(Math.random() * options.length);
-			const opts: ResetFormOptions = {};
+			// const options = [
+			// 	'keepDirty',
+			// 	'keepErrors',
+			// 	'keepTouched',
+			// 	'keepValidators',
+			// 	'validators',
+			// 	'values',
+			// ] as const satisfies Array<keyof ResetFormOptions>;
+			// const rCount = Math.floor(Math.random() * options.length);
+			// const opts: ResetFormOptions<T> = {};
 			const paths = getDotPaths(get(form.values)) as DotPaths<T>[];
-			for (let i = 0; i < rCount; i++) {
-				const opt = options[Math.floor(Math.random() * options.length)];
-				if (opt === 'values') {
-					opts[opt] = paths
-						.filter(() => Math.random() > 0.5)
-						.map((x) => {
-							const vals = generateValues(getTypeOfProperty(typeAlias, x), typeAlias);
-							return [x, vals[Math.floor(Math.random() * vals.length)]] as const;
-						})
-						.reduce(
-							(acc, [path, value]) => setI(path, value, acc),
-							{} as Record<PropertyKey, SupportedValues>,
-						);
-					continue;
-				}
+			const opts = {
+				values:
+					Math.random() > 0.5
+						? paths
+								.filter(() => Math.random() > 0.5)
+								.map((x) => {
+									const vals = generateValues(getTypeOfProperty(typeAlias, x), typeAlias);
+									return [x, vals[Math.floor(Math.random() * vals.length)]] as const;
+								})
+								.reduce((acc, [path, value]) => setI(path, value, acc), {} as PartialDeep<T>)
+						: undefined,
+				validators:
+					Math.random() > 0.5
+						? paths
+								.filter(() => Math.random() > 0.5)
+								.map((x) => {
+									const validators = generateValidators(getTypeOfProperty(typeAlias, x), typeAlias);
+									return [x, validators[Math.floor(Math.random() * validators.length)]] as const;
+								})
+								.reduce(
+									(acc, [path, validator]) => setI(path, validator, acc),
+									{} as PartialValidatorFields<T>,
+								)
+						: undefined,
+				keepDirty: Math.random() > 0.5,
+				keepErrors: Math.random() > 0.5,
+				keepTouched: Math.random() > 0.5,
+				keepValidators: Math.random() > 0.5,
+			} as const satisfies ResetFormOptions<T>;
+			// for (let i = 0; i < rCount; i++) {
+			// 	const opt = options[Math.floor(Math.random() * options.length)];
+			// 	if (opt === 'values') {
+			// 		opts[opt] = paths
+			// 			.filter(() => Math.random() > 0.5)
+			// 			.map((x) => {
+			// 				const vals = generateValues(getTypeOfProperty(typeAlias, x), typeAlias);
+			// 				return [x, vals[Math.floor(Math.random() * vals.length)]] as const;
+			// 			})
+			// 			.reduce((acc, [path, value]) => setI(path, value, acc), {} as PartialDeep<T>);
+			// 		continue;
+			// 	}
 
-				if (opt === 'validators') {
-					// TODO: Generate random validators obj
-					continue;
-				}
+			// 	if (opt === 'validators') {
+			// 		opts[opt] = paths
+			// 			.filter(() => Math.random() > 0.5)
+			// 			.map((x) => {
+			// 				const validators = generateValidators(getTypeOfProperty(typeAlias, x), typeAlias);
+			// 				return [x, validators[Math.floor(Math.random() * validators.length)]] as const;
+			// 			})
+			// 			.reduce(
+			// 				(acc, [path, validator]) => setI(path, validator, acc),
+			// 				{} as PartialValidatorFields<T>,
+			// 			);
+			// 		continue;
+			// 	}
 
-				opts[opt] = Math.random() > 0.5;
-			}
+			// 	opts[opt] = Math.random() > 0.5;
+			// }
 
-			return opts;
+			return [form.resetForm, [opts]];
+		},
+		updateValue: (typeAlias) => {
+			const paths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			const path = paths[Math.floor(Math.random() * paths.length)];
+			const values = generateValues(getTypeOfProperty(typeAlias, path), typeAlias);
+			const value = values[Math.floor(Math.random() * values.length)] as ValueOf<T, DotPaths<T>>;
+			type UpdateValueOptions = NonNullable<Parameters<UpdateValueFn<T>>[2]>;
+			const validators = generateValidators(getTypeOfProperty(typeAlias, path), typeAlias);
+			const validator = validators[
+				Math.floor(Math.random() * validators.length)
+			] as UpdateValueOptions['newValidator'];
+			const opts = {
+				newValidator: validator,
+				validate: Math.random() > 0.5,
+			} as const satisfies UpdateValueOptions;
+			return [form.updateValue, [path, value, opts]];
+		},
+		submitForm: () => {
+			const options = [() => {}] as const satisfies Parameters<SubmitFormFn<T>>;
+			return [form.submitForm, options];
+		},
+		useFieldArray: () => {
+			const paths = getDotPaths(get(form.values)) as DotPaths<T>[];
+			const path = paths[Math.floor(Math.random() * paths.length)];
+			return [form.useFieldArray, [path]];
 		},
 	} as const satisfies FormFnOptions;
+
 	for (let i = 0; i < count; i++) {
-		const rand = Math.floor(Math.random() * formFns.length);
-		const fn = formFns[rand];
-		const fnOptions = formFnToOptions[fn]();
-		const formFn = form[fn];
-		interactions.push(formFn(...fnOptions));
+		const fn = formFns[Math.floor(Math.random() * formFns.length)];
+
+		switch (fn) {
+			case 'clean': {
+				const [, opts] = formFnMapping[fn]();
+				const [path] = opts;
+
+				const beforeValues = clone(get(form.values));
+				const beforeTouched = clone(get(form.touched));
+				const beforeDirty = clone(get(form.dirty));
+				const beforeErrors = clone(get(form.errors));
+				const beforeValidators = clone(get(form.validators));
+
+				form.clean(...opts);
+
+				const afterValues = get(form.values);
+				const afterTouched = get(form.touched);
+				const afterDirty = get(form.dirty);
+				const afterErrors = get(form.errors);
+				const afterValidators = get(form.validators);
+
+				expect(afterValues).toEqual(beforeValues);
+				expect(afterTouched).toEqual(beforeTouched);
+				expect(getInternal(path, afterDirty)).toEqual(
+					assign(false, getInternal(path, beforeDirty)),
+				);
+				expect(afterErrors).toEqual(beforeErrors);
+				expect(afterValidators).toEqual(beforeValidators);
+				break;
+			}
+			case 'handleBlur': {
+				const [, opts] = formFnMapping[fn]();
+				const [path] = opts;
+
+				const beforeValues = clone(get(form.values));
+				const beforeTouched = clone(get(form.touched));
+				const beforeDirty = clone(get(form.dirty));
+				const beforeErrors = clone(get(form.errors));
+				const beforeValidators = clone(get(form.validators));
+
+				// const validateSpy = vi.spyOn(form, 'validate');
+				const applyValidatorSpy = vi.spyOn(applyValidator, 'applyValidatorI');
+
+				await form.handleBlur(...opts);
+
+				const afterValues = get(form.values);
+				const afterTouched = get(form.touched);
+				const afterDirty = get(form.dirty);
+				const afterErrors = get(form.errors);
+				const afterValidators = get(form.validators);
+
+				expect(afterValues).toEqual(beforeValues);
+				expect(getInternal(path, afterTouched)).toEqual(
+					assign(true, getInternal(path, beforeTouched)),
+				);
+				expect(afterDirty).toEqual(beforeDirty);
+				const validateMode = get(form.validateMode);
+				if (validateMode === 'onBlur' || validateMode === 'all') {
+					const validators = getValidators(path, beforeValidators, afterValues);
+					for (const [path, validatorFn] of validators) {
+						const err = await validatorFn(getInternal(path, beforeValues), {
+							values: beforeValues,
+							path,
+						});
+
+						expect(getInternal(path, afterErrors)).toBe(err);
+					}
+					expect(applyValidatorSpy).toHaveBeenCalledTimes(validators.length);
+					// expect(validateSpy).toHaveBeenCalledOnce();
+				} else {
+					expect(afterErrors).toEqual(beforeErrors);
+				}
+				expect(afterValidators).toEqual(beforeValidators);
+
+				// validateSpy.mockClear();
+				applyValidatorSpy.mockClear();
+				break;
+			}
+			case 'handleFocus': {
+				const [, opts] = formFnMapping[fn]();
+				// const [path] = opts;
+
+				const beforeValues = clone(get(form.values));
+				const beforeTouched = clone(get(form.touched));
+				const beforeDirty = clone(get(form.dirty));
+				const beforeErrors = clone(get(form.errors));
+				const beforeValidators = clone(get(form.validators));
+
+				await form.handleFocus(...opts);
+
+				const afterValues = get(form.values);
+				const afterTouched = get(form.touched);
+				const afterDirty = get(form.dirty);
+				const afterErrors = get(form.errors);
+				const afterValidators = get(form.validators);
+
+				expect(afterValues).toEqual(beforeValues);
+				expect(afterTouched).toEqual(beforeTouched);
+				expect(afterDirty).toEqual(beforeDirty);
+				expect(afterErrors).toEqual(beforeErrors);
+				expect(afterValidators).toEqual(beforeValidators);
+				break;
+			}
+			case 'makeDirty':
+				break;
+			// return [form[fn], formFnMapping[fn]()] as const;
+			case 'resetField':
+				break;
+			// return [form[fn], formFnMapping[fn]()] as const;
+			case 'resetForm':
+				break;
+			// return [form[fn], formFnMapping[fn](typeAlias)] as const;
+			case 'submitForm':
+				break;
+			// return [form[fn], formFnMapping[fn]()] as const;
+			case 'unBlur':
+				break;
+			// return [form[fn], formFnMapping[fn]()] as const;
+			case 'updateValue':
+				break;
+			// return [form[fn], formFnMapping[fn](typeAlias)] as const;
+			case 'useFieldArray':
+				break;
+			// return [form[fn], formFnMapping[fn]()] as const;
+			case 'validate':
+				break;
+			// return [form[fn], formFnMapping[fn]()] as const;
+		}
 	}
 
-	return interactions;
+	return Array.from({ length: count }, () => {
+		const rand = Math.floor(Math.random() * formFns.length);
+		const fn = formFns[rand];
+		return formFnMapping[fn](typeAlias);
+		// const fnOptions = formFnToOptions[fn](typeAlias);
+		// const formFn = form[fn];
+		// switch (fn) {
+		// 	case 'clean':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'handleBlur':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'handleFocus':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'makeDirty':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'resetField':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'resetForm':
+		// 		return [form[fn], formFnMapping[fn](typeAlias)] as const;
+		// 	case 'submitForm':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'unBlur':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'updateValue':
+		// 		return [form[fn], formFnMapping[fn](typeAlias)] as const;
+		// 	case 'useFieldArray':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// 	case 'validate':
+		// 		return [form[fn], formFnMapping[fn]()] as const;
+		// }
+		// return [formFn, fnOptions] as const;
+	});
 }
 
-it('should work with 1000 fuzzy interactions', () => {
+it('should work with 1000 randomized interactions', () => {
+	const proj = new Project({
+		tsConfigFilePath: './tsconfig.json',
+		skipFileDependencyResolution: true,
+		skipAddingFilesFromTsConfig: true,
+		skipLoadingLibFiles: false,
+	});
+	const sourceFile = proj.addSourceFileAtPath('./src/__test__/core/FormValues.ts');
+	const typeAlias = sourceFile.getTypeAlias('FormValues')!;
+
 	const { component } = render(Form);
 	const { form } = getComponentState(component);
-	const fuzzy = createFuzzyInteractions(form, 1000);
+
+	runRandomizedInteractions(form, 100_000, typeAlias);
 });
 
 describe('createForm', async () => {

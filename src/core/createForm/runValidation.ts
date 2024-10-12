@@ -9,7 +9,13 @@ import { isPromise } from '../../internal/util/isPromise';
 import { mergeRightI } from '../../internal/util/mergeRightDeep';
 import { setI } from '../../internal/util/set';
 import { someDeep } from '../../internal/util/someDeep';
-import { ErrorFields, FormState, LatestFieldEvent, ValidationResolver } from '../../types/Form';
+import {
+	ErrorFields,
+	FormState,
+	LatestFieldEvent,
+	PartialErrorFields,
+	ValidationResolver,
+} from '../../types/Form';
 
 export function createRunValidation<T extends Record<PropertyKey, unknown>>(
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
@@ -31,24 +37,28 @@ export function createRunValidation<T extends Record<PropertyKey, unknown>>(
 			if (isSchemaless) {
 				if (isObject(fieldValue) || Array.isArray(fieldValue)) {
 					const validators = getValidators(name, formState.validators, formState.values);
-					const errors = {};
+					const errors = {} as PartialErrorFields<T>;
 					for (let i = 0; i < validators.length; i++) {
 						const res = applyValidatorI(validators[i], formState.values, errors);
-						if (isPromise(res)) await res;
+						if (isPromise(res)) {
+							await res;
+						}
 					}
 
 					errors_store.update((x) => setI(name, getInternal(name, errors), x));
 
-					if (Object.keys(errors).length > 0 && !formState.state.hasErrors)
+					if (Object.keys(errors).length > 0 && !formState.state.hasErrors) {
 						state_store.update((x) => setI('hasErrors', true, x));
+					}
 				} else {
 					const validators = getValidators(name, formState.validators, formState.values);
 					for (let i = 0; i < validators.length; i++) {
 						const applyRes = applyValidatorI(validators[i], formState.values, formState.errors);
 						const res = isPromise(applyRes) ? await applyRes : applyRes;
 
-						if (typeof res === 'string' && !formState.state.hasErrors)
+						if (typeof res === 'string' && !formState.state.hasErrors) {
 							state_store.update((x) => setI('hasErrors', true, x));
+						}
 					}
 				}
 			}
@@ -58,8 +68,10 @@ export function createRunValidation<T extends Record<PropertyKey, unknown>>(
 				if (isNil(formErrors))
 					throw new Error('Cannot return null or undefined from validation resolver'); //illegal form state
 				const fieldError =
-					getInternal<string | false | ErrorFields<T[keyof T] & object>>(name, formErrors) ??
-					(isObject(fieldValue) || Array.isArray(fieldValue) ? {} : false);
+					getInternal<string | false | ErrorFields<T[keyof T] & Record<PropertyKey, unknown>>>(
+						name,
+						formErrors,
+					) ?? (isObject(fieldValue) || Array.isArray(fieldValue) ? {} : false);
 
 				if (isObject(fieldError) || Array.isArray(fieldError))
 					errors_store.update((x) => mergeRightI(x, fieldError));

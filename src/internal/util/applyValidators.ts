@@ -1,4 +1,4 @@
-import { type ValidatorState } from '../../types/Form';
+import { PartialErrorFields, type ValidatorState } from '../../types/Form';
 import { getError, getInternal } from './get';
 import { isObject } from './isObject';
 import { isPromise } from './isPromise';
@@ -7,7 +7,7 @@ import { setI } from './set';
 export function applyValidatorI<T extends Record<PropertyKey, unknown>>(
 	validator: [Array<PropertyKey>, Function],
 	values: T,
-	errors: object,
+	errors: PartialErrorFields<T>,
 ): string | false | Promise<string | false> {
 	const [path, fn] = validator;
 	const value = getInternal(path, values);

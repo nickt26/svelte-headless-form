@@ -6,7 +6,7 @@ import { isObject } from '../../internal/util/isObject';
 import { setI } from '../../internal/util/set';
 import { BooleanFields, FormState, LatestFieldEvent } from '../../types/Form';
 
-export function createHandleBlur<T extends object>(
+export function createHandleBlur<T extends Record<PropertyKey, unknown>>(
 	internalState: [InternalFormState<T>],
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	touched_store: Writable<BooleanFields<T>>,

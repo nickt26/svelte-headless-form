@@ -2,7 +2,11 @@ import { canParseToInt } from './canParseToInt';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
 
-export const setI = <V, T extends object>(path: string | Array<PropertyKey>, val: V, obj: T): T => {
+export const setI = <V, T extends Record<PropertyKey, unknown> | any[]>(
+	path: string | Array<PropertyKey>,
+	val: V,
+	obj: T,
+): T => {
 	if (
 		isNil(obj) ||
 		(!isObject(obj) && !Array.isArray(obj)) ||

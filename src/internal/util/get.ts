@@ -59,11 +59,10 @@ export function getInternal<V = unknown, T extends any[] = any[]>(
 	path: string | Array<PropertyKey>,
 	obj: T,
 ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
-
-export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
-	path: string | Array<PropertyKey>,
-	obj: T,
-): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
+// export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
+// 	path: string | Array<PropertyKey>,
+// 	obj: T,
+// ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
 export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
 	path: string | Array<PropertyKey>,
 	obj: T,
@@ -90,10 +89,9 @@ export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
 	return current[last];
 }
 
-export const getError = function <T extends object = object>(
-	path: string | Array<PropertyKey>,
-	errors: PartialErrorFields<T>,
-): string | undefined {
+export const getError = function <
+	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+>(path: string | Array<PropertyKey>, errors: PartialErrorFields<T>): string | undefined {
 	if (
 		isNil(errors) ||
 		(!isObject(errors) && !Array.isArray(errors)) ||

@@ -1,15 +1,14 @@
-<script lang="ts">
+<script lang="ts" generics="T extends Obj">
+	import { Obj } from '../../../app/src/types/FormValues';
 	import { useField } from '../../core/useField';
-	import { FormControl } from '../../types/Form';
+	import { DotPaths, FormControl } from '../../types/Form';
 
-	type IncomingForm = $$Generic;
-	type IncomingValidators = $$Generic;
-	export let control: FormControl<IncomingForm & object>;
-	export let name: string;
+	export let control: FormControl<T>;
+	export let name: DotPaths<T>;
 	const {
 		field: { value },
-		form: { values }
-	} = useField<string, IncomingForm & object>({ name, control });
+		form: { values },
+	} = useField({ name, control });
 </script>
 
 <input type="text" />

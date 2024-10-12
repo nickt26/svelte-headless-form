@@ -92,14 +92,14 @@ export const getValidators = (
 	return validators;
 };
 
-function addValidator(
-	path: Array<PropertyKey>,
-	validator: Function,
-	validators: Array<[Array<PropertyKey>, Function]>,
-): void {
-	const addValidator = !validators.some((validator) =>
-		validator[0].every((key, i) => key === path[i]),
-	);
+// function addValidator(
+// 	path: Array<PropertyKey>,
+// 	validator: Function,
+// 	validators: Array<[Array<PropertyKey>, Function]>,
+// ): void {
+// 	const addValidator = !validators.some((validator) =>
+// 		validator[0].every((key, i) => key === path[i]),
+// 	);
 
-	if (addValidator) validators.push([path, validator]);
-}
+// 	if (addValidator) validators.push([path, validator]);
+// }

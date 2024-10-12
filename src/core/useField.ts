@@ -1,16 +1,16 @@
 import { onDestroy } from 'svelte';
-import { derived, get, Writable } from 'svelte/store';
+import { derived, get } from 'svelte/store';
 import { UseField, UseFieldOptions } from '../internal/types/UseField';
 import { getInternal } from '../internal/util/get';
 import { isObject } from '../internal/util/isObject';
 import { setI } from '../internal/util/set';
 import { DotPaths, ValueOf } from '../types/Form';
 
-export const useField = <T extends object, TPath extends DotPaths<T>>({
+export const useField = <T extends Record<PropertyKey, unknown>, TPath extends DotPaths<T>>({
 	name,
 	control,
 }: UseFieldOptions<T, TPath>): UseField<T, TPath> => {
-	const value_store = derived<Writable<T>, ValueOf<T, TPath>>(control.values, ($values) =>
+	const value_store = derived(control.values, ($values) =>
 		getInternal<ValueOf<T, TPath>>(name, $values),
 	);
 

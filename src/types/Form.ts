@@ -14,6 +14,8 @@ export type ValidateMode = 'onChange' | 'onBlur' | 'onSubmit' | 'onFocus' | 'non
 
 export type PromiseLikeResult<T> = T | Promise<T>;
 
+// export type Fn = (...args: any[]) => any;
+
 export type ObjectDeep<T, S> = T extends Record<PropertyKey, unknown> | any[]
 	? {
 			[K in keyof T]: ObjectDeep<T[K], S>;
@@ -29,6 +31,12 @@ export type PartialDeep<T> = T extends Record<PropertyKey, unknown> | any[]
 export type ReadonlyDeep<T> = T extends Record<PropertyKey, unknown> | any[]
 	? {
 			readonly [K in keyof T]: ReadonlyDeep<T[K]>;
+		}
+	: T;
+
+export type RequiredDeep<T> = T extends Record<PropertyKey, unknown> | any[]
+	? {
+			[K in keyof T]-?: RequiredDeep<T[K]>;
 		}
 	: T;
 
@@ -139,14 +147,26 @@ type DotPathObject<
 				: never;
 
 export type ValueDeep<T> = T extends any[]
-	? { [key in keyof T]: ValueDeep<T[key]> }[number]
-	: T extends object
+	? { [K in keyof T]: ValueDeep<T[K]> }[number]
+	: T extends Record<PropertyKey, unknown>
 		? {
-				[key in keyof T]: ValueDeep<T[key]>;
+				[K in keyof T]: ValueDeep<T[K]>;
 			}[keyof T]
 		: T;
 
-export type DotPaths<T> =
+// type A<T extends Record<PropertyKey, unknown>> = T extends never ? true : false;
+// type IsConditional<T> = T extends (infer U extends any ? true : false) ? true : false;
+
+// function a<T extends Record<PropertyKey, unknown>>(a: T): A<T> {
+// 	console.log(a);
+// 	type B = A<T>;
+// 	type C = IsConditional<B>;
+// 	return undefined as unknown as A<T>;
+// }
+
+// type Yes = ReturnType<typeof a>;
+
+export type DotPaths<T extends Record<PropertyKey, unknown> | any[]> =
 	Equals<T, object> extends true
 		? string
 		: Equals<T, Record<PropertyKey, unknown>> extends true
@@ -330,21 +350,37 @@ export type PartialValidatorss<O extends Record<PropertyKey, unknown>, T extends
 
 type Paths<T extends string, S extends string> = T extends '' ? S : `${T}.${S}`;
 
+type TupleKeys<T extends any[]> = Exclude<keyof T, keyof any[]> & string;
+// type DP2 = TupleKeys<[1, 2, 3]>;
+
+// Potential dot paths replacement
+export type DP<T, Path extends string = ''> =
+	T extends Record<PropertyKey, unknown>
+		? {
+				[K in keyof T]: DP<T[K] | K, Paths<Path, `${Exclude<K, symbol>}`>>;
+			}[keyof T]
+		: T extends Array<any>
+			? 0 extends T['length']
+				? DP<T[number] | 1, Paths<Path, `${number}`>>
+				: DP<T[number], Paths<Path, TupleKeys<T>>>
+			: Path;
+
+// type DPTest = DP<{ a: string; b: number; c: { a: { a: string }[] }; d: [1, 2, 3] }>;
+
 // DotPaths replacement
 type CreateStarPaths4<
 	T,
 	Path extends string = '',
 	StrippedObject = T extends object ? { -readonly [K in keyof T]-?: T[K] } : T,
-> = StrippedObject extends BrowserNativeObject
-	? Path
-	: StrippedObject extends Array<infer U>
+> =
+	StrippedObject extends Array<infer U>
 		? {
 				[dotPathSymbol]: 0 extends StrippedObject['length'] ? Paths<Path, `${number}`> : never;
 				[remainSymbol]: 0 extends StrippedObject['length']
 					? CreateStarPaths4<U, Paths<Path, `${number}`>>
 					: CreateStarPaths4<U, Path>;
 			}
-		: StrippedObject extends object
+		: StrippedObject extends Record<PropertyKey, unknown>
 			? {
 					[K in keyof StrippedObject]: {
 						[dotPathSymbol]: Paths<Path, K & string>;
@@ -357,15 +393,14 @@ type CreateArrayStarPaths4<
 	T,
 	Path extends string = '',
 	StrippedObject = T extends object ? { -readonly [K in keyof T]-?: T[K] } : T,
-> = StrippedObject extends BrowserNativeObject
-	? never
-	: StrippedObject extends Array<infer U>
+> =
+	StrippedObject extends Array<infer U>
 		? {
 				[remainSymbol]: 0 extends StrippedObject['length']
 					? CreateArrayStarPaths4<U, Paths<Path, `${number}`>>
 					: CreateArrayStarPaths4<U, Path>;
 			}
-		: StrippedObject extends object
+		: StrippedObject extends Record<PropertyKey, unknown>
 			? {
 					[K in keyof StrippedObject]: {
 						[dotPathSymbol]: Extract<StrippedObject[K], any[]> extends never
@@ -447,7 +482,7 @@ export type ArrayFieldAddOptions<T extends Record<PropertyKey, unknown>> = {
 
 export type ResetFieldOptions<
 	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
-	TPath extends string = string,
+	TPath extends DotPaths<T> = DotPaths<T>,
 > = {
 	value?: ValueOf<T, TPath>;
 	validator?: ValueOf<PartialValidatorFields<T>, TPath>;
@@ -487,7 +522,7 @@ export type UpdateValueFn<T extends Record<PropertyKey, unknown>> = <
 	},
 ) => Promise<void>;
 
-export type HandlerFn<T extends object = object> = <
+export type HandlerFn<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>> = <
 	TObject extends T,
 	Path extends DotPaths<TObject>,
 >(
@@ -545,7 +580,7 @@ export type RegisterOptions<Path> = {
 	name: Path;
 };
 
-export type RegisterFn<T extends object> = <Path extends DotPaths<T>>(
+export type RegisterFn<T extends Record<PropertyKey, unknown>> = <Path extends DotPaths<T>>(
 	node: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
 	options: RegisterOptions<Path>,
 ) => { destroy: () => void };

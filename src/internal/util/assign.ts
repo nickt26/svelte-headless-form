@@ -28,7 +28,7 @@ export const assignI = <T, S extends object, K extends object>(
 	return objectToAssignTo;
 };
 
-export const assign = <T, S>(value: T, objStructure: S): ObjectDeep<S, T> => {
+export function assign<T, S>(value: T, objStructure: S): ObjectDeep<S, T> {
 	if (!isObject(objStructure) && !Array.isArray(objStructure)) {
 		return value as ReturnType<typeof assign<T, S>>;
 	}
@@ -59,7 +59,7 @@ export const assign = <T, S>(value: T, objStructure: S): ObjectDeep<S, T> => {
 		}
 	}
 	return toReturn as ReturnType<typeof assign<T, S>>;
-};
+}
 
 export function assignUsing<T extends object, S extends object>(
 	left: T,

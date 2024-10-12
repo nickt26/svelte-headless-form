@@ -14,7 +14,7 @@ import {
 	Values,
 } from '../../types/Form';
 
-export const createResetForm = <T extends object>(
+export const createResetForm = <T extends Record<PropertyKey, unknown>>(
 	initialValues: T,
 	initialValidators: ValidatorFields<T>,
 	values_store: Writable<T>,
@@ -24,7 +24,7 @@ export const createResetForm = <T extends object>(
 	dirty_store: Writable<BooleanFields<T>>,
 	state_store: Writable<FormState>,
 	internalState: [InternalFormState<T>],
-	value_change_store: Writable<[Array<PropertyKey>, unknown, boolean] | null> | null,
+	value_change_store: Writable<[Array<PropertyKey>, unknown, boolean] | null>,
 ): ResetFormFn<T> => {
 	return (options) => {
 		const hasNewValues = !!options && 'values' in options;
@@ -65,7 +65,7 @@ export const createResetForm = <T extends object>(
 			);
 		}
 		if (options?.keepErrors) errors_store.set(assignUsing(newValues, internalState[0].errors));
-		else errors_store.set({});
+		else errors_store.set({} as ErrorFields<T>);
 
 		if (options?.keepTouched) touched_store.set(assignUsing(newValues, internalState[0].touched));
 		else touched_store.set(assign(false, newValues));
