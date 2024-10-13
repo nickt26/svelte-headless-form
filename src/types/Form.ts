@@ -628,7 +628,7 @@ export type Form<T extends Record<PropertyKey, unknown> = Record<PropertyKey, un
 	initialDirty: BooleanFields<T>;
 	initialErrors: ErrorFields<T>;
 	validate: ValidateFn<T>;
-	latestFieldEvent: Readable<LatestFieldEvent | null>;
+	latestFieldEvent: Readable<LatestFieldEvent>;
 	validators: Writable<ValidatorFields<T>>;
 	clean: <TPath extends DotPaths<T>>(path: TPath) => void;
 	makeDirty: <TPath extends DotPaths<T>>(path: TPath) => void;

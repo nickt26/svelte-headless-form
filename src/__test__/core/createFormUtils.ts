@@ -58,8 +58,9 @@ export function waitForAllFieldsToValidate(
 	return new Promise<void>((resolve) => {
 		const fieldsThatHaveValidated: (string | PropertyKey[])[] = [];
 		const unsub = latestFieldEvent.subscribe(async (x) => {
+			console.log(x);
 			if (
-				x?.event === 'afterValidate' &&
+				x.event === 'afterValidate' &&
 				valueUpdates.some(
 					(val: { key: DotPaths<FormValues>; value: any } | DotPaths<FormValues>) => {
 						const path = Array.isArray(x.field) ? x.field.join('.') : x.field;

@@ -1,13 +1,17 @@
 import { isObject } from './isObject';
 
-export const someDeep = <T extends object>(cb: (value: unknown) => boolean, obj: T): boolean => {
-	const values = Object.values(obj);
-	if (values.some(cb)) return true;
+export const someDeep = <T>(cb: (value: unknown) => boolean, val: T | undefined): boolean => {
+	if (!isObject(val) && !Array.isArray(val)) return cb(val);
+	const values = Object.values(val);
 
 	for (let i = 0; i < values.length; i++) {
-		if (!(isObject(values[i]) || Array.isArray(values[i]))) continue;
-		const res = someDeep(cb, values[i]);
-		if (res) return true;
+		if (cb(values[i])) return true;
+		// if (!(isObject(values[i]) || Array.isArray(values[i]))) continue;
+		// const res = someDeep(cb, values[i]);
+
+		if (isObject(values[i]) || Array.isArray(values[i])) {
+			if (someDeep(cb, values[i])) return true;
+		}
 	}
 
 	return false;

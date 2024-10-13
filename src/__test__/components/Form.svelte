@@ -7,7 +7,6 @@
 	const form = createForm({
 		initialValues: initialFormValues,
 		initialValidators: initValidators,
-		validateMode: 'onBlur',
 	});
 	const { submitForm, values, errors, touched, dirty, state, handleBlur } = form;
 </script>

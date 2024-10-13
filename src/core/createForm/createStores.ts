@@ -11,7 +11,7 @@ import {
 	ValidatorFields,
 } from '../../types/Form';
 
-type Stores<T extends object> = {
+type Stores<T extends Record<PropertyKey, unknown>> = {
 	touched_store: Writable<BooleanFields<T>>;
 	dirty_store: Writable<BooleanFields<T>>;
 	values_store: Writable<T>;
@@ -25,7 +25,7 @@ type Stores<T extends object> = {
 	value_change_store: Writable<[Array<PropertyKey>, unknown, boolean] | null>;
 };
 
-export function createStores<T extends object>(
+export function createStores<T extends Record<PropertyKey, unknown>>(
 	initialTouched: BooleanFields<T>,
 	initialDirty: BooleanFields<T>,
 	initialValues: T,

@@ -1,6 +1,6 @@
 import { Writable } from 'svelte/store';
 import { BooleanFields } from '../../types/Form';
-import { assign, assignUsingLeft } from './assign';
+import { assign, assignUsingWith } from './assign';
 import { getInternal } from './get';
 import { isNil } from './isNil';
 import { isObject } from './isObject';
@@ -173,7 +173,7 @@ export function cloneWithStoreReactivity<T>(
 					touched_store?.update((x) =>
 						setI(
 							fullPath,
-							assignUsingLeft(false, target[parseInt(prop)], getInternal(fullPath, x)!),
+							assignUsingWith(false, getInternal(fullPath, x)!, target[parseInt(prop)]),
 							x,
 						),
 					);
@@ -225,7 +225,7 @@ export function cloneWithStoreReactivity<T>(
 				if (!noFormUpdate) {
 					dirty_store?.update((x) => setI(fullPath, assign(true, newObj), x));
 					touched_store?.update((x) =>
-						setI(fullPath, assignUsingLeft(false, newObj, getInternal(fullPath, x)!), x),
+						setI(fullPath, assignUsingWith(false, getInternal(fullPath, x)!, newObj), x),
 					);
 				}
 				if (store) store.set([fullPath, newVal, noValidate]);

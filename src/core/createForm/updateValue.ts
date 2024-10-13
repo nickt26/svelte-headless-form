@@ -10,7 +10,7 @@ import {
 	ValidatorFields,
 } from '../../types/Form';
 
-export function createUpdateValue<T extends object>(
+export function createUpdateValue<T extends Record<PropertyKey, unknown>>(
 	internalState: [InternalFormState<T>],
 	latest_field_event_store: Writable<LatestFieldEvent | null>,
 	values_store: Writable<T>,

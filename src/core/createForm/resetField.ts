@@ -1,6 +1,6 @@
 import { Writable } from 'svelte/store';
 import { InternalFormState } from '../../internal/types/Form';
-import { assign, assignUsing, assignUsingLeft } from '../../internal/util/assign';
+import { assign, assignUsing, assignUsingWith } from '../../internal/util/assign';
 import { clone, noFormUpdate, noValidate } from '../../internal/util/clone';
 import { getInternal, getInternalSafe } from '../../internal/util/get';
 import { isObject } from '../../internal/util/isObject';
@@ -62,19 +62,22 @@ export const createResetField = <T extends Record<PropertyKey, unknown>>(
 			validators_store.update((x) => setI(name, newValidator, x));
 			if (options?.keepTouched) {
 				touched_store.update((x) =>
-					setI(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
+					setI(name, assignUsingWith(false, getInternal(name, x)!, newValue), x),
 				);
 			} else touched_store.update((x) => setI(name, assign(false, newValue), x));
 
 			if (options?.keepDirty) {
 				dirty_store.update((x) =>
-					setI(name, assignUsingLeft(false, newValue, getInternal(name, x)!), x),
+					setI(name, assignUsingWith(false, getInternal(name, x)!, newValue), x),
 				);
 			} else dirty_store.update((x) => setI(name, assign(false, newValue), x));
 
 			values_store.update((x) => setI(name, newValueWithFlags, x));
 			if (options?.keepError) {
-				const currentErr = getInternal<object>(name, internalState[0].errors);
+				const currentErr = getInternal<Record<PropertyKey, unknown> | any[]>(
+					name,
+					internalState[0].errors,
+				);
 				if (currentErr) {
 					errors_store.update((x) => setI(name, assignUsing(newValue, currentErr), x));
 				}

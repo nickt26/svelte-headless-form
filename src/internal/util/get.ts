@@ -48,22 +48,25 @@ export function getInternalSafe<V, T extends Record<PropertyKey, unknown> | any[
 	return current[last];
 }
 
-export function getInternal<
-	V = unknown,
-	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
->(
-	path: string | Array<PropertyKey>,
-	obj: T,
-): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
-export function getInternal<V = unknown, T extends any[] = any[]>(
-	path: string | Array<PropertyKey>,
-	obj: T,
-): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
-// export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
+// export function getInternal<
+// 	V = unknown,
+// 	T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+// >(
 // 	path: string | Array<PropertyKey>,
 // 	obj: T,
 // ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
-export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
+// export function getInternal<V = unknown, T extends any[] = any[]>(
+// 	path: string | Array<PropertyKey>,
+// 	obj: T,
+// ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
+// // export function getInternal<V, T extends Record<PropertyKey, unknown> | any[]>(
+// // 	path: string | Array<PropertyKey>,
+// // 	obj: T,
+// // ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined;
+export function getInternal<
+	V,
+	T extends Record<PropertyKey, unknown> | any[] = Record<PropertyKey, unknown> | any[],
+>(
 	path: string | Array<PropertyKey>,
 	obj: T,
 ): Equals<V, unknown> extends true ? ValueDeep<T> | undefined : V | undefined {

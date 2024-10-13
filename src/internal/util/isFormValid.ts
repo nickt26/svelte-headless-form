@@ -1,18 +1,25 @@
-import { PartialErrorFields, ValidationResolver, ValidatorFields } from '../../types/Form';
+import {
+	PartialDeep,
+	PartialErrorFields,
+	ValidationResolver,
+	ValidatorFields,
+} from '../../types/Form';
 import { applyValidatorI } from './applyValidators';
 import { getValidators } from './getValidators';
 import { isObject } from './isObject';
 import { isPromise } from './isPromise';
 import { setI } from './set';
 
-export const isFormValidSchemaless = async <T extends object>(
+export const isFormValidSchemaless = async <T extends Record<PropertyKey, unknown>>(
 	allFormValues: T,
 	allFormValidators: ValidatorFields<T>,
 	currentFormValue: any,
 	currentKey: string = '',
-	errors: object = Array.isArray(allFormValues) ? [] : {},
+	errors:
+		| PartialDeep<Record<PropertyKey, string | false>>
+		| PartialDeep<(string | false)[]> = Array.isArray(allFormValues) ? [] : {},
 	isFormValid: [boolean] = [true],
-): Promise<[boolean, PartialErrorFields<object> | string | boolean]> => {
+): Promise<[boolean, PartialErrorFields<T>]> => {
 	if (!isObject(currentFormValue) && !Array.isArray(currentFormValue)) {
 		const validators = getValidators(currentKey, allFormValidators, allFormValues);
 		if (validators.length === 0) {

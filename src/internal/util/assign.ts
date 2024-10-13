@@ -61,14 +61,17 @@ export function assign<T, S>(value: T, objStructure: S): ObjectDeep<S, T> {
 	return toReturn as ReturnType<typeof assign<T, S>>;
 }
 
-export function assignUsing<T extends object, S extends object>(
-	left: T,
-	right: S,
+export function assignUsing<
+	T extends Record<PropertyKey, unknown> | any[],
+	S extends Record<PropertyKey, unknown> | any[],
+>(
+	left: T | undefined,
+	right: S | undefined,
 	exceptedValues?: {
 		use?: symbol[];
 		compare?: symbol[];
 	},
-	result: object = Array.isArray(right) ? [] : {},
+	result: Record<PropertyKey, unknown> | any[] = Array.isArray(right) ? [] : {},
 	path: Array<PropertyKey> = [],
 ): T & S {
 	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right))) {
@@ -193,42 +196,42 @@ export const assignWithReactivity = <T, S extends object = object>(
 	return toReturn as ObjectDeep<S, T>;
 };
 
-export function assignUsingLeft<T, S>(
+export function assignUsingWith<T, S>(
 	value: unknown,
-	left: T,
-	right: S,
-	toReturn: object = Array.isArray(left) ? [] : {},
+	left: S,
+	right: T,
+	toReturn: Record<PropertyKey, unknown> | any[] = Array.isArray(right) ? [] : {},
 	path: Array<PropertyKey> = [],
 ): object {
-	if (!isObject(left) && !Array.isArray(left) && !isObject(right) && !Array.isArray(right)) {
-		return right as object;
+	if (!isObject(right) && !Array.isArray(right) && !isObject(left) && !Array.isArray(left)) {
+		return left as object;
 	}
 
-	if ((!isObject(left) && !Array.isArray(left)) || (!isObject(right) && !Array.isArray(right))) {
+	if ((!isObject(right) && !Array.isArray(right)) || (!isObject(left) && !Array.isArray(left))) {
 		return toReturn;
 	}
 
-	const keys = Object.keys(left);
+	const keys = Object.keys(right);
 	for (let i = 0; i < keys.length; i++) {
 		const key = keys[i];
 		const leftVal = left[key];
 		const rightVal = right[key];
-		if (key in right) {
+		if (key in left) {
 			if (
-				(Array.isArray(leftVal) && Array.isArray(rightVal)) ||
-				(isObject(leftVal) && isObject(rightVal))
+				(Array.isArray(rightVal) && Array.isArray(leftVal)) ||
+				(isObject(rightVal) && isObject(leftVal))
 			) {
-				assignUsingLeft(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
+				assignUsingWith(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
 			} else {
-				setI(path.length ? [...path, key] : [key], rightVal, toReturn);
+				setI(path.length ? [...path, key] : [key], leftVal, toReturn);
 			}
 			continue;
 		} else {
 			if (
-				(Array.isArray(leftVal) && Array.isArray(rightVal)) ||
-				(isObject(leftVal) && isObject(rightVal))
+				(Array.isArray(rightVal) && Array.isArray(leftVal)) ||
+				(isObject(rightVal) && isObject(leftVal))
 			) {
-				assignUsingLeft(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
+				assignUsingWith(value, leftVal, rightVal, toReturn, path.length ? [...path, key] : [key]);
 			} else {
 				setI(path.length ? [...path, key] : [key], value, toReturn);
 			}

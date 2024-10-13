@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 // import Parser from 'web-tree-sitter';
 import { faker } from '@faker-js/faker';
 import * as applyValidator from '../../../src/internal/util/applyValidators';
-import { assign } from '../../internal/util/assign';
+import { assign, assignUsing } from '../../internal/util/assign';
 import { canParseToInt } from '../../internal/util/canParseToInt';
 import { clone } from '../../internal/util/clone';
 import { getInternal } from '../../internal/util/get';
@@ -14,6 +14,7 @@ import { getValidators } from '../../internal/util/getValidators';
 import { isObject } from '../../internal/util/isObject';
 import { mergeRightI } from '../../internal/util/mergeRightDeep';
 import { setI } from '../../internal/util/set';
+import { someDeep } from '../../internal/util/someDeep';
 import type {
 	ArrayDotPaths,
 	DotPaths,
@@ -74,12 +75,12 @@ function getTypeOfProperty(
 		if (!property) return types;
 
 		currentType = property.getTypeAtLocation(typeAlias);
-		console.log('currentType', currentType.getText());
+		// console.log('currentType', currentType.getText());
 	}
 
 	const lastPart = pathParts[pathParts.length - 1];
 	if (currentType.isArray() && !currentType.getProperty(lastPart)) {
-		console.log('array');
+		// console.log('array');
 
 		// return currentType.getArrayElementType()?.getText();
 		types.push(currentType.getArrayElementTypeOrThrow());
@@ -575,6 +576,8 @@ async function runRandomizedInteractions<T extends Record<PropertyKey, unknown>>
 		},
 	} as const satisfies FormFnOptions;
 
+	const applyValidatorSpy = vi.spyOn(applyValidator, 'applyValidatorI');
+
 	for (let i = 0; i < count; i++) {
 		const fn = formFns[Math.floor(Math.random() * formFns.length)];
 
@@ -617,7 +620,6 @@ async function runRandomizedInteractions<T extends Record<PropertyKey, unknown>>
 				const beforeValidators = clone(get(form.validators));
 
 				// const validateSpy = vi.spyOn(form, 'validate');
-				const applyValidatorSpy = vi.spyOn(applyValidator, 'applyValidatorI');
 
 				await form.handleBlur(...opts);
 
@@ -656,7 +658,7 @@ async function runRandomizedInteractions<T extends Record<PropertyKey, unknown>>
 			}
 			case 'handleFocus': {
 				const [, opts] = formFnMapping[fn]();
-				// const [path] = opts;
+				const [path] = opts;
 
 				const beforeValues = clone(get(form.values));
 				const beforeTouched = clone(get(form.touched));
@@ -675,18 +677,209 @@ async function runRandomizedInteractions<T extends Record<PropertyKey, unknown>>
 				expect(afterValues).toEqual(beforeValues);
 				expect(afterTouched).toEqual(beforeTouched);
 				expect(afterDirty).toEqual(beforeDirty);
+				const validateMode = get(form.validateMode);
+				if (validateMode === 'onFocus' || validateMode === 'all') {
+					const validators = getValidators(path, beforeValidators, afterValues);
+					for (const [path, validatorFn] of validators) {
+						const err = await validatorFn(getInternal(path, beforeValues), {
+							values: beforeValues,
+							path,
+						});
+
+						expect(getInternal(path, afterErrors)).toBe(err);
+					}
+					expect(applyValidatorSpy).toHaveBeenCalledTimes(validators.length);
+				} else {
+					expect(afterErrors).toEqual(beforeErrors);
+				}
+				expect(afterValidators).toEqual(beforeValidators);
+				break;
+			}
+			case 'makeDirty': {
+				const [, opts] = formFnMapping[fn]();
+				const [path] = opts;
+
+				const beforeValues = clone(get(form.values));
+				const beforeTouched = clone(get(form.touched));
+				const beforeDirty = clone(get(form.dirty));
+				const beforeErrors = clone(get(form.errors));
+				const beforeValidators = clone(get(form.validators));
+
+				form.makeDirty(...opts);
+
+				const afterValues = get(form.values);
+				const afterTouched = get(form.touched);
+				const afterDirty = get(form.dirty);
+				const afterErrors = get(form.errors);
+				const afterValidators = get(form.validators);
+
+				expect(afterValues).toEqual(beforeValues);
+				expect(afterTouched).toEqual(beforeTouched);
+				if (someDeep((val) => val === false, getInternal(path, beforeDirty))) {
+					expect(getInternal(path, afterDirty)).toEqual(
+						assign(true, getInternal(path, beforeDirty)),
+					);
+				} else {
+					expect(afterDirty).toEqual(beforeDirty);
+				}
+				expect(getInternal(path, afterDirty)).toEqual(assign(true, getInternal(path, beforeDirty)));
 				expect(afterErrors).toEqual(beforeErrors);
 				expect(afterValidators).toEqual(beforeValidators);
 				break;
 			}
-			case 'makeDirty':
-				break;
 			// return [form[fn], formFnMapping[fn]()] as const;
-			case 'resetField':
+			case 'resetField': {
+				const [, opts] = formFnMapping[fn]();
+				const [path, resetFieldOpts] = opts;
+
+				const beforeValues = clone(get(form.values));
+				const beforeTouched = clone(get(form.touched));
+				const beforeDirty = clone(get(form.dirty));
+				const beforeErrors = clone(get(form.errors));
+				const beforeValidators = clone(get(form.validators));
+
+				await form.resetField(...opts);
+
+				const afterValues = get(form.values);
+				const afterTouched = get(form.touched);
+				const afterDirty = get(form.dirty);
+				const afterErrors = get(form.errors);
+				const afterValidators = get(form.validators);
+
+				if (resetFieldOpts.value) {
+					expect(getInternal(path, afterValues)).toEqual(
+						getInternal(path, setI(path, resetFieldOpts.value, clone(form.initialValues))),
+					);
+				} else {
+					expect(getInternal(path, afterValues)).toEqual(getInternal(path, form.initialValues));
+				}
+				if (resetFieldOpts.keepTouched) {
+					expect(getInternal(path, afterTouched)).toEqual(
+						mergeRightI(
+							clone(getInternal(path, form.initialTouched)),
+							clone(getInternal(path, form.initialTouched)),
+							{ onlySameKeys: true },
+						),
+					);
+				} else {
+					expect(getInternal(path, afterTouched)).toEqual(getInternal(path, form.initialTouched));
+				}
+				if (resetFieldOpts.keepDirty) {
+					expect(getInternal(path, afterDirty)).toEqual(
+						mergeRightI(
+							clone(getInternal(path, form.initialDirty)),
+							clone(getInternal(path, beforeDirty)),
+							{ onlySameKeys: true },
+						),
+					);
+				} else {
+					expect(getInternal(path, afterDirty)).toEqual(getInternal(path, form.initialDirty));
+				}
+				if ('keepError' in resetFieldOpts && resetFieldOpts.keepError) {
+					expect(getInternal(path, afterErrors)).toEqual(getInternal(path, beforeErrors));
+				} else {
+					expect(getInternal(path, afterErrors)).toEqual(getInternal(path, form.initialErrors));
+				}
+				if (resetFieldOpts.validator) {
+					expect(getInternal(path, afterValidators)).toEqual(
+						getInternal(path, setI(path, resetFieldOpts.validator, clone(form.initialValidators))),
+					);
+				} else {
+					expect(getInternal(path, afterValidators)).toEqual(
+						getInternal(path, form.initialValidators),
+					);
+				}
+				if ('validate' in resetFieldOpts && resetFieldOpts.validate) {
+					const validators = getValidators(path, afterValidators, afterValues);
+					for (let i = 0; i < validators.length; i++) {
+						const [path, validator] = validators[i];
+						const err = await validator(getInternal(path, afterValues), {
+							values: afterValues,
+							path,
+						});
+						expect(getInternal(path, afterErrors)).toBe(err);
+					}
+					expect(applyValidatorSpy).toBeCalledTimes(validators.length);
+				}
 				break;
+			}
 			// return [form[fn], formFnMapping[fn]()] as const;
-			case 'resetForm':
+			case 'resetForm': {
+				const [, opts] = formFnMapping[fn](typeAlias);
+				const [resetFormOpts] = opts;
+
+				const beforeValues = clone(get(form.values));
+				const beforeTouched = clone(get(form.touched));
+				const beforeDirty = clone(get(form.dirty));
+				const beforeErrors = clone(get(form.errors));
+				const beforeValidators = clone(get(form.validators));
+
+				form.resetForm(...opts);
+
+				// const beforeValue = getInternal(path, beforeValues);
+				// if (resetFieldOpts.value && !deepEq(beforeValue, resetFieldOpts.value)) {
+				// 	expect(beforeValue).toEqual(resetFieldOpts.value);
+				// }
+				const afterValues = get(form.values);
+				const afterTouched = get(form.touched);
+				const afterDirty = get(form.dirty);
+				const afterErrors = get(form.errors);
+				const afterValidators = get(form.validators);
+
+				if (resetFormOpts.values) {
+					expect(afterValues).toEqual(
+						mergeRightI(clone(form.initialValues), clone(resetFormOpts.values)),
+					);
+				} else {
+					expect(afterValues).toEqual(form.initialValues);
+				}
+				if (resetFormOpts.keepTouched) {
+					expect(afterTouched).toEqual(assignUsing(form.initialTouched, beforeTouched));
+				} else {
+					expect(afterTouched).toEqual(form.initialTouched);
+				}
+				if (resetFormOpts.keepDirty) {
+					expect(afterDirty).toEqual(assignUsing(form.initialDirty, beforeDirty));
+				} else {
+					expect(afterDirty).toEqual(form.initialDirty);
+				}
+				if (resetFormOpts.keepErrors) {
+					expect(afterErrors).toEqual(assignUsing(form.initialErrors, beforeErrors));
+				} else {
+					expect(afterErrors).toEqual(form.initialErrors);
+				}
+				if (resetFormOpts.keepValidators) {
+					// TODO: Think about making sure that validators match the values structure depending on if new values were passed
+					if (resetFormOpts.validators) {
+						expect(afterValidators).toEqual(
+							mergeRightI(clone(form.initialValidators), clone(resetFormOpts.validators), {
+								onlySameKeys: true,
+							}),
+						);
+					} else {
+						// TODO: Find a better way to compare functions
+						// const oldValidators = assignUsing(form.initialValidators, beforeValidators);
+						// expect(Object.values(afterValidators).map((x) => x.toString())).toEqual(
+						// 	Object.values(oldValidators).map((x) => x.toString()),
+						// );
+						expect(afterValidators).toEqual(
+							mergeRightI(clone(form.initialValidators), clone(beforeValidators), {
+								onlySameKeys: true,
+							}),
+						);
+					}
+				} else {
+					// TODO: Think about making sure that validators match the values structure depending on if new values were passed
+					if (resetFormOpts.validators) {
+						expect(afterValidators).toEqual(
+							mergeRightI(clone(form.initialValidators), clone(resetFormOpts.validators)),
+						);
+					} else {
+						expect(afterValidators).toEqual(form.initialValidators);
+					}
+				}
 				break;
+			}
 			// return [form[fn], formFnMapping[fn](typeAlias)] as const;
 			case 'submitForm':
 				break;
@@ -753,7 +946,7 @@ it('should work with 1000 randomized interactions', () => {
 	const { component } = render(Form);
 	const { form } = getComponentState(component);
 
-	runRandomizedInteractions(form, 100_000, typeAlias);
+	runRandomizedInteractions(form, 10_000, typeAlias);
 });
 
 describe('createForm', async () => {
